@@ -12,8 +12,11 @@
     "start": "remix-serve build"
   },
   "dependencies": {
+    "@node-rs/bcrypt": "1.4.2",
+    "@prisma/client": "3.3.0",
     "@remix-run/react": "0.19.3",
     "@remix-run/serve": "0.19.3",
+    "clsx": "1.1.1",
     "react": "17.0.2",
     "react-dom": "17.0.2",
     "react-router-dom": "6.0.0-beta.8",
@@ -30,6 +33,7 @@
     "pm2": "5.1.2",
     "postcss": "8.3.11",
     "postcss-cli": "9.0.1",
+    "prisma": "3.3.0",
     "tailwindcss": "3.0.0-alpha.1",
     "typescript": "4.4.4"
   },
