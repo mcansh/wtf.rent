@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: wtf.rent
+    name: web
     env: node
     repo: https://github.com/mcansh/wtf.rent
     region: oregon
@@ -9,4 +9,4 @@ services:
     startCommand: npm run start
 
 databases:
-  - name: wtf.render-db
+  - name: db
