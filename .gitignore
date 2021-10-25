@@ -1,5 +1,7 @@
 node_modules
 
 /.cache
-/server/build
+/build
 /public/build
+
+/app/styles/global.css
