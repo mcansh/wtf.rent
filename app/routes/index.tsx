@@ -1,13 +1,12 @@
 import type { MetaFunction, LinksFunction, LoaderFunction } from "remix";
-import { useLoaderData } from "remix";
-import { Link } from "react-router-dom";
+import { Link, useLoaderData } from "remix";
 
 import stylesUrl from "../styles/index.css";
 
 export let meta: MetaFunction = () => {
   return {
     title: "Remix Starter",
-    description: "Welcome to remix!"
+    description: "Welcome to remix!",
   };
 };
 
