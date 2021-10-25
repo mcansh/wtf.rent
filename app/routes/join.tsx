@@ -8,7 +8,8 @@ import {
   useTransition,
 } from "remix";
 import { json } from "remix-utils";
-import { authenticator, sessionStorage } from "~/auth.server";
+
+import { sessionStorage } from "~/session.server";
 import { hash } from "~/bcrypt.server";
 import prisma from "~/db.server";
 
@@ -70,7 +71,7 @@ export let action: ActionFunction = async ({ request }) => {
     },
   });
 
-  session.set(authenticator.sessionKey, user);
+  session.set("userId", user.id);
 
   return redirect("/", {
     headers: {
@@ -80,10 +81,9 @@ export let action: ActionFunction = async ({ request }) => {
 };
 
 export let loader: LoaderFunction = async ({ request }) => {
-  await authenticator.isAuthenticated(request, {
-    successRedirect: "/",
-  });
-
+  let session = await sessionStorage.getSession(request.headers.get("Cookie"));
+  let userId = session.get("userId");
+  if (userId) return redirect("/");
   return {};
 };
 

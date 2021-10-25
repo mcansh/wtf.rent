@@ -7,9 +7,9 @@ import {
   useTransition,
 } from "remix";
 import { json } from "remix-utils";
-import { authenticator, sessionStorage } from "~/auth.server";
-import { hash } from "~/bcrypt.server";
+
 import prisma from "~/db.server";
+import { sessionStorage } from "~/session.server";
 
 interface ActionData {
   error: string;
@@ -44,7 +44,7 @@ export let action: ActionFunction = async ({ request }) => {
       content,
       author: {
         connect: {
-          id: session.get(authenticator.sessionKey).id,
+          id: session.get("userId"),
         },
       },
     },
@@ -54,7 +54,9 @@ export let action: ActionFunction = async ({ request }) => {
 };
 
 export let loader: LoaderFunction = async ({ request }) => {
-  await authenticator.isAuthenticated(request);
+  let session = await sessionStorage.getSession(request.headers.get("Cookie"));
+  let userId = session.get("userId");
+  if (!userId) return redirect("/login");
   return {};
 };
 
@@ -69,7 +71,7 @@ export default function JoinPage() {
         <label>
           <span className="mr-2">Title</span>
           <input
-            className="border border-slate-300 rounded px-2 py-1"
+            className="px-2 py-1 border rounded border-slate-300"
             type="text"
             name="title"
             required
@@ -79,7 +81,7 @@ export default function JoinPage() {
           <span className="mr-2">Body</span>
           <textarea
             name="content"
-            className="border border-slate-300 rounded px-2 py-1"
+            className="px-2 py-1 border rounded border-slate-300"
           />
         </label>
       </fieldset>
