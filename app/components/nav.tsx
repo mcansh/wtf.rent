@@ -33,10 +33,10 @@ const Nav: React.VFC<Props> = ({ user }) => {
               {/* Profile dropdown */}
               <Menu as="div" className="relative ml-3">
                 <div>
-                  <Menu.Button className="flex text-sm bg-gray-800 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white">
+                  <Menu.Button className="flex items-center justify-center w-8 h-8 text-sm bg-gray-800 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white">
                     <span className="sr-only">Open user menu</span>
-                    <span className="w-8 h-8 text-white rounded-full">
-                      {user.username}
+                    <span className="text-lg text-white rounded-full">
+                      {user.username.slice(0, 1).toUpperCase()}
                     </span>
                   </Menu.Button>
                 </div>
