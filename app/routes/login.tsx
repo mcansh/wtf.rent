@@ -1,10 +1,18 @@
-import { ActionFunction, Form, LoaderFunction, redirect } from "remix";
+import {
+  ActionFunction,
+  Form,
+  LoaderFunction,
+  MetaFunction,
+  redirect,
+  RouteComponent,
+  useTransition,
+} from "remix";
 import { json } from "remix-utils";
 import { verify } from "~/bcrypt.server";
 import prisma from "~/db.server";
 import { sessionStorage } from "~/session.server";
 
-export let action: ActionFunction = async ({ request }) => {
+let action: ActionFunction = async ({ request }) => {
   let session = await sessionStorage.getSession(request.headers.get("Cookie"));
   let requestBody = await request.text();
   let formData = new URLSearchParams(requestBody);
@@ -55,37 +63,112 @@ export let action: ActionFunction = async ({ request }) => {
   });
 };
 
-export let loader: LoaderFunction = async ({ request }) => {
+let loader: LoaderFunction = async ({ request }) => {
   let session = await sessionStorage.getSession(request.headers.get("Cookie"));
   let userId = session.get("userId");
   if (userId) return redirect("/");
   return {};
 };
 
-export default function LoginPage() {
+let meta: MetaFunction = () => ({
+  title: "Log in",
+});
+
+const LoginPage: RouteComponent = () => {
+  let transition = useTransition();
+  let pendingForm = transition.submission;
+
   return (
-    <Form method="post">
-      <fieldset className="flex flex-col">
-        <label>
-          <span className="mr-2">Username</span>
-          <input
-            className="px-2 py-1 border rounded border-slate-300"
-            type="text"
-            name="username"
-            required
-          />
-        </label>
-        <label>
-          <span className="mr-2">Password</span>
-          <input
-            className="px-2 py-1 border rounded border-slate-300"
-            type="password"
-            name="password"
-            required
-          />
-        </label>
-        <button>Log In</button>
-      </fieldset>
-    </Form>
+    <div className="flex flex-col justify-center min-h-full py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <h2 className="mt-6 text-3xl font-extrabold text-center text-gray-900">
+          Sign in to WTF.rent
+        </h2>
+      </div>
+
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="px-4 py-8 bg-white shadow sm:rounded-lg sm:px-10">
+          <Form method="post">
+            <fieldset className="space-y-6" disabled={!!pendingForm}>
+              <div>
+                <label
+                  htmlFor="username"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Username
+                </label>
+                <div className="mt-1">
+                  <input
+                    id="username"
+                    name="text"
+                    type="username"
+                    autoComplete="username"
+                    required
+                    className="block w-full px-3 py-2 placeholder-gray-400 border border-gray-300 rounded-md shadow-sm appearance-none focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Password
+                </label>
+                <div className="mt-1">
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    autoComplete="new-password"
+                    required
+                    className="block w-full px-3 py-2 placeholder-gray-400 border border-gray-300 rounded-md shadow-sm appearance-none focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <input
+                    id="remember-me"
+                    name="remember-me"
+                    type="checkbox"
+                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                  />
+                  <label
+                    htmlFor="remember-me"
+                    className="block ml-2 text-sm text-gray-900"
+                  >
+                    Remember me
+                  </label>
+                </div>
+
+                <div className="text-sm">
+                  <a
+                    href="#"
+                    className="font-medium text-indigo-600 hover:text-indigo-500"
+                  >
+                    Forgot your password?
+                  </a>
+                </div>
+              </div>
+
+              <div>
+                <button
+                  type="submit"
+                  className="flex justify-center w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Sign in
+                </button>
+              </div>
+            </fieldset>
+          </Form>
+        </div>
+      </div>
+    </div>
   );
-}
+};
+
+export default LoginPage;
+export { action, meta, loader };

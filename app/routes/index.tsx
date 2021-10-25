@@ -4,23 +4,22 @@ import {
   Link,
   LoaderFunction,
   useLoaderData,
-  Form,
+  RouteComponent,
 } from "remix";
 import { json } from "remix-utils";
-import { Prisma, User } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 import prisma from "~/db.server";
 import stylesUrl from "~/styles/index.css";
-import { sessionStorage } from "~/session.server";
 
-export let meta: MetaFunction = () => {
+let meta: MetaFunction = () => {
   return {
     title: "wtf.rent",
     description: "put shitty landlords on blast",
   };
 };
 
-export let links: LinksFunction = () => {
+let links: LinksFunction = () => {
   return [{ rel: "stylesheet", href: stylesUrl }];
 };
 
@@ -38,15 +37,9 @@ type PostWithUser = Prisma.PostGetPayload<typeof postWithUser>;
 
 interface RouteData {
   posts: Array<PostWithUser>;
-  user?: {
-    id: string;
-  };
 }
 
-export let loader: LoaderFunction = async ({ request }) => {
-  let session = await sessionStorage.getSession(request.headers.get("Cookie"));
-  let userId = session.get("userId");
-
+let loader: LoaderFunction = async () => {
   let posts = await prisma.post.findMany({
     include: {
       author: {
@@ -57,25 +50,16 @@ export let loader: LoaderFunction = async ({ request }) => {
     },
   });
 
-  return json<RouteData>({ posts, user: userId ? { id: userId } : undefined });
+  return json<RouteData>({ posts });
 };
 
-export default function Index() {
+const IndexPage: RouteComponent = () => {
   let data = useLoaderData<RouteData>();
   return (
     <>
-      <nav>
-        <h1>wtf.rent</h1>
-        <p>put shitty landlords on blast.</p>
-        {data.user ? (
-          <Form method="post" action="/logout">
-            <button type="submit">logout</button>
-          </Form>
-        ) : (
-          <Link to="/login">login</Link>
-        )}
-      </nav>
-      <main>
+      <main className="px-2 mx-auto max-w-7xl sm:px-6 lg:px-8">
+        <h1 className="pt-4 text-4xl font-semibold">wtf.rent</h1>
+        <p className="text-xl">put shitty landlords on blast.</p>
         <div>
           {data.posts.map((post) => (
             <div key={post.id}>
@@ -89,4 +73,7 @@ export default function Index() {
       </main>
     </>
   );
-}
+};
+
+export default IndexPage;
+export { links, loader, meta };
