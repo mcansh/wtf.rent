@@ -66,26 +66,34 @@ export default function JoinPage() {
   let pendingForm = transition.submission;
 
   return (
-    <Form method="post">
-      <fieldset className="flex flex-col" disabled={!!pendingForm}>
-        <label>
-          <span className="mr-2">Title</span>
-          <input
-            className="px-2 py-1 border rounded border-slate-300"
-            type="text"
-            name="title"
-            required
-          />
-        </label>
-        <label>
-          <span className="mr-2">Body</span>
-          <textarea
-            name="content"
-            className="px-2 py-1 border rounded border-slate-300"
-          />
-        </label>
-      </fieldset>
-      <button>Post</button>
-    </Form>
+    <main className="px-2 py-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+      <Form method="post">
+        <fieldset className="flex flex-col space-y-4" disabled={!!pendingForm}>
+          <label className="space-y-2">
+            <span className="block">Title</span>
+            <input
+              className="w-full px-2 py-1 border rounded border-slate-300"
+              type="text"
+              name="title"
+              required
+            />
+          </label>
+          <label className="space-y-2">
+            <span className="block">Body</span>
+            <textarea
+              name="content"
+              className="w-full h-full px-2 py-1 border rounded border-slate-300"
+              rows={20}
+            />
+          </label>
+        </fieldset>
+        <button
+          type="submit"
+          className="flex justify-center w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        >
+          Post
+        </button>
+      </Form>
+    </main>
   );
 }

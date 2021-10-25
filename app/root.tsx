@@ -21,14 +21,22 @@ let links: LinksFunction = () => {
 };
 
 interface RouteData {
-  user?: User;
+  user?: Omit<User, "password">;
 }
 
 let loader: LoaderFunction = async ({ request }) => {
   let session = await sessionStorage.getSession(request.headers.get("Cookie"));
   let userId = session.get("userId");
   let user = userId
-    ? await prisma.user.findUnique({ where: { id: userId } })
+    ? await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          password: false,
+          email: true,
+          username: true,
+          id: true,
+        },
+      })
     : null;
 
   return { user };

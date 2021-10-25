@@ -11,6 +11,7 @@ import { Prisma } from "@prisma/client";
 
 import prisma from "~/db.server";
 import stylesUrl from "~/styles/index.css";
+import { format } from "date-fns";
 
 let meta: MetaFunction = () => {
   return {
@@ -65,7 +66,12 @@ const IndexPage: RouteComponent = () => {
             <div key={post.id}>
               <h2>{post.title}</h2>
               <p>{post.content}</p>
-              <p>Posted by {post.author.username}</p>
+              <p>
+                Posted by {post.author.username} on{" "}
+                <time dateTime={String(post.createdAt)}>
+                  {format(new Date(post.createdAt), "M/d/yyyy h:mm a")}
+                </time>
+              </p>
               <Link to={`post/${post.id}`}>Read more</Link>
             </div>
           ))}

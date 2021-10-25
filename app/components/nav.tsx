@@ -6,7 +6,7 @@ import clsx from "clsx";
 import { Form, Link } from "remix";
 
 interface Props {
-  user?: User;
+  user?: Omit<User, "password">;
 }
 
 const Nav: React.VFC<Props> = ({ user }) => {
@@ -50,6 +50,19 @@ const Nav: React.VFC<Props> = ({ user }) => {
                   leaveTo="transform opacity-0 scale-95"
                 >
                   <Menu.Items className="absolute right-0 w-48 py-1 mt-2 origin-top-right bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                    <Menu.Item>
+                      {({ active }) => (
+                        <Link
+                          to="/post/new"
+                          className={clsx(
+                            active ? "bg-gray-100" : "",
+                            "block px-4 py-2 text-sm text-gray-700"
+                          )}
+                        >
+                          New Post
+                        </Link>
+                      )}
+                    </Menu.Item>
                     <Menu.Item>
                       {({ active }) => (
                         <a
