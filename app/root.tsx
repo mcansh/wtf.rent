@@ -1,13 +1,13 @@
 import type { LinksFunction, LoaderFunction } from "remix";
 import {
-  Meta,
   Links,
-  Scripts,
-  useLoaderData,
   LiveReload,
-  useCatch
+  Meta,
+  Outlet,
+  Scripts,
+  useCatch,
+  useLoaderData,
 } from "remix";
-import { Outlet } from "react-router-dom";
 
 import stylesUrl from "./styles/global.css";
 
@@ -21,7 +21,7 @@ export let loader: LoaderFunction = async () => {
 
 function Document({
   children,
-  title
+  title,
 }: {
   children: React.ReactNode;
   title?: string;
