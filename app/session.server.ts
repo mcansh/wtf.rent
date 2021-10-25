@@ -8,7 +8,6 @@ let sessionStorage = createCookieSessionStorage({
     httpOnly: true,
     secrets: ["s3cr3t"],
     secure: process.env.NODE_ENV === "production",
-    maxAge: 60 * 60 * 24 * 7 * 1000, // 7 days
   },
 });
 

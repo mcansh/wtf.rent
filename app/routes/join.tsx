@@ -29,6 +29,7 @@ let action: ActionFunction = async ({ request }) => {
   let username = formData.get("username");
   let password = formData.get("password");
   let passwordConfirm = formData.get("passwordConfirm");
+  let rememberMe = formData.get("remember-me") === "on";
 
   if (!email) {
     return json<ActionData>(
@@ -77,7 +78,10 @@ let action: ActionFunction = async ({ request }) => {
 
   return redirect("/", {
     headers: {
-      "Set-Cookie": await sessionStorage.commitSession(session),
+      "Set-Cookie": await sessionStorage.commitSession(session, {
+        // if remember me is checked, set a cookie that expires in 7 days
+        maxAge: rememberMe ? 60 * 60 * 24 * 7 * 1000 : undefined,
+      }),
     },
   });
 };
