@@ -1,16 +1,18 @@
 lockfileVersion: 5.3
 
 specifiers:
-  '@remix-run/dev': ^0.19.3
-  '@remix-run/react': ^0.19.3
-  '@remix-run/serve': ^0.19.3
-  '@types/react': ^17.0.24
-  '@types/react-dom': ^17.0.9
-  react: ^17.0.2
-  react-dom: ^17.0.2
+  '@remix-run/dev': 0.19.3
+  '@remix-run/react': 0.19.3
+  '@remix-run/serve': 0.19.3
+  '@types/react': 17.0.32
+  '@types/react-dom': 17.0.10
+  react: 17.0.2
+  react-dom: 17.0.2
   react-router-dom: 6.0.0-beta.8
-  remix: ^0.19.3
-  typescript: ^4.1.2
+  remix: 0.19.3
+  remix-auth: 2.1.0
+  remix-utils: 1.0.2
+  typescript: 4.4.4
 
 dependencies:
   '@remix-run/react': 0.19.3_react-dom@17.0.2+react@17.0.2
@@ -19,6 +21,8 @@ dependencies:
   react-dom: 17.0.2_react@17.0.2
   react-router-dom: 6.0.0-beta.8_react-dom@17.0.2+react@17.0.2
   remix: 0.19.3
+  remix-auth: 2.1.0_6fc329ddafc932fbf8772b7b2c9d0771
+  remix-utils: 1.0.2_0660ecf59380b8b70ca9819d3b5260c4
 
 devDependencies:
   '@remix-run/dev': 0.19.3
@@ -2199,6 +2203,32 @@ packages:
       mdast-util-to-hast: 11.3.0
       unified: 10.1.0
     dev: true
+
+  /remix-auth/2.1.0_6fc329ddafc932fbf8772b7b2c9d0771:
+    resolution: {integrity: sha512-FSxGovPTbYtyL08WCUCrkSGtSlkc4X/LazOMx+x2yWeiKiGO4rXCIEtObUH6WSyufEiLBQmScsgKrAM8h0TI5A==}
+    requiresBuild: true
+    peerDependencies:
+      '@remix-run/node': ^0.19.2
+      '@remix-run/react': ^0.19.2
+      remix: ^0.19.2
+    dependencies:
+      '@remix-run/react': 0.19.3_react-dom@17.0.2+react@17.0.2
+      remix: 0.19.3
+    dev: false
+
+  /remix-utils/1.0.2_0660ecf59380b8b70ca9819d3b5260c4:
+    resolution: {integrity: sha512-nr5sgQfMX59GAQZJW0iUuwrdR9R07JscinxxB9HpN28kIUEQgksHosJvRUzaMbdIj0h6TXuAIKKqbBcM9iTYvA==}
+    engines: {node: '>=14'}
+    peerDependencies:
+      '@remix-run/node': ^0.17.0
+      '@remix-run/react': ^0.17.0
+      react: ^17.0.2
+      remix: ^0.17.0
+    dependencies:
+      '@remix-run/react': 0.19.3_react-dom@17.0.2+react@17.0.2
+      react: 17.0.2
+      remix: 0.19.3
+    dev: false
 
   /remix/0.19.3:
     resolution: {integrity: sha512-TbO1i8mohBsoymSNe+bXOTwNVNxdJim6Tx7XbWQXqujspyMaiPx2Nzh7vkGB5c4OZ136oHvgE5e+/4w5kUDSHg==}
