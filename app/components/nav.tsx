@@ -3,7 +3,7 @@ import type { User } from "@prisma/client";
 import { Disclosure, Menu, Transition } from "@headlessui/react";
 import { BellIcon, MenuIcon, XIcon } from "@heroicons/react/outline";
 import clsx from "clsx";
-import { Link } from "remix";
+import { Form, Link } from "remix";
 
 interface Props {
   user?: User;
@@ -78,15 +78,16 @@ const Nav: React.VFC<Props> = ({ user }) => {
                     </Menu.Item>
                     <Menu.Item>
                       {({ active }) => (
-                        <a
-                          href="#"
+                        <Form
+                          method="post"
+                          action="/logout"
                           className={clsx(
                             active ? "bg-gray-100" : "",
                             "block px-4 py-2 text-sm text-gray-700"
                           )}
                         >
-                          Sign out
-                        </a>
+                          <button type="submit">Sign out</button>
+                        </Form>
                       )}
                     </Menu.Item>
                   </Menu.Items>
