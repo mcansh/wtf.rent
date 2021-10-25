@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: wtf.rent
+    env: node
+    repo: https://github.com/mcansh/wtf.rent
+    region: oregon
+    numInstances: 1
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+
+databases:
+  - name: wtf.render-db
