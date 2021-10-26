@@ -27,14 +27,14 @@ export let action: ActionFunction = async ({ request }) => {
   if (!title) {
     return json<ActionData>(
       { field: "title", error: "Title is required" },
-      { statusCode: 400 }
+      { status: 400 }
     );
   }
 
   if (!content) {
     return json<ActionData>(
       { field: "content", error: "Body is required" },
-      { statusCode: 400 }
+      { status: 400 }
     );
   }
 

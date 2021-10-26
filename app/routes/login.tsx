@@ -24,14 +24,14 @@ let action: ActionFunction = async ({ request }) => {
   if (!username) {
     return json(
       { field: "username", message: "Username is required" },
-      { statusCode: 400 }
+      { status: 400 }
     );
   }
 
   if (!password) {
     return json(
       { field: "password", message: "Password is required" },
-      { statusCode: 400 }
+      { status: 400 }
     );
   }
 
@@ -40,19 +40,13 @@ let action: ActionFunction = async ({ request }) => {
   });
 
   if (!user) {
-    return json(
-      { message: "Invalid username or password" },
-      { statusCode: 400 }
-    );
+    return json({ message: "Invalid username or password" }, { status: 400 });
   }
 
   let valid = await verify(password, user.password);
 
   if (!valid) {
-    return json(
-      { message: "Invalid username or password" },
-      { statusCode: 400 }
-    );
+    return json({ message: "Invalid username or password" }, { status: 400 });
   }
 
   session.set("userId", user.id);
@@ -175,4 +169,4 @@ const LoginPage: RouteComponent = () => {
 };
 
 export default LoginPage;
-export { action, meta, loader };
+export { action, loader, meta };

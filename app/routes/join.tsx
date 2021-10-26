@@ -34,35 +34,35 @@ let action: ActionFunction = async ({ request }) => {
   if (!email) {
     return json<ActionData>(
       { field: "email", error: "Email is required" },
-      { statusCode: 400 }
+      { status: 400 }
     );
   }
 
   if (!username) {
     return json<ActionData>(
       { field: "username", error: "Username is required" },
-      { statusCode: 400 }
+      { status: 400 }
     );
   }
 
   if (!password) {
     return json<ActionData>(
       { field: "password", error: "Password is required" },
-      { statusCode: 400 }
+      { status: 400 }
     );
   }
 
   if (!passwordConfirm) {
     return json<ActionData>(
       { field: "passwordConfirm", error: "Password confirmation is required" },
-      { statusCode: 400 }
+      { status: 400 }
     );
   }
 
   if (password !== passwordConfirm) {
     return json<ActionData>(
       { field: "passwordConfirm", error: "Passwords do not match" },
-      { statusCode: 400 }
+      { status: 400 }
     );
   }
 
