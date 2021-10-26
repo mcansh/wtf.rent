@@ -123,7 +123,9 @@ const PostPage: RouteComponent = () => {
     <main className="px-2 py-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
       <div>
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">{data.post.title}</h1>
+          <h1 className="text-2xl font-semibold max-w-prose">
+            {data.post.title}
+          </h1>
           {data.userCreatedPost && <Link to="edit">Edit</Link>}
         </div>
         <h2>Posted {data.post.createdAt}</h2>
