@@ -42,6 +42,9 @@ interface RouteData {
 
 let loader: LoaderFunction = async () => {
   let posts = await prisma.post.findMany({
+    orderBy: {
+      createdAt: "desc",
+    },
     include: {
       author: {
         select: {
@@ -65,7 +68,7 @@ const IndexPage: RouteComponent = () => {
           {data.posts.map((post) => (
             <div key={post.id} className="px-2 py-4 rounded bg-slate-200">
               <Link
-                className="inline-block text-lg hover:underline"
+                className="inline-block text-lg hover:underline line-clamp-1 max-w-prose"
                 to={`post/${post.id}`}
               >
                 <h2>{post.title}</h2>
