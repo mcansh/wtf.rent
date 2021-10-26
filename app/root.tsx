@@ -1,4 +1,3 @@
-import type { User } from "@prisma/client";
 import clsx from "clsx";
 import {
   ErrorBoundaryComponent,
@@ -10,11 +9,14 @@ import {
   useMatches,
 } from "remix";
 import { Links, LiveReload, Meta, Outlet, Scripts, useCatch } from "remix";
+import type { User } from "@prisma/client";
+
 import { Nav } from "./components/nav";
 import prisma from "./db.server";
 import { sessionStorage } from "./session.server";
 
 import stylesUrl from "./styles/global.css";
+import type { Match } from "./types";
 
 let links: LinksFunction = () => {
   return [{ rel: "stylesheet", href: stylesUrl }];
@@ -48,7 +50,7 @@ interface DocumentProps {
 
 const Document: React.FC<DocumentProps> = ({ children, title }) => {
   let data = useLoaderData<RouteData | undefined>();
-  let matches = useMatches();
+  let matches = useMatches() as unknown as Array<Match>;
   let bodyClassName = matches
     .filter((match) => match.handle && match.handle.bodyClassName)
     .map((match) => match.handle.bodyClassName);
@@ -63,9 +65,9 @@ const Document: React.FC<DocumentProps> = ({ children, title }) => {
         <Meta />
         <Links />
       </head>
-      <body className={clsx("h-full", bodyClassName)}>
+      <body className={clsx("h-full flex flex-col", bodyClassName)}>
         <Nav user={data?.user} />
-        {children}
+        <div className="flex-auto">{children}</div>
         <Scripts />
         {process.env.NODE_ENV === "development" && <LiveReload />}
       </body>

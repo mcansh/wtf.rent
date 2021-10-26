@@ -5,7 +5,6 @@ import {
   MetaFunction,
   redirect,
   RouteComponent,
-  RouteHandle,
   useActionData,
   useTransition,
 } from "remix";
@@ -14,6 +13,7 @@ import { json } from "remix-utils";
 import { sessionStorage } from "~/session.server";
 import { hash } from "~/bcrypt.server";
 import prisma from "~/db.server";
+import type { RouteHandle } from "~/types";
 
 interface ActionData {
   error: string;
