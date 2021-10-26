@@ -61,18 +61,26 @@ const IndexPage: RouteComponent = () => {
       <main className="px-2 mx-auto max-w-7xl sm:px-6 lg:px-8">
         <h1 className="pt-4 text-4xl font-semibold">wtf.rent</h1>
         <p className="text-xl">put shitty landlords on blast.</p>
-        <div>
+        <div className="space-y-2">
           {data.posts.map((post) => (
-            <div key={post.id}>
-              <h2>{post.title}</h2>
-              <p>{post.content}</p>
-              <p>
-                Posted by {post.author.username} on{" "}
+            <div key={post.id} className="px-2 py-4 rounded bg-slate-200">
+              <Link
+                className="inline-block text-lg hover:underline"
+                to={`post/${post.id}`}
+              >
+                <h2>{post.title}</h2>
+              </Link>
+              <p className="prose line-clamp-1">{post.content}</p>
+              <p className="text-sm text-slate-900s">
+                Posted by{" "}
+                <Link className="hover:underline" to={post.author.username}>
+                  {post.author.username}
+                </Link>{" "}
+                on{" "}
                 <time dateTime={String(post.createdAt)}>
                   {format(new Date(post.createdAt), "M/d/yyyy h:mm a")}
                 </time>
               </p>
-              <Link to={`post/${post.id}`}>Read more</Link>
             </div>
           ))}
         </div>
