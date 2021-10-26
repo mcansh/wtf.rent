@@ -1,4 +1,5 @@
 import { Post, Prisma } from "@prisma/client";
+import clsx from "clsx";
 import * as React from "react";
 import {
   RouteComponent,
@@ -50,6 +51,7 @@ type PostWithComments = Prisma.PostGetPayload<typeof postWithComments>;
 interface RouteData {
   post: PostWithComments;
   userCreatedPost: boolean;
+  loggedIn: boolean;
 }
 
 const loader: LoaderFunction = async ({ request, params }) => {
@@ -69,7 +71,7 @@ const loader: LoaderFunction = async ({ request, params }) => {
 
   let userCreatedPost = post.author.id === userId;
 
-  return json<RouteData>({ post, userCreatedPost });
+  return json<RouteData>({ post, userCreatedPost, loggedIn: !!userId });
 };
 
 const action: ActionFunction = async ({ request, params }) => {
@@ -152,20 +154,33 @@ const PostPage: RouteComponent = () => {
         )}
       </div>
 
-      <Form method="post" className="mt-4">
-        <fieldset disabled={!!pendingForm}>
-          <label htmlFor="content">Leave a comment</label>
-          <textarea
-            className="block w-full"
-            id="content"
-            name="content"
-            rows={5}
-          />
-          <button type="submit" className="px-2 py-1 mt-2 border rounded">
-            Submit
-          </button>
-        </fieldset>
-      </Form>
+      <div className={clsx(!data.loggedIn && "relative")}>
+        {!data.loggedIn && (
+          <p className="absolute z-10 w-full px-4 -mt-2 text-center -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2">
+            To leave a comment, you must be{" "}
+            <Link className="text-indigo-600" to="/login">
+              logged in
+            </Link>
+          </p>
+        )}
+        <Form
+          method="post"
+          className={clsx(!data.loggedIn && "opacity-60", "mt-4")}
+        >
+          <fieldset disabled={!!pendingForm || !data.loggedIn}>
+            <label htmlFor="content">Leave a comment</label>
+            <textarea
+              className="block w-full"
+              id="content"
+              name="content"
+              rows={5}
+            />
+            <button type="submit" className="px-2 py-1 mt-2 border rounded">
+              Submit
+            </button>
+          </fieldset>
+        </Form>
+      </div>
     </main>
   );
 };
