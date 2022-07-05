@@ -13,10 +13,10 @@ import {
   useLoaderData,
   useTransition,
 } from "@remix-run/react";
+import { differenceInMinutes, format } from "date-fns";
 
 import prisma from "~/db.server";
 import { sessionStorage } from "~/session.server";
-import { differenceInMinutes } from "date-fns";
 
 let postWithComments = Prisma.validator<Prisma.PostArgs>()({
   select: {
@@ -39,8 +39,12 @@ let postWithComments = Prisma.validator<Prisma.PostArgs>()({
 
 type PostWithComments = Prisma.PostGetPayload<typeof postWithComments>;
 
+type Serialized<T> = {
+  [P in keyof T]: T[P] extends Date ? string : Serialized<T[P]>;
+};
+
 interface RouteData {
-  post: PostWithComments;
+  post: Serialized<PostWithComments>;
   userCreatedPost: boolean;
   userId: string | undefined;
 }
@@ -67,7 +71,21 @@ export const loader: LoaderFunction = async ({ request, params }) => {
 
   let userCreatedPost = post.author.id === userId;
 
-  return json<RouteData>({ post, userCreatedPost, userId });
+  return json<RouteData>({
+    post: {
+      ...post,
+      createdAt: format(post.createdAt, "yyyy-MM-dd HH:mm O"),
+      updatedAt: format(post.updatedAt, "yyyy-MM-dd HH:mm O"),
+      comments: post.comments.map((comment) => {
+        return {
+          ...comment,
+          createdAt: format(comment.createdAt, "yyyy-MM-dd HH:mm O"),
+        };
+      }),
+    },
+    userCreatedPost,
+    userId,
+  });
 };
 
 export const action: ActionFunction = async ({ request, params }) => {
