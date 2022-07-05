@@ -7,7 +7,6 @@ import { Link, useLoaderData } from "@remix-run/react";
 import { json } from "@remix-run/node";
 import { Prisma } from "@prisma/client";
 import { format } from "date-fns";
-
 import prisma from "~/db.server";
 import stylesUrl from "~/styles/index.css";
 
@@ -73,10 +72,7 @@ export default function IndexPage() {
               </Link>
               <p className="prose line-clamp-1">{post.content}</p>
               <p className="text-slate-900s text-sm">
-                Posted by{" "}
-                <Link className="hover:underline" to={post.author.username}>
-                  {post.author.username}
-                </Link>{" "}
+                Posted by {post.author ? post.author.username : "deleted user"}{" "}
                 on{" "}
                 <time dateTime={String(post.createdAt)}>
                   {format(new Date(post.createdAt), "M/d/yyyy h:mm a")}

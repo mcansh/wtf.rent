@@ -6,6 +6,7 @@ import type {
   MetaFunction,
 } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
+import { differenceInMinutes, format } from "date-fns";
 import {
   Form,
   Link,
@@ -13,8 +14,6 @@ import {
   useLoaderData,
   useTransition,
 } from "@remix-run/react";
-import { differenceInMinutes, format } from "date-fns";
-
 import prisma from "~/db.server";
 import { sessionStorage } from "~/session.server";
 
@@ -69,7 +68,7 @@ export const loader: LoaderFunction = async ({ request, params }) => {
     throw new Response(`Post with id ${params.id} not found`, { status: 404 });
   }
 
-  let userCreatedPost = post.author.id === userId;
+  let userCreatedPost = post.author?.id === userId;
 
   return json<RouteData>({
     post: {
@@ -202,29 +201,39 @@ export default function PostPage() {
       <h3 className="font-lg font-medium">Comments</h3>
       <div className="space-y-2 divide-y">
         {data.post.comments.length ? (
-          data.post.comments.map((comment) => (
-            <div key={comment.id}>
-              <div
-                dangerouslySetInnerHTML={{ __html: comment.content }}
-                className="prose"
-              />
-              <div className="flex space-x-4">
-                <p className="text-sm">{comment.author.username}</p>
-                <p className="text-sm">{comment.createdAt}</p>
-                {comment.author.id === data.userId && (
-                  <Form method="post" className="text-sm">
-                    <input
-                      type="hidden"
-                      name="variant"
-                      value="delete-comment"
-                    />
-                    <input type="hidden" name="commentId" value={comment.id} />
-                    <button type="submit">Delete</button>
-                  </Form>
-                )}
+          data.post.comments.map((comment) => {
+            let commentAuthor = comment.author || {
+              username: "deleted user",
+              id: undefined,
+            };
+            return (
+              <div key={comment.id}>
+                <div
+                  dangerouslySetInnerHTML={{ __html: comment.content }}
+                  className="prose"
+                />
+                <div className="flex space-x-4">
+                  <p className="text-sm">{commentAuthor.username}</p>
+                  <p className="text-sm">{comment.createdAt}</p>
+                  {commentAuthor.id === data.userId && (
+                    <Form method="post" className="text-sm">
+                      <input
+                        type="hidden"
+                        name="variant"
+                        value="delete-comment"
+                      />
+                      <input
+                        type="hidden"
+                        name="commentId"
+                        value={comment.id}
+                      />
+                      <button type="submit">Delete</button>
+                    </Form>
+                  )}
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         ) : (
           <p>No comments yet.</p>
         )}
