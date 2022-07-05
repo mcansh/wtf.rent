@@ -194,7 +194,7 @@ export default function PostPage() {
         <h2>Posted {data.post.createdAt}</h2>
       </div>
       <div
-        className="prose mb-6"
+        className="prose mb-6 whitespace-pre-wrap"
         dangerouslySetInnerHTML={{ __html: data.post.content }}
       />
 
@@ -210,7 +210,7 @@ export default function PostPage() {
               <div key={comment.id}>
                 <div
                   dangerouslySetInnerHTML={{ __html: comment.content }}
-                  className="prose"
+                  className="prose whitespace-pre-wrap"
                 />
                 <div className="flex space-x-4">
                   <p className="text-sm">{commentAuthor.username}</p>
