@@ -4,7 +4,9 @@ import { sessionStorage } from "~/session.server";
 
 export let action: ActionFunction = async ({ request }) => {
   let session = await sessionStorage.getSession(request.headers.get("Cookie"));
-  return redirect("/", {
+  let url = new URL(request.url);
+  let returnTo = url.searchParams.get("returnTo") ?? "/";
+  return redirect(returnTo, {
     headers: {
       "Set-Cookie": await sessionStorage.destroySession(session),
     },

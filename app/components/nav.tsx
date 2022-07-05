@@ -3,13 +3,15 @@ import type { User } from "@prisma/client";
 import { Menu, Transition } from "@headlessui/react";
 import { BellIcon } from "@heroicons/react/outline";
 import clsx from "clsx";
-import { Form, Link } from "@remix-run/react";
+import { Form, Link, useLocation } from "@remix-run/react";
 
 interface Props {
   user?: Omit<User, "password">;
 }
 
 export const Nav: React.FC<Props> = ({ user }) => {
+  let location = useLocation();
+
   return (
     <nav className="bg-gray-800">
       <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
@@ -90,18 +92,25 @@ export const Nav: React.FC<Props> = ({ user }) => {
                       )}
                     </Menu.Item>
                     <Menu.Item>
-                      {({ active }) => (
-                        <Form
-                          method="post"
-                          action="/logout"
-                          className={clsx(
-                            active ? "bg-gray-100" : "",
-                            "block px-4 py-2 text-sm text-gray-700"
-                          )}
-                        >
-                          <button type="submit">Sign out</button>
-                        </Form>
-                      )}
+                      {({ active }) => {
+                        let returnTo = encodeURIComponent(
+                          location.pathname + location.search
+                        );
+                        let logoutUrl = "/logout?returnTo=" + returnTo;
+
+                        return (
+                          <Form
+                            method="post"
+                            action={logoutUrl}
+                            className={clsx(
+                              active ? "bg-gray-100" : "",
+                              "block px-4 py-2 text-sm text-gray-700"
+                            )}
+                          >
+                            <button type="submit">Sign out</button>
+                          </Form>
+                        );
+                      }}
                     </Menu.Item>
                   </Menu.Items>
                 </Transition>

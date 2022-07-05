@@ -12,6 +12,7 @@ import {
   Link,
   useActionData,
   useLoaderData,
+  useLocation,
   useTransition,
 } from "@remix-run/react";
 import prisma from "~/db.server";
@@ -172,6 +173,7 @@ export const meta: MetaFunction = ({ data }) => {
 };
 
 export default function PostPage() {
+  let location = useLocation();
   let data = useLoaderData<RouteData>();
   let actionData = useActionData<ActionRouteData>();
   let transition = useTransition();
@@ -192,6 +194,7 @@ export default function PostPage() {
           {data.userCreatedPost && <Link to="edit">Edit</Link>}
         </div>
         <h2>Posted {data.post.createdAt}</h2>
+        <h2>Updated {data.post.updatedAt}</h2>
       </div>
       <div
         className="prose mb-6 whitespace-pre-wrap"
@@ -243,7 +246,10 @@ export default function PostPage() {
         {!data.userId && (
           <p className="absolute top-1/2 left-1/2 z-10 -mt-2 w-full -translate-x-1/2 -translate-y-1/2 px-4 text-center">
             To leave a comment, you must be{" "}
-            <Link className="text-indigo-600" to="/login">
+            <Link
+              className="text-indigo-600"
+              to={`/login?returnTo=${location.pathname}${location.search}`}
+            >
               logged in
             </Link>
           </p>

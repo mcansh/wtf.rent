@@ -4,7 +4,7 @@ import type {
   MetaFunction,
 } from "@remix-run/node";
 import { redirect } from "@remix-run/node";
-import { Form, useTransition } from "@remix-run/react";
+import { Form, useLocation, useTransition } from "@remix-run/react";
 import { json } from "@remix-run/node";
 import { verify } from "~/bcrypt.server";
 import prisma from "~/db.server";
@@ -17,6 +17,9 @@ export let action: ActionFunction = async ({ request }) => {
   let username = formData.get("username");
   let password = formData.get("password");
   let rememberMe = formData.get("remember-me") === "on";
+
+  let url = new URL(request.url);
+  let returnTo = url.searchParams.get("returnTo") ?? "/";
 
   if (typeof username !== "string" || !username.length) {
     return json(
@@ -48,7 +51,7 @@ export let action: ActionFunction = async ({ request }) => {
 
   session.set("userId", user.id);
 
-  return redirect("/", {
+  return redirect(returnTo, {
     headers: {
       "Set-Cookie": await sessionStorage.commitSession(session, {
         // if remember me is checked, set a cookie that expires in 7 days
@@ -70,6 +73,7 @@ export let meta: MetaFunction = () => ({
 });
 
 export default function LoginPage() {
+  let location = useLocation();
   let transition = useTransition();
   let pendingForm = transition.submission;
 
@@ -83,7 +87,7 @@ export default function LoginPage() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white px-4 py-8 shadow sm:rounded-lg sm:px-10">
-          <Form method="post">
+          <Form method="post" action={location.pathname + location.search}>
             <fieldset className="space-y-6" disabled={!!pendingForm}>
               <div>
                 <label
