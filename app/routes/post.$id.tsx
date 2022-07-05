@@ -16,6 +16,7 @@ import {
 
 import prisma from "~/db.server";
 import { sessionStorage } from "~/session.server";
+import { differenceInMinutes } from "date-fns";
 
 let postWithComments = Prisma.validator<Prisma.PostArgs>()({
   select: {
@@ -86,10 +87,35 @@ export const action: ActionFunction = async ({ request, params }) => {
       );
     }
 
+    let comment = await prisma.comment.findFirst({
+      where: {
+        authorId: userId,
+        id: commentId,
+        postId: params.id,
+      },
+    });
+
+    if (!comment) {
+      return json<ActionRouteData>(
+        { error: { other: "Comment not found" } },
+        { status: 404 }
+      );
+    }
+
+    if (differenceInMinutes(new Date(), comment.createdAt) > 20) {
+      return json<ActionRouteData>(
+        {
+          error: { other: "You can't delete a comment older than 20 minutes" },
+        },
+        { status: 400 }
+      );
+    }
+
     await prisma.comment.deleteMany({
       where: {
         id: commentId,
         authorId: userId,
+        postId: params.id,
       },
     });
   }
@@ -166,6 +192,7 @@ export default function PostPage() {
               />
               <div className="flex space-x-4">
                 <p className="text-sm">{comment.author.username}</p>
+                <p className="text-sm">{comment.createdAt}</p>
                 {comment.author.id === data.userId && (
                   <Form method="post" className="text-sm">
                     <input
