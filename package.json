@@ -6,7 +6,7 @@
   "sideEffects": false,
   "scripts": {
     "format": "prettier --ignore-path .gitignore --write .",
-    "lint": "eslint --fix --cache .",
+    "lint": "eslint --ignore-path .gitignore --fix --cache .",
     "css": "tailwind --output app/styles/global.css --postcss",
     "build": "run-s build:*",
     "build:css": "npm run css -- --minify",

@@ -1,4 +1,5 @@
-import type * as React from "react";
+// @ts-ignore
+import * as React from "react";
 import clsx from "clsx";
 import type { LinksFunction, LoaderFunction } from "@remix-run/node";
 import {

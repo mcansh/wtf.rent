@@ -5,7 +5,6 @@ import type {
 } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
 import { Form, useActionData, useTransition } from "@remix-run/react";
-
 import { sessionStorage } from "~/session.server";
 import { hash } from "~/bcrypt.server";
 import prisma from "~/db.server";

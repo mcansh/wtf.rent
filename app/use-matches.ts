@@ -8,7 +8,6 @@ export type Match = Omit<ReturnType<typeof useRemixMatches>, "handle"> & {
   handle: RouteHandle;
 };
 
-
 export function useMatches() {
   return useRemixMatches() as unknown as Array<Match>;
 }

@@ -6,7 +6,6 @@ import type {
 import { redirect } from "@remix-run/node";
 import { Form, useTransition } from "@remix-run/react";
 import { json } from "@remix-run/node";
-
 import { verify } from "~/bcrypt.server";
 import prisma from "~/db.server";
 import { sessionStorage } from "~/session.server";
