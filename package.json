@@ -7,10 +7,13 @@
   "scripts": {
     "format": "prettier --ignore-path .gitignore --write .",
     "lint": "eslint --fix --cache .",
+    "css": "tailwind --output app/styles/global.css --postcss",
     "build": "run-s build:*",
-    "build:css": "tailwind --output app/styles/global.css --minify --postcss",
+    "build:css": "npm run css -- --minify",
     "build:remix": "remix build",
-    "dev": "pm2-dev pm2.config.js",
+    "dev": "run-p dev:*",
+    "dev:css": "npm run css -- --watch",
+    "dev:remix": "remix dev",
     "start": "remix-serve build"
   },
   "dependencies": {
@@ -38,7 +41,6 @@
     "eslint": "8.19.0",
     "eslint-plugin-prefer-let": "3.0.1",
     "npm-run-all": "4.1.5",
-    "pm2": "5.2.0",
     "postcss": "8.4.14",
     "postcss-cli": "10.0.0",
     "prettier": "2.7.1",
