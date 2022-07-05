@@ -6,7 +6,13 @@ import type {
   MetaFunction,
 } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
-import { Form, Link, useLoaderData, useTransition } from "@remix-run/react";
+import {
+  Form,
+  Link,
+  useActionData,
+  useLoaderData,
+  useTransition,
+} from "@remix-run/react";
 
 import prisma from "~/db.server";
 import { sessionStorage } from "~/session.server";
@@ -35,7 +41,14 @@ type PostWithComments = Prisma.PostGetPayload<typeof postWithComments>;
 interface RouteData {
   post: PostWithComments;
   userCreatedPost: boolean;
-  loggedIn: boolean;
+  userId: string | undefined;
+}
+
+interface ActionRouteData {
+  error: {
+    comment?: string;
+    other?: string;
+  };
 }
 
 export const loader: LoaderFunction = async ({ request, params }) => {
@@ -48,32 +61,57 @@ export const loader: LoaderFunction = async ({ request, params }) => {
   });
 
   if (!post) {
-    throw json({}, { status: 404 });
+    throw new Response(`Post with id ${params.id} not found`, { status: 404 });
   }
 
   let userCreatedPost = post.author.id === userId;
 
-  return json<RouteData>({ post, userCreatedPost, loggedIn: !!userId });
+  return json<RouteData>({ post, userCreatedPost, userId });
 };
 
 export const action: ActionFunction = async ({ request, params }) => {
   let session = await sessionStorage.getSession(request.headers.get("Cookie"));
   let userId = session.get("userId");
-  let requestBody = await request.text();
-  let formData = new URLSearchParams(requestBody);
-  let content = formData.get("content");
+  let formData = await request.formData();
 
-  console.log({ userId });
+  let variant = formData.get("variant");
 
-  if (!content) return redirect(`/post/${params.id}`);
+  if (variant === "delete-comment") {
+    let commentId = formData.get("commentId");
 
-  await prisma.comment.create({
-    data: {
-      content,
-      author: { connect: { id: userId } },
-      post: { connect: { id: params.id } },
-    },
-  });
+    if (typeof commentId !== "string") {
+      return json<ActionRouteData>(
+        { error: { other: "Invalid comment id" } },
+        { status: 400 }
+      );
+    }
+
+    await prisma.comment.deleteMany({
+      where: {
+        id: commentId,
+        authorId: userId,
+      },
+    });
+  }
+
+  if (variant === "new-comment") {
+    let content = formData.get("content");
+
+    if (typeof content !== "string" || content.length === 0) {
+      return json<ActionRouteData>(
+        { error: { comment: "comment is required" } },
+        { status: 400 }
+      );
+    }
+
+    await prisma.comment.create({
+      data: {
+        content,
+        author: { connect: { id: userId } },
+        post: { connect: { id: params.id } },
+      },
+    });
+  }
 
   return redirect(`/post/${params.id}`);
 };
@@ -92,11 +130,17 @@ export const meta: MetaFunction = ({ data }) => {
 
 export default function PostPage() {
   let data = useLoaderData<RouteData>();
+  let actionData = useActionData<ActionRouteData>();
   let transition = useTransition();
   let pendingForm = transition.submission;
 
   return (
     <main className="mx-auto max-w-7xl px-2 py-4 sm:px-6 lg:px-8">
+      {actionData?.error.other && (
+        <pre className="py-4 text-red-500">
+          <code>{actionData.error.other}</code>
+        </pre>
+      )}
       <div>
         <div className="flex items-center justify-between">
           <h1 className="max-w-prose text-2xl font-semibold">
@@ -115,12 +159,25 @@ export default function PostPage() {
       <div className="space-y-2 divide-y">
         {data.post.comments.length ? (
           data.post.comments.map((comment) => (
-            <div key={comment.id} className="">
+            <div key={comment.id}>
               <div
                 dangerouslySetInnerHTML={{ __html: comment.content }}
                 className="prose"
               />
-              <p className="text-sm">{comment.author.username}</p>
+              <div className="flex space-x-4">
+                <p className="text-sm">{comment.author.username}</p>
+                {comment.author.id === data.userId && (
+                  <Form method="post" className="text-sm">
+                    <input
+                      type="hidden"
+                      name="variant"
+                      value="delete-comment"
+                    />
+                    <input type="hidden" name="commentId" value={comment.id} />
+                    <button type="submit">Delete</button>
+                  </Form>
+                )}
+              </div>
             </div>
           ))
         ) : (
@@ -128,8 +185,8 @@ export default function PostPage() {
         )}
       </div>
 
-      <div className={clsx(!data.loggedIn && "relative")}>
-        {!data.loggedIn && (
+      <div className={clsx(!data.userId && "relative")}>
+        {!data.userId && (
           <p className="absolute top-1/2 left-1/2 z-10 -mt-2 w-full -translate-x-1/2 -translate-y-1/2 px-4 text-center">
             To leave a comment, you must be{" "}
             <Link className="text-indigo-600" to="/login">
@@ -139,17 +196,32 @@ export default function PostPage() {
         )}
         <Form
           method="post"
-          className={clsx(!data.loggedIn && "opacity-60", "mt-4")}
+          className={clsx(!data.userId && "opacity-60", "mt-4")}
         >
-          <fieldset disabled={!!pendingForm || !data.loggedIn}>
-            <label htmlFor="content">Leave a comment</label>
+          <fieldset disabled={!!pendingForm || !data.userId}>
+            <label
+              htmlFor="content"
+              className={clsx(actionData?.error.comment ? "text-red-500" : "")}
+            >
+              Leave a comment
+            </label>
             <textarea
-              className="block w-full"
+              className={clsx("block w-full", {
+                "border-red-500": actionData?.error.comment,
+              })}
               id="content"
               name="content"
               rows={5}
             />
-            <button type="submit" className="mt-2 rounded border px-2 py-1">
+            {actionData?.error.comment && (
+              <p className="text-red-500">{actionData.error.comment}</p>
+            )}
+            <button
+              name="variant"
+              value="new-comment"
+              type="submit"
+              className="mt-2 rounded border px-2 py-1"
+            >
               Submit
             </button>
           </fieldset>
