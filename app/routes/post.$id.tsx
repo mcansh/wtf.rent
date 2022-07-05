@@ -18,23 +18,13 @@ let postWithComments = Prisma.validator<Prisma.PostArgs>()({
     content: true,
     createdAt: true,
     updatedAt: true,
-    author: {
-      select: {
-        id: true,
-        username: true,
-      },
-    },
+    author: { select: { id: true, username: true } },
     comments: {
       select: {
         id: true,
         content: true,
         createdAt: true,
-        author: {
-          select: {
-            id: true,
-            username: true,
-          },
-        },
+        author: { select: { id: true, username: true } },
       },
     },
   },
@@ -73,21 +63,15 @@ export const action: ActionFunction = async ({ request, params }) => {
   let formData = new URLSearchParams(requestBody);
   let content = formData.get("content");
 
+  console.log({ userId });
+
   if (!content) return redirect(`/post/${params.id}`);
 
   await prisma.comment.create({
     data: {
       content,
-      author: {
-        connect: {
-          id: userId,
-        },
-      },
-      post: {
-        connect: {
-          id: params.id,
-        },
-      },
+      author: { connect: { id: userId } },
+      post: { connect: { id: params.id } },
     },
   });
 
@@ -136,7 +120,7 @@ export default function PostPage() {
                 dangerouslySetInnerHTML={{ __html: comment.content }}
                 className="prose"
               />
-              <p className="text-sm">{data.post.author.username}</p>
+              <p className="text-sm">{comment.author.username}</p>
             </div>
           ))
         ) : (
