@@ -1,6 +1,6 @@
-import { createCookieSessionStorage } from "remix";
+import { createCookieSessionStorage } from "@remix-run/node";
 
-let sessionStorage = createCookieSessionStorage({
+export let sessionStorage = createCookieSessionStorage({
   cookie: {
     name: "_session",
     sameSite: "lax",
@@ -10,7 +10,3 @@ let sessionStorage = createCookieSessionStorage({
     secure: process.env.NODE_ENV === "production",
   },
 });
-
-let { commitSession, destroySession, getSession } = sessionStorage;
-
-export { sessionStorage, commitSession, destroySession, getSession };

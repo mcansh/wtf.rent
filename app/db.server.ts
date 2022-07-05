@@ -7,6 +7,7 @@ import { PrismaClient } from "@prisma/client";
 // https://pris.ly/d/help/next-js-best-practices
 
 declare global {
+  // eslint-disable-next-line prefer-let/prefer-let
   var prismaClient: PrismaClient;
 }
 
@@ -20,4 +21,5 @@ if (process.env.NODE_ENV === "production") {
   }
   prisma = global.prismaClient;
 }
+
 export default prisma;

@@ -1,20 +1,14 @@
-import { Post, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import clsx from "clsx";
-import * as React from "react";
-import {
-  RouteComponent,
+import type {
   ActionFunction,
   LoaderFunction,
   MetaFunction,
-  useLoaderData,
-  Link,
-  Form,
-  useTransition,
-} from "remix";
-import { redirect } from "remix";
-import { json } from "remix-utils";
-import prisma from "~/db.server";
+} from "@remix-run/node";
+import { json, redirect } from "@remix-run/node";
+import { Form, Link, useLoaderData, useTransition } from "@remix-run/react";
 
+import prisma from "~/db.server";
 import { sessionStorage } from "~/session.server";
 
 let postWithComments = Prisma.validator<Prisma.PostArgs>()({
@@ -54,10 +48,8 @@ interface RouteData {
   loggedIn: boolean;
 }
 
-const loader: LoaderFunction = async ({ request, params }) => {
-  const session = await sessionStorage.getSession(
-    request.headers.get("Cookie")
-  );
+export const loader: LoaderFunction = async ({ request, params }) => {
+  let session = await sessionStorage.getSession(request.headers.get("Cookie"));
   let userId = session.get("userId");
 
   let post = await prisma.post.findUnique({
@@ -74,13 +66,11 @@ const loader: LoaderFunction = async ({ request, params }) => {
   return json<RouteData>({ post, userCreatedPost, loggedIn: !!userId });
 };
 
-const action: ActionFunction = async ({ request, params }) => {
-  const session = await sessionStorage.getSession(
-    request.headers.get("Cookie")
-  );
+export const action: ActionFunction = async ({ request, params }) => {
+  let session = await sessionStorage.getSession(request.headers.get("Cookie"));
   let userId = session.get("userId");
-  const requestBody = await request.text();
-  const formData = new URLSearchParams(requestBody);
+  let requestBody = await request.text();
+  let formData = new URLSearchParams(requestBody);
   let content = formData.get("content");
 
   if (!content) return redirect(`/post/${params.id}`);
@@ -104,7 +94,7 @@ const action: ActionFunction = async ({ request, params }) => {
   return redirect(`/post/${params.id}`);
 };
 
-const meta: MetaFunction = ({ data }) => {
+export const meta: MetaFunction = ({ data }) => {
   if (data && data.post) {
     return {
       title: `${data.post.title} | wtf.rent`,
@@ -116,16 +106,16 @@ const meta: MetaFunction = ({ data }) => {
   };
 };
 
-const PostPage: RouteComponent = () => {
-  const data = useLoaderData<RouteData>();
+export default function PostPage() {
+  let data = useLoaderData<RouteData>();
   let transition = useTransition();
   let pendingForm = transition.submission;
 
   return (
-    <main className="px-2 py-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+    <main className="mx-auto max-w-7xl px-2 py-4 sm:px-6 lg:px-8">
       <div>
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold max-w-prose">
+          <h1 className="max-w-prose text-2xl font-semibold">
             {data.post.title}
           </h1>
           {data.userCreatedPost && <Link to="edit">Edit</Link>}
@@ -133,11 +123,11 @@ const PostPage: RouteComponent = () => {
         <h2>Posted {data.post.createdAt}</h2>
       </div>
       <div
-        className="mb-6 prose"
+        className="prose mb-6"
         dangerouslySetInnerHTML={{ __html: data.post.content }}
       />
 
-      <h3 className="font-medium font-lg">Comments</h3>
+      <h3 className="font-lg font-medium">Comments</h3>
       <div className="space-y-2 divide-y">
         {data.post.comments.length ? (
           data.post.comments.map((comment) => (
@@ -156,7 +146,7 @@ const PostPage: RouteComponent = () => {
 
       <div className={clsx(!data.loggedIn && "relative")}>
         {!data.loggedIn && (
-          <p className="absolute z-10 w-full px-4 -mt-2 text-center -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2">
+          <p className="absolute top-1/2 left-1/2 z-10 -mt-2 w-full -translate-x-1/2 -translate-y-1/2 px-4 text-center">
             To leave a comment, you must be{" "}
             <Link className="text-indigo-600" to="/login">
               logged in
@@ -175,7 +165,7 @@ const PostPage: RouteComponent = () => {
               name="content"
               rows={5}
             />
-            <button type="submit" className="px-2 py-1 mt-2 border rounded">
+            <button type="submit" className="mt-2 rounded border px-2 py-1">
               Submit
             </button>
           </fieldset>
@@ -183,7 +173,4 @@ const PostPage: RouteComponent = () => {
       </div>
     </main>
   );
-};
-
-export default PostPage;
-export { action, loader, meta };
+}

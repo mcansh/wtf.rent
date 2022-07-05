@@ -1,12 +1,6 @@
-import {
-  ActionFunction,
-  Form,
-  LoaderFunction,
-  redirect,
-  useActionData,
-  useTransition,
-} from "remix";
-import { json } from "remix-utils";
+import type { ActionFunction, LoaderFunction } from "@remix-run/node";
+import { json, redirect } from "@remix-run/node";
+import { Form, useActionData, useTransition } from "@remix-run/react";
 
 import prisma from "~/db.server";
 import { sessionStorage } from "~/session.server";
@@ -66,13 +60,18 @@ export default function JoinPage() {
   let pendingForm = transition.submission;
 
   return (
-    <main className="px-2 py-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+    <main className="mx-auto max-w-7xl px-2 py-4 sm:px-6 lg:px-8">
+      {action && (
+        <pre>
+          <code>{JSON.stringify(action, null, 2)}</code>
+        </pre>
+      )}
       <Form method="post">
         <fieldset className="flex flex-col space-y-4" disabled={!!pendingForm}>
           <label className="space-y-2">
             <span className="block">Title</span>
             <input
-              className="w-full px-2 py-1 border rounded border-slate-300"
+              className="w-full rounded border border-slate-300 px-2 py-1"
               type="text"
               name="title"
               required
@@ -82,14 +81,14 @@ export default function JoinPage() {
             <span className="block">Body</span>
             <textarea
               name="content"
-              className="w-full h-full px-2 py-1 border rounded border-slate-300"
+              className="h-full w-full rounded border border-slate-300 px-2 py-1"
               rows={20}
             />
           </label>
         </fieldset>
         <button
           type="submit"
-          className="flex justify-center w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          className="flex w-full justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
         >
           Post
         </button>

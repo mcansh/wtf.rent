@@ -1,24 +1,25 @@
+import * as React from "react";
 import clsx from "clsx";
+import type { LinksFunction, LoaderFunction } from "@remix-run/node";
 import {
-  ErrorBoundaryComponent,
   Link,
-  LinksFunction,
-  LoaderFunction,
-  RouteComponent,
+  Links,
+  LiveReload,
+  Meta,
+  Outlet,
+  Scripts,
+  useCatch,
   useLoaderData,
-  useMatches,
-} from "remix";
-import { Links, LiveReload, Meta, Outlet, Scripts, useCatch } from "remix";
+} from "@remix-run/react";
 import type { User } from "@prisma/client";
 
 import { Nav } from "./components/nav";
 import prisma from "./db.server";
 import { sessionStorage } from "./session.server";
-
 import stylesUrl from "./styles/global.css";
-import type { Match } from "./types";
+import { useMatches } from "./use-matches";
 
-let links: LinksFunction = () => {
+export let links: LinksFunction = () => {
   return [{ rel: "stylesheet", href: stylesUrl }];
 };
 
@@ -26,7 +27,7 @@ interface RouteData {
   user?: Omit<User, "password">;
 }
 
-let loader: LoaderFunction = async ({ request }) => {
+export let loader: LoaderFunction = async ({ request }) => {
   let session = await sessionStorage.getSession(request.headers.get("Cookie"));
   let userId = session.get("userId");
   let user = userId
@@ -46,11 +47,12 @@ let loader: LoaderFunction = async ({ request }) => {
 
 interface DocumentProps {
   title?: string;
+  children: React.ReactNode;
 }
 
-const Document: React.FC<DocumentProps> = ({ children, title }) => {
+function Document({ children, title }: DocumentProps) {
   let data = useLoaderData<RouteData | undefined>();
-  let matches = useMatches() as unknown as Array<Match>;
+  let matches = useMatches();
   let bodyClassName = matches
     .filter((match) => match.handle && match.handle.bodyClassName)
     .map((match) => match.handle.bodyClassName);
@@ -65,7 +67,7 @@ const Document: React.FC<DocumentProps> = ({ children, title }) => {
         <Meta />
         <Links />
       </head>
-      <body className={clsx("h-full flex flex-col", bodyClassName)}>
+      <body className={clsx("flex h-full flex-col", bodyClassName)}>
         <Nav user={data?.user} />
         <div className="flex-auto">{children}</div>
         <Scripts />
@@ -73,21 +75,21 @@ const Document: React.FC<DocumentProps> = ({ children, title }) => {
       </body>
     </html>
   );
-};
+}
 
-const App: RouteComponent = () => {
+export default function App() {
   return (
     <Document>
       <Outlet />
     </Document>
   );
-};
+}
 
-const CatchBoundary: React.VFC = () => {
+export function CatchBoundary() {
   let caught = useCatch();
 
   switch (caught.status) {
-    case 401:
+    case 401: {
       return (
         <Document title={`${caught.status} ${caught.statusText}`}>
           <h1>
@@ -95,20 +97,21 @@ const CatchBoundary: React.VFC = () => {
           </h1>
         </Document>
       );
+    }
 
-    case 404:
+    case 404: {
       return (
         <Document title={`${caught.status} ${caught.statusText}`}>
-          <div className="flex flex-col min-h-full pt-16 pb-12 bg-white">
-            <main className="flex flex-col justify-center flex-grow w-full px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
-              <div className="flex justify-center flex-shrink-0">
+          <div className="flex min-h-full flex-col bg-white pt-16 pb-12">
+            <main className="mx-auto flex w-full max-w-7xl flex-grow flex-col justify-center px-4 sm:px-6 lg:px-8">
+              <div className="flex flex-shrink-0 justify-center">
                 <a href="/" className="inline-flex">
                   <span className="sr-only">wtf.rent</span>
                 </a>
               </div>
               <div className="py-16">
                 <div className="text-center">
-                  <p className="text-sm font-semibold tracking-wide text-indigo-600 uppercase">
+                  <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">
                     404 error
                   </p>
                   <h1 className="mt-2 text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">
@@ -131,15 +134,17 @@ const CatchBoundary: React.VFC = () => {
           </div>
         </Document>
       );
+    }
 
-    default:
+    default: {
       throw new Error(
         `Unexpected caught response with status: ${caught.status}`
       );
+    }
   }
-};
+}
 
-const ErrorBoundary: ErrorBoundaryComponent = ({ error }) => {
+export function ErrorBoundary({ error }: { error: Error }) {
   console.error(error);
 
   return (
@@ -152,7 +157,4 @@ const ErrorBoundary: ErrorBoundaryComponent = ({ error }) => {
       </p>
     </Document>
   );
-};
-
-export default App;
-export { CatchBoundary, ErrorBoundary, links, loader };
+}

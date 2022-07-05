@@ -1,4 +1,5 @@
-import { ActionFunction, LoaderFunction, redirect } from "remix";
+import type { ActionFunction, LoaderFunction} from "@remix-run/node";
+import { redirect } from "@remix-run/node";
 
 import { sessionStorage } from "~/session.server";
 

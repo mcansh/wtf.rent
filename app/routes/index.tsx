@@ -1,26 +1,24 @@
-import {
-  MetaFunction,
+import type {
   LinksFunction,
-  Link,
   LoaderFunction,
-  useLoaderData,
-  RouteComponent,
-} from "remix";
-import { json } from "remix-utils";
+  MetaFunction,
+} from "@remix-run/node";
+import { Link, useLoaderData } from "@remix-run/react";
+import { json } from "@remix-run/node";
 import { Prisma } from "@prisma/client";
+import { format } from "date-fns";
 
 import prisma from "~/db.server";
 import stylesUrl from "~/styles/index.css";
-import { format } from "date-fns";
 
-let meta: MetaFunction = () => {
+export let meta: MetaFunction = () => {
   return {
     title: "wtf.rent",
     description: "put shitty landlords on blast",
   };
 };
 
-let links: LinksFunction = () => {
+export let links: LinksFunction = () => {
   return [{ rel: "stylesheet", href: stylesUrl }];
 };
 
@@ -40,7 +38,7 @@ interface RouteData {
   posts: Array<PostWithUser>;
 }
 
-let loader: LoaderFunction = async () => {
+export let loader: LoaderFunction = async () => {
   let posts = await prisma.post.findMany({
     orderBy: {
       createdAt: "desc",
@@ -57,24 +55,24 @@ let loader: LoaderFunction = async () => {
   return json<RouteData>({ posts });
 };
 
-const IndexPage: RouteComponent = () => {
+export default function IndexPage() {
   let data = useLoaderData<RouteData>();
   return (
     <>
-      <main className="px-2 mx-auto max-w-7xl sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
         <h1 className="pt-4 text-4xl font-semibold">wtf.rent</h1>
         <p className="text-xl">put shitty landlords on blast.</p>
         <div className="space-y-2">
           {data.posts.map((post) => (
-            <div key={post.id} className="px-2 py-4 rounded bg-slate-200">
+            <div key={post.id} className="rounded bg-slate-200 px-2 py-4">
               <Link
-                className="inline-block text-lg hover:underline line-clamp-1 max-w-prose"
+                className="inline-block max-w-prose text-lg line-clamp-1 hover:underline"
                 to={`post/${post.id}`}
               >
                 <h2>{post.title}</h2>
               </Link>
               <p className="prose line-clamp-1">{post.content}</p>
-              <p className="text-sm text-slate-900s">
+              <p className="text-slate-900s text-sm">
                 Posted by{" "}
                 <Link className="hover:underline" to={post.author.username}>
                   {post.author.username}
@@ -90,7 +88,4 @@ const IndexPage: RouteComponent = () => {
       </main>
     </>
   );
-};
-
-export default IndexPage;
-export { links, loader, meta };
+}
