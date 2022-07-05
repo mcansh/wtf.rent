@@ -12,21 +12,20 @@ import { sessionStorage } from "~/session.server";
 
 export let action: ActionFunction = async ({ request }) => {
   let session = await sessionStorage.getSession(request.headers.get("Cookie"));
-  let requestBody = await request.text();
-  let formData = new URLSearchParams(requestBody);
+  let formData = await request.formData();
 
   let username = formData.get("username");
   let password = formData.get("password");
   let rememberMe = formData.get("remember-me") === "on";
 
-  if (!username) {
+  if (typeof username !== "string" || !username.length) {
     return json(
       { field: "username", message: "Username is required" },
       { status: 400 }
     );
   }
 
-  if (!password) {
+  if (typeof password !== "string" || !password.length) {
     return json(
       { field: "password", message: "Password is required" },
       { status: 400 }

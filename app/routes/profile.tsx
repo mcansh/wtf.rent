@@ -10,7 +10,6 @@ import clsx from "clsx";
 export const loader: LoaderFunction = async ({ request }) => {
   let session = await sessionStorage.getSession(request.headers.get("Cookie"));
   let userId = session.get("userId");
-
   if (!userId) return redirect("/login");
 
   return {};
@@ -19,6 +18,7 @@ export const loader: LoaderFunction = async ({ request }) => {
 export const action: ActionFunction = async ({ request }) => {
   let session = await sessionStorage.getSession(request.headers.get("Cookie"));
   let userId = session.get("userId");
+  if (!userId) return redirect("/login");
 
   let formData = await request.formData();
 

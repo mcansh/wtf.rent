@@ -1,7 +1,6 @@
 import type { ActionFunction, LoaderFunction } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
 import { Form, useActionData, useTransition } from "@remix-run/react";
-
 import prisma from "~/db.server";
 import { sessionStorage } from "~/session.server";
 
@@ -12,20 +11,22 @@ interface ActionData {
 
 export let action: ActionFunction = async ({ request }) => {
   let session = await sessionStorage.getSession(request.headers.get("Cookie"));
-  let requestBody = await request.text();
-  let formData = new URLSearchParams(requestBody);
+  let userId = session.get("userId");
+  if (!userId) return redirect("/login");
+
+  let formData = await request.formData();
 
   let title = formData.get("title");
   let content = formData.get("content");
 
-  if (!title) {
+  if (typeof title !== "string" || !title.length) {
     return json<ActionData>(
       { field: "title", error: "Title is required" },
       { status: 400 }
     );
   }
 
-  if (!content) {
+  if (typeof content !== "string" || !content.length) {
     return json<ActionData>(
       { field: "content", error: "Body is required" },
       { status: 400 }
@@ -36,11 +37,7 @@ export let action: ActionFunction = async ({ request }) => {
     data: {
       title,
       content,
-      author: {
-        connect: {
-          id: session.get("userId"),
-        },
-      },
+      author: { connect: { id: userId } },
     },
   });
 

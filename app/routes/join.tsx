@@ -17,8 +17,7 @@ interface ActionData {
 
 export let action: ActionFunction = async ({ request }) => {
   let session = await sessionStorage.getSession(request.headers.get("Cookie"));
-  let requestBody = await request.text();
-  let formData = new URLSearchParams(requestBody);
+  let formData = await request.formData();
 
   let email = formData.get("email");
   let username = formData.get("username");
@@ -26,28 +25,28 @@ export let action: ActionFunction = async ({ request }) => {
   let passwordConfirm = formData.get("passwordConfirm");
   let rememberMe = formData.get("remember-me") === "on";
 
-  if (!email) {
+  if (typeof email !== "string" || !email.length) {
     return json<ActionData>(
       { field: "email", error: "Email is required" },
       { status: 400 }
     );
   }
 
-  if (!username) {
+  if (typeof username !== "string" || !username.length) {
     return json<ActionData>(
       { field: "username", error: "Username is required" },
       { status: 400 }
     );
   }
 
-  if (!password) {
+  if (typeof password !== "string" || !password.length) {
     return json<ActionData>(
       { field: "password", error: "Password is required" },
       { status: 400 }
     );
   }
 
-  if (!passwordConfirm) {
+  if (typeof passwordConfirm !== "string" || !passwordConfirm.length) {
     return json<ActionData>(
       { field: "passwordConfirm", error: "Password confirmation is required" },
       { status: 400 }
