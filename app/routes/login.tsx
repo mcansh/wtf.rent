@@ -4,49 +4,85 @@ import type {
   MetaFunction,
 } from "@remix-run/node";
 import { redirect } from "@remix-run/node";
-import { Form, useLocation, useTransition } from "@remix-run/react";
+import {
+  Form,
+  useActionData,
+  useLocation,
+  useTransition,
+} from "@remix-run/react";
 import { json } from "@remix-run/node";
+import { useForm, useFieldset, conform } from "@conform-to/react";
+import { resolve, parse } from "@conform-to/zod";
+import z from "zod";
 import { verify } from "~/bcrypt.server";
 import prisma from "~/db.server";
 import { sessionStorage } from "~/session.server";
+import clsx from "clsx";
+
+let login = z.object({
+  email: z
+    .string({ required_error: "Email is required" })
+    .email("You email address is invalid"),
+  password: z
+    .string({ required_error: "Password is required" })
+    .min(8, "The minimum password length is 8 characters"),
+  "remember-me": z.boolean().optional(),
+});
+
+let schema = resolve(login);
+
+interface ActionRouteData {
+  values: {
+    email: string;
+    password: string;
+    "remember-me"?: boolean | undefined;
+  };
+  errors: {
+    email?: string;
+    password?: string;
+  };
+}
 
 export let action: ActionFunction = async ({ request }) => {
   let session = await sessionStorage.getSession(request.headers.get("Cookie"));
-  let formData = await request.formData();
 
-  let username = formData.get("username");
-  let password = formData.get("password");
-  let rememberMe = formData.get("remember-me") === "on";
+  let formData = await request.formData();
+  let result = parse(formData, login);
+
+  if (result.state !== "accepted") {
+    return json(
+      { values: result.value, errors: result.error },
+      { status: 400 }
+    );
+  }
 
   let url = new URL(request.url);
   let returnTo = url.searchParams.get("returnTo") ?? "/";
 
-  if (typeof username !== "string" || !username.length) {
-    return json(
-      { field: "username", message: "Username is required" },
-      { status: 400 }
-    );
-  }
-
-  if (typeof password !== "string" || !password.length) {
-    return json(
-      { field: "password", message: "Password is required" },
-      { status: 400 }
-    );
-  }
-
   let user = await prisma.user.findUnique({
-    where: { username: username },
+    where: { email: result.value.email },
   });
 
   if (!user) {
-    return json({ message: "Invalid username or password" }, { status: 400 });
+    return json<ActionRouteData>(
+      {
+        values: result.value,
+        errors: { email: "Invalid email or password" },
+      },
+      { status: 400 }
+    );
   }
 
-  let valid = await verify(password, user.password);
+  let valid = await verify(result.value.password, user.password);
 
   if (!valid) {
-    return json({ message: "Invalid username or password" }, { status: 400 });
+    return json<ActionRouteData>(
+      {
+        values: result.value,
+        errors: { password: "Invalid email or password" },
+      },
+      { status: 400 }
+    );
   }
 
   session.set("userId", user.id);
@@ -77,6 +113,13 @@ export default function LoginPage() {
   let transition = useTransition();
   let pendingForm = transition.submission;
 
+  let actionData = useActionData<ActionRouteData>();
+  let formProps = useForm();
+  let [fieldsetProps, result] = useFieldset(schema, {
+    error: actionData?.errors,
+    initialValue: actionData?.values,
+  });
+
   return (
     <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -87,25 +130,44 @@ export default function LoginPage() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white px-4 py-8 shadow sm:rounded-lg sm:px-10">
-          <Form method="post" action={location.pathname + location.search}>
-            <fieldset className="space-y-6" disabled={!!pendingForm}>
+          <Form
+            method="post"
+            action={location.pathname + location.search}
+            {...formProps}
+          >
+            <fieldset
+              className="space-y-6"
+              disabled={!!pendingForm}
+              {...fieldsetProps}
+            >
               <div>
                 <label
-                  htmlFor="username"
+                  htmlFor="email"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Username
+                  Email
                 </label>
                 <div className="mt-1">
                   <input
-                    id="username"
-                    name="username"
-                    type="text"
-                    autoComplete="username"
-                    required
-                    className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+                    id="email"
+                    autoComplete="email"
+                    className={clsx(
+                      "block w-full appearance-none rounded-md border px-3 py-2 shadow-sm focus:outline-none sm:text-sm",
+                      result.email.error
+                        ? "border-red-300 placeholder-red-400 focus:border-red-500 focus:ring-red-500"
+                        : "border-gray-300 placeholder-gray-400 focus:border-indigo-500 focus:ring-indigo-500"
+                    )}
+                    aria-errormessage={
+                      result.email.error ? "email-error" : undefined
+                    }
+                    {...conform.input(result.email, { type: "email" })}
                   />
                 </div>
+                {result.email.error && (
+                  <div id="email-error" className="mt-2 text-sm text-red-600">
+                    {result.email.error}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -118,13 +180,27 @@ export default function LoginPage() {
                 <div className="mt-1">
                   <input
                     id="password"
-                    name="password"
-                    type="password"
                     autoComplete="new-password"
-                    required
-                    className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+                    className={clsx(
+                      "block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:outline-none  sm:text-sm",
+                      result.password.error
+                        ? "border-red-300 placeholder-red-400 focus:border-red-500 focus:ring-red-500"
+                        : "border-gray-300 placeholder-gray-400 focus:border-indigo-500 focus:ring-indigo-500"
+                    )}
+                    aria-errormessage={
+                      result.password.error ? "password-error" : undefined
+                    }
+                    {...conform.input(result.password, { type: "password" })}
                   />
                 </div>
+                {result.password.error && (
+                  <div
+                    id="password-error"
+                    className="mt-2 text-sm text-red-600"
+                  >
+                    {result.password.error}
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-between">

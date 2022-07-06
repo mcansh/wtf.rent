@@ -5,79 +5,112 @@ import type {
 } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
 import { Form, useActionData, useTransition } from "@remix-run/react";
+import { useForm, useFieldset, conform } from "@conform-to/react";
+import { resolve, parse } from "@conform-to/zod";
+import z from "zod";
 import { sessionStorage } from "~/session.server";
 import { hash } from "~/bcrypt.server";
 import prisma from "~/db.server";
 import type { RouteHandle } from "~/use-matches";
+import { Prisma } from "@prisma/client";
 
-interface ActionData {
-  error: string;
-  field: "email" | "password" | "passwordConfirm" | "username";
+let join = z
+  .object({
+    email: z
+      .string({ required_error: "Email is required" })
+      .email("You email address is invalid"),
+    username: z.string({ required_error: "Username is required" }),
+    password: z
+      .string({ required_error: "Password is required" })
+      .min(8, "The minimum password length is 8 characters"),
+    passwordConfirm: z.string({
+      required_error: "Confirm password is required",
+    }),
+    "remember-me": z.boolean().optional(),
+  })
+  .refine((value) => value.password === value.passwordConfirm, {
+    message: "The password do not match",
+    path: ["confirm"],
+  });
+
+let schema = resolve(join);
+
+interface ActionRouteData {
+  values: {
+    email: string;
+    username: string;
+    password: string;
+    passwordConfirm: string;
+    "remember-me"?: boolean | undefined;
+  };
+  errors: {
+    email?: string;
+    username?: string;
+    password?: string;
+    passwordConfirm?: string;
+  };
 }
 
 export let action: ActionFunction = async ({ request }) => {
   let session = await sessionStorage.getSession(request.headers.get("Cookie"));
+
   let formData = await request.formData();
+  let result = parse(formData, join);
 
-  let email = formData.get("email");
-  let username = formData.get("username");
-  let password = formData.get("password");
-  let passwordConfirm = formData.get("passwordConfirm");
-  let rememberMe = formData.get("remember-me") === "on";
-
-  if (typeof email !== "string" || !email.length) {
-    return json<ActionData>(
-      { field: "email", error: "Email is required" },
+  if (result.state !== "accepted") {
+    return json(
+      { values: result.value, errors: result.error },
       { status: 400 }
     );
   }
 
-  if (typeof username !== "string" || !username.length) {
-    return json<ActionData>(
-      { field: "username", error: "Username is required" },
-      { status: 400 }
-    );
+  try {
+    let user = await prisma.user.create({
+      data: {
+        email: result.value.email,
+        password: await hash(result.value.password),
+        username: result.value.username,
+      },
+    });
+
+    session.set("userId", user.id);
+
+    return redirect("/", {
+      headers: {
+        "Set-Cookie": await sessionStorage.commitSession(session, {
+          // if remember me is checked, set a cookie that expires in 7 days
+          maxAge: result.value["remember-me"] ? 60 * 60 * 24 * 7 : undefined,
+        }),
+      },
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      // The .code property can be accessed in a type-safe manner
+      if (error.code === "P2002") {
+        if (error.meta?.target) {
+          let target = Array.isArray(error.meta.target)
+            ? error.meta.target.filter(
+                (v): v is string => typeof v === "string"
+              )
+            : [String(error.meta.target)];
+
+          return json<ActionRouteData>(
+            {
+              values: result.value,
+              errors: Object.fromEntries(
+                target.map((t) => {
+                  return [t, `A user with this ${t} already exists`];
+                })
+              ),
+            },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
+    throw error;
   }
-
-  if (typeof password !== "string" || !password.length) {
-    return json<ActionData>(
-      { field: "password", error: "Password is required" },
-      { status: 400 }
-    );
-  }
-
-  if (typeof passwordConfirm !== "string" || !passwordConfirm.length) {
-    return json<ActionData>(
-      { field: "passwordConfirm", error: "Password confirmation is required" },
-      { status: 400 }
-    );
-  }
-
-  if (password !== passwordConfirm) {
-    return json<ActionData>(
-      { field: "passwordConfirm", error: "Passwords do not match" },
-      { status: 400 }
-    );
-  }
-
-  let user = await prisma.user.create({
-    data: {
-      email,
-      password: await hash(password),
-      username,
-    },
-  });
-
-  session.set("userId", user.id);
-
-  return redirect("/", {
-    headers: {
-      "Set-Cookie": await sessionStorage.commitSession(session, {
-        // if remember me is checked, set a cookie that expires in 7 days
-        maxAge: rememberMe ? 60 * 60 * 24 * 7 : undefined,
-      }),
-    },
-  });
 };
 
 export let loader: LoaderFunction = async ({ request }) => {
@@ -96,9 +129,15 @@ export let handle: RouteHandle = {
 };
 
 export default function JoinPage() {
-  let action = useActionData<ActionData>();
   let transition = useTransition();
   let pendingForm = transition.submission;
+
+  let actionData = useActionData<ActionRouteData>();
+  let formProps = useForm();
+  let [fieldsetProps, result] = useFieldset(schema, {
+    error: actionData?.errors,
+    initialValue: actionData?.values,
+  });
 
   return (
     <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -108,16 +147,14 @@ export default function JoinPage() {
         </h2>
       </div>
 
-      {action && (
-        <pre>
-          <code>{JSON.stringify(action, null, 2)}</code>
-        </pre>
-      )}
-
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white px-4 py-8 shadow sm:rounded-lg sm:px-10">
-          <Form method="post">
-            <fieldset className="space-y-6" disabled={!!pendingForm}>
+          <Form method="post" {...formProps}>
+            <fieldset
+              className="space-y-6"
+              disabled={!!pendingForm}
+              {...fieldsetProps}
+            >
               <div>
                 <label
                   htmlFor="email"
@@ -128,13 +165,19 @@ export default function JoinPage() {
                 <div className="mt-1">
                   <input
                     id="email"
-                    name="email"
-                    type="email"
                     autoComplete="email"
-                    required
                     className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+                    aria-errormessage={
+                      result.email.error ? "email-error" : undefined
+                    }
+                    {...conform.input(result.email, { type: "email" })}
                   />
                 </div>
+                {result.email.error && (
+                  <div id="email-error" className="mt-2 text-sm text-red-600">
+                    {result.email.error}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -147,13 +190,22 @@ export default function JoinPage() {
                 <div className="mt-1">
                   <input
                     id="username"
-                    name="username"
-                    type="text"
                     autoComplete="username"
-                    required
                     className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+                    aria-errormessage={
+                      result.username.error ? "username-error" : undefined
+                    }
+                    {...conform.input(result.username, { type: "text" })}
                   />
                 </div>
+                {result.username.error && (
+                  <div
+                    id="username-error"
+                    className="mt-2 text-sm text-red-600"
+                  >
+                    {result.username.error}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -166,13 +218,22 @@ export default function JoinPage() {
                 <div className="mt-1">
                   <input
                     id="password"
-                    name="password"
-                    type="password"
                     autoComplete="new-password"
-                    required
                     className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+                    aria-errormessage={
+                      result.password.error ? "password-error" : undefined
+                    }
+                    {...conform.input(result.password, { type: "password" })}
                   />
                 </div>
+                {result.password.error && (
+                  <div
+                    id="password-error"
+                    className="mt-2 text-sm text-red-600"
+                  >
+                    {result.password.error}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -185,13 +246,26 @@ export default function JoinPage() {
                 <div className="mt-1">
                   <input
                     id="passwordConfirm"
-                    name="passwordConfirm"
-                    type="password"
                     autoComplete="new-password"
-                    required
                     className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+                    aria-errormessage={
+                      result.passwordConfirm.error
+                        ? "passwordConfirm-error"
+                        : undefined
+                    }
+                    {...conform.input(result.passwordConfirm, {
+                      type: "password",
+                    })}
                   />
                 </div>
+                {result.passwordConfirm.error && (
+                  <div
+                    id="passwordConfirm-error"
+                    className="mt-2 text-sm text-red-600"
+                  >
+                    {result.passwordConfirm.error}
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-between">
