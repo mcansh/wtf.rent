@@ -74,7 +74,7 @@ export let action: ActionFunction = async ({ request }) => {
     headers: {
       "Set-Cookie": await sessionStorage.commitSession(session, {
         // if remember me is checked, set a cookie that expires in 7 days
-        maxAge: rememberMe ? 60 * 60 * 24 * 7 * 1000 : undefined,
+        maxAge: rememberMe ? 60 * 60 * 24 * 7 : undefined,
       }),
     },
   });
