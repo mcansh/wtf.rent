@@ -190,6 +190,7 @@ export default function LoginPage() {
                 name="remember-me"
                 type="checkbox"
                 className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                defaultChecked={result["remember-me"].initialValue === "on"}
               />
               <label
                 htmlFor="remember-me"
