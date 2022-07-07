@@ -1,7 +1,8 @@
 // @ts-ignore
 import * as React from "react";
 import clsx from "clsx";
-import type { LinksFunction, LoaderFunction } from "@remix-run/node";
+import type { LinksFunction, LoaderArgs } from "@remix-run/node";
+import { json } from "@remix-run/node";
 import {
   Link,
   Links,
@@ -16,7 +17,7 @@ import type { User } from "@prisma/client";
 
 import { Nav } from "./components/nav";
 import { db } from "./db.server";
-import { sessionStorage } from "./session.server";
+import { getSession } from "./session.server";
 import stylesUrl from "./styles/global.css";
 import { useMatches } from "./use-matches";
 
@@ -24,32 +25,30 @@ export let links: LinksFunction = () => {
   return [{ rel: "stylesheet", href: stylesUrl }];
 };
 
-interface RouteData {
-  user?: Omit<User, "password">;
-}
-
-export let loader: LoaderFunction = async ({ request }) => {
-  let session = await sessionStorage.getSession(request.headers.get("Cookie"));
+export async function loader({ request }: LoaderArgs) {
+  let session = await getSession(request);
   let userId = session.get("userId");
-  let user = userId
-    ? await db.user.findUnique({
-        where: { id: userId },
-        select: {
-          password: false,
-          email: true,
-          username: true,
-          id: true,
-        },
-      })
-    : null;
 
-  return { user };
-};
+  if (typeof userId !== "string") {
+    return json({ user: null });
+  }
+
+  let user = await db.user.findUnique({
+    where: { id: userId },
+    select: {
+      email: true,
+      username: true,
+      id: true,
+    },
+  });
+
+  return json({ user });
+}
 
 interface DocumentProps {
   title?: string;
-  user?: RouteData["user"];
   children: React.ReactNode;
+  user?: Pick<User, "email" | "username" | "id"> | null;
 }
 
 function Document({ children, title, user }: DocumentProps) {
@@ -79,7 +78,7 @@ function Document({ children, title, user }: DocumentProps) {
 }
 
 export default function App() {
-  let data = useLoaderData<RouteData>();
+  let data = useLoaderData<typeof loader>();
   return (
     <Document user={data.user}>
       <Outlet />

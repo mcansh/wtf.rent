@@ -1,11 +1,6 @@
-import type {
-  LinksFunction,
-  LoaderFunction,
-  MetaFunction,
-} from "@remix-run/node";
+import type { LinksFunction, MetaFunction } from "@remix-run/node";
 import { Link, useLoaderData } from "@remix-run/react";
 import { json } from "@remix-run/node";
-import { Prisma } from "@prisma/client";
 import { format } from "date-fns";
 import { db } from "~/db.server";
 import stylesUrl from "~/styles/index.css";
@@ -21,41 +16,27 @@ export let links: LinksFunction = () => {
   return [{ rel: "stylesheet", href: stylesUrl }];
 };
 
-let postWithUser = Prisma.validator<Prisma.PostArgs>()({
-  include: {
-    author: {
-      select: {
-        username: true,
-      },
-    },
-  },
-});
-
-type PostWithUser = Prisma.PostGetPayload<typeof postWithUser>;
-
-interface RouteData {
-  posts: Array<PostWithUser>;
-}
-
-export let loader: LoaderFunction = async () => {
+export async function loader() {
   let posts = await db.post.findMany({
-    orderBy: {
-      createdAt: "desc",
-    },
-    include: {
-      author: {
-        select: {
-          username: true,
-        },
-      },
-    },
+    orderBy: { createdAt: "desc" },
+    include: { author: { select: { username: true } } },
   });
 
-  return json<RouteData>({ posts });
-};
+  let serialized = posts.map((post) => {
+    return {
+      ...post,
+      formattedCreatedAt: format(post.createdAt, "M/d/yyyy h:mm a"),
+      formattedUpdatedAt: format(post.updatedAt, "M/d/yyyy h:mm a"),
+    };
+  });
+
+  return json({
+    posts: serialized,
+  });
+}
 
 export default function IndexPage() {
-  let data = useLoaderData<RouteData>();
+  let data = useLoaderData<typeof loader>();
   return (
     <>
       <main className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
@@ -73,9 +54,7 @@ export default function IndexPage() {
               <p className="prose line-clamp-1">{post.content}</p>
               <p className="text-slate-900s text-sm">
                 Posted by {post.author.username} on{" "}
-                <time dateTime={String(post.createdAt)}>
-                  {format(new Date(post.createdAt), "M/d/yyyy h:mm a")}
-                </time>
+                <time dateTime={post.createdAt}>{post.formattedCreatedAt}</time>
               </p>
             </div>
           ))}

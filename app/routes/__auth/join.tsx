@@ -1,14 +1,10 @@
-import type {
-  ActionFunction,
-  LoaderFunction,
-  MetaFunction,
-} from "@remix-run/node";
+import type { ActionArgs, LoaderArgs, MetaFunction } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
 import { Form, Link, useActionData, useTransition } from "@remix-run/react";
 import { useForm, useFieldset, conform } from "@conform-to/react";
 import { resolve, parse } from "@conform-to/zod";
 import z from "zod";
-import { sessionStorage } from "~/session.server";
+import { getSession, sessionStorage } from "~/session.server";
 import { hash } from "~/bcrypt.server";
 import { db } from "~/db.server";
 import { Prisma } from "@prisma/client";
@@ -35,30 +31,14 @@ let join = z
 
 let schema = resolve(join);
 
-interface ActionRouteData {
-  values: {
-    email?: string | undefined;
-    username?: string | undefined;
-    password?: string | undefined;
-    passwordConfirm?: string | undefined;
-    "remember-me"?: string | boolean | undefined;
-  } | null;
-  errors: {
-    email?: string | undefined;
-    username?: string | undefined;
-    password?: string | undefined;
-    passwordConfirm?: string | undefined;
-  } | null;
-}
-
-export let action: ActionFunction = async ({ request }) => {
-  let session = await sessionStorage.getSession(request.headers.get("Cookie"));
+export async function action({ request }: ActionArgs) {
+  let session = await getSession(request);
 
   let formData = await request.formData();
   let result = parse(formData, join);
 
   if (result.state !== "accepted") {
-    return json<ActionRouteData>(
+    return json(
       { values: result.value, errors: result.error },
       { status: 400 }
     );
@@ -94,7 +74,7 @@ export let action: ActionFunction = async ({ request }) => {
               )
             : [String(error.meta.target)];
 
-          return json<ActionRouteData>(
+          return json(
             {
               values: result.value,
               errors: Object.fromEntries(
@@ -111,14 +91,14 @@ export let action: ActionFunction = async ({ request }) => {
 
     throw error;
   }
-};
+}
 
-export let loader: LoaderFunction = async ({ request }) => {
-  let session = await sessionStorage.getSession(request.headers.get("Cookie"));
+export async function loader({ request }: LoaderArgs) {
+  let session = await getSession(request);
   let userId = session.get("userId");
   if (userId) return redirect("/");
   return {};
-};
+}
 
 export let meta: MetaFunction = () => ({
   title: "Join WTF.rent",
@@ -132,7 +112,7 @@ export default function JoinPage() {
   let transition = useTransition();
   let pendingForm = transition.submission;
 
-  let actionData = useActionData<ActionRouteData>();
+  let actionData = useActionData<typeof action>();
   let formProps = useForm();
   let [fieldsetProps, result] = useFieldset(schema, {
     error: { ...actionData?.errors },

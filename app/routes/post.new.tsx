@@ -1,33 +1,27 @@
-import type { ActionFunction, LoaderFunction } from "@remix-run/node";
+import type { ActionArgs, LoaderArgs } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
 import { Form, useActionData, useTransition } from "@remix-run/react";
 import { db } from "~/db.server";
-import { sessionStorage } from "~/session.server";
+import { getSession } from "~/session.server";
 
-interface ActionData {
-  error: string;
-  field: "title" | "content";
-}
-
-export let action: ActionFunction = async ({ request }) => {
-  let session = await sessionStorage.getSession(request.headers.get("Cookie"));
+export async function action({ request }: ActionArgs) {
+  let session = await getSession(request);
   let userId = session.get("userId");
   if (!userId) return redirect("/login");
 
   let formData = await request.formData();
-
   let title = formData.get("title");
   let content = formData.get("content");
 
   if (typeof title !== "string" || !title.length) {
-    return json<ActionData>(
+    return json(
       { field: "title", error: "Title is required" },
       { status: 400 }
     );
   }
 
   if (typeof content !== "string" || !content.length) {
-    return json<ActionData>(
+    return json(
       { field: "content", error: "Body is required" },
       { status: 400 }
     );
@@ -42,25 +36,25 @@ export let action: ActionFunction = async ({ request }) => {
   });
 
   return redirect(`/post/${post.id}`);
-};
+}
 
-export let loader: LoaderFunction = async ({ request }) => {
-  let session = await sessionStorage.getSession(request.headers.get("Cookie"));
+export async function loader({ request }: LoaderArgs) {
+  let session = await getSession(request);
   let userId = session.get("userId");
   if (!userId) return redirect("/login");
   return {};
-};
+}
 
 export default function JoinPage() {
-  let action = useActionData<ActionData>();
+  let actionData = useActionData<typeof action>();
   let transition = useTransition();
   let pendingForm = transition.submission;
 
   return (
     <main className="mx-auto max-w-7xl px-2 py-4 sm:px-6 lg:px-8">
-      {action && (
+      {actionData && (
         <pre>
-          <code>{JSON.stringify(action, null, 2)}</code>
+          <code>{JSON.stringify(actionData, null, 2)}</code>
         </pre>
       )}
       <Form method="post">

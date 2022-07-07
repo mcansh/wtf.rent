@@ -1,5 +1,4 @@
-import type { Post } from "@prisma/client";
-import type { ActionFunction, LoaderFunction } from "@remix-run/node";
+import type { ActionArgs, LoaderArgs } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
 import {
   Form,
@@ -8,15 +7,10 @@ import {
   useTransition,
 } from "@remix-run/react";
 import { db } from "~/db.server";
-import { sessionStorage } from "~/session.server";
+import { getSession } from "~/session.server";
 
-interface ActionData {
-  error: string;
-  field: "title" | "content";
-}
-
-export let action: ActionFunction = async ({ request, params }) => {
-  let session = await sessionStorage.getSession(request.headers.get("Cookie"));
+export async function action({ request, params }: ActionArgs) {
+  let session = await getSession(request);
   let userId = session.get("userId");
   if (!userId) return redirect("/login");
   if (!params.id) throw new Error("params.id is required");
@@ -27,14 +21,14 @@ export let action: ActionFunction = async ({ request, params }) => {
   let content = formData.get("content");
 
   if (typeof title !== "string" || !title.length) {
-    return json<ActionData>(
+    return json(
       { field: "title", error: "Title is required" },
       { status: 400 }
     );
   }
 
   if (typeof content !== "string" || !content.length) {
-    return json<ActionData>(
+    return json(
       { field: "content", error: "Body is required" },
       { status: 400 }
     );
@@ -46,39 +40,36 @@ export let action: ActionFunction = async ({ request, params }) => {
   });
 
   return redirect(`/post/${post.id}`);
-};
-
-interface RouteData {
-  post: Pick<Post, "content" | "title">;
 }
 
-export let loader: LoaderFunction = async ({ request, params }) => {
-  let session = await sessionStorage.getSession(request.headers.get("Cookie"));
+export async function loader({ request, params }: LoaderArgs) {
+  let session = await getSession(request);
   let userId = session.get("userId");
   if (!userId) return redirect("/login");
 
   let post = await db.post.findFirst({
     where: { authorId: userId, id: params.id },
+    select: { title: true, content: true },
   });
 
   if (!post) {
     throw new Response(`Post with id ${params.id} not found`, { status: 404 });
   }
 
-  return json<RouteData>({ post });
-};
+  return json({ post });
+}
 
 export default function JoinPage() {
-  let data = useLoaderData<RouteData>();
-  let action = useActionData<ActionData>();
+  let data = useLoaderData<typeof loader>();
+  let actionData = useActionData<typeof action>();
   let transition = useTransition();
   let pendingForm = transition.submission;
 
   return (
     <main className="mx-auto max-w-7xl px-2 py-4 sm:px-6 lg:px-8">
-      {action && (
+      {actionData && (
         <pre>
-          <code>{JSON.stringify(action, null, 2)}</code>
+          <code>{JSON.stringify(actionData, null, 2)}</code>
         </pre>
       )}
       <Form method="post">

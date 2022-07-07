@@ -1,10 +1,6 @@
 import { Prisma } from "@prisma/client";
 import clsx from "clsx";
-import type {
-  ActionFunction,
-  LoaderFunction,
-  MetaFunction,
-} from "@remix-run/node";
+import type { ActionArgs, LoaderArgs, MetaFunction } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
 import { differenceInMinutes, format } from "date-fns";
 import {
@@ -16,7 +12,7 @@ import {
   useTransition,
 } from "@remix-run/react";
 import { db } from "~/db.server";
-import { sessionStorage } from "~/session.server";
+import { getSession } from "~/session.server";
 
 let postWithComments = Prisma.validator<Prisma.PostArgs>()({
   select: {
@@ -37,27 +33,8 @@ let postWithComments = Prisma.validator<Prisma.PostArgs>()({
   },
 });
 
-type PostWithComments = Prisma.PostGetPayload<typeof postWithComments>;
-
-type Serialized<T> = {
-  [P in keyof T]: T[P] extends Date ? string : Serialized<T[P]>;
-};
-
-interface RouteData {
-  post: Serialized<PostWithComments>;
-  userCreatedPost: boolean;
-  userId: string | undefined;
-}
-
-interface ActionRouteData {
-  error: {
-    comment?: string;
-    other?: string;
-  };
-}
-
-export const loader: LoaderFunction = async ({ request, params }) => {
-  let session = await sessionStorage.getSession(request.headers.get("Cookie"));
+export async function loader({ request, params }: LoaderArgs) {
+  let session = await getSession(request);
   let userId = session.get("userId");
 
   let post = await db.post.findUnique({
@@ -71,7 +48,7 @@ export const loader: LoaderFunction = async ({ request, params }) => {
 
   let userCreatedPost = post.author?.id === userId;
 
-  return json<RouteData>({
+  return json({
     post: {
       ...post,
       createdAt: format(post.createdAt, "yyyy-MM-dd HH:mm O"),
@@ -86,10 +63,10 @@ export const loader: LoaderFunction = async ({ request, params }) => {
     userCreatedPost,
     userId,
   });
-};
+}
 
-export const action: ActionFunction = async ({ request, params }) => {
-  let session = await sessionStorage.getSession(request.headers.get("Cookie"));
+export async function action({ request, params }: ActionArgs) {
+  let session = await getSession(request);
   let userId = session.get("userId");
   let formData = await request.formData();
 
@@ -99,10 +76,7 @@ export const action: ActionFunction = async ({ request, params }) => {
     let commentId = formData.get("commentId");
 
     if (typeof commentId !== "string") {
-      return json<ActionRouteData>(
-        { error: { other: "Invalid comment id" } },
-        { status: 400 }
-      );
+      return json({ error: { other: "Invalid comment id" } }, { status: 400 });
     }
 
     let comment = await db.comment.findFirst({
@@ -114,21 +88,18 @@ export const action: ActionFunction = async ({ request, params }) => {
     });
 
     if (!comment) {
-      return json<ActionRouteData>(
-        { error: { other: "Comment not found" } },
-        { status: 404 }
-      );
+      return json({ error: { other: "Comment not found" } }, { status: 404 });
     }
 
     if (userId !== comment.authorId) {
-      return json<ActionRouteData>(
+      return json(
         { error: { other: "You can only delete comments you've written" } },
         { status: 400 }
       );
     }
 
     if (differenceInMinutes(new Date(), comment.createdAt) > 20) {
-      return json<ActionRouteData>(
+      return json(
         {
           error: { other: "You can't delete a comment older than 20 minutes" },
         },
@@ -149,7 +120,7 @@ export const action: ActionFunction = async ({ request, params }) => {
     let content = formData.get("content");
 
     if (typeof content !== "string" || content.length === 0) {
-      return json<ActionRouteData>(
+      return json(
         { error: { comment: "comment is required" } },
         { status: 400 }
       );
@@ -165,7 +136,7 @@ export const action: ActionFunction = async ({ request, params }) => {
   }
 
   return redirect(`/post/${params.id}`);
-};
+}
 
 export const meta: MetaFunction = ({ data }) => {
   if (data && data.post) {
@@ -181,14 +152,14 @@ export const meta: MetaFunction = ({ data }) => {
 
 export default function PostPage() {
   let location = useLocation();
-  let data = useLoaderData<RouteData>();
-  let actionData = useActionData<ActionRouteData>();
+  let data = useLoaderData<typeof loader>();
+  let actionData = useActionData<typeof action>();
   let transition = useTransition();
   let pendingForm = transition.submission;
 
   return (
     <main className="mx-auto max-w-7xl px-2 py-4 sm:px-6 lg:px-8">
-      {actionData?.error.other && (
+      {actionData && "other" in actionData.error && (
         <pre className="py-4 text-red-500">
           <code>{actionData.error.other}</code>
         </pre>
@@ -265,19 +236,23 @@ export default function PostPage() {
           <fieldset disabled={!!pendingForm || !data.userId}>
             <label
               htmlFor="content"
-              className={clsx(actionData?.error.comment ? "text-red-500" : "")}
+              className={clsx(
+                actionData && "comment" in actionData.error
+                  ? "text-red-500"
+                  : ""
+              )}
             >
               Leave a comment
             </label>
             <textarea
               className={clsx("block w-full", {
-                "border-red-500": actionData?.error.comment,
+                "border-red-500": actionData && "comment" in actionData.error,
               })}
               id="content"
               name="content"
               rows={5}
             />
-            {actionData?.error.comment && (
+            {actionData && "comment" in actionData.error && (
               <p className="text-red-500">{actionData.error.comment}</p>
             )}
             <button

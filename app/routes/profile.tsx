@@ -1,37 +1,33 @@
-import type { ActionFunction, LoaderFunction } from "@remix-run/node";
+import type { ActionArgs, LoaderArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { redirect } from "@remix-run/node";
 import { ExclamationCircleIcon } from "@heroicons/react/solid";
-import { sessionStorage } from "~/session.server";
+import { getSession, sessionStorage } from "~/session.server";
 import { db } from "~/db.server";
 import { useActionData } from "@remix-run/react";
 import clsx from "clsx";
 import { hash, getResetToken } from "~/bcrypt.server";
 
-export const loader: LoaderFunction = async ({ request }) => {
-  let session = await sessionStorage.getSession(request.headers.get("Cookie"));
+export async function loader({ request }: LoaderArgs) {
+  let session = await getSession(request);
   let userId = session.get("userId");
   if (!userId) return redirect("/login");
-
   return {};
-};
+}
 
-export const action: ActionFunction = async ({ request }) => {
-  let session = await sessionStorage.getSession(request.headers.get("Cookie"));
+export async function action({ request }: ActionArgs) {
+  let session = await getSession(request);
   let userId = session.get("userId");
   if (!userId) return redirect("/login");
 
   let formData = await request.formData();
-
   let email = formData.get("email");
 
   if (typeof email !== "string" || email.length === 0) {
     return json({ error: "you must confirm your account's email" });
   }
 
-  let user = await db.user.findFirst({
-    where: { id: userId, email },
-  });
+  let user = await db.user.findFirst({ where: { id: userId, email } });
 
   if (!user) {
     return json({ error: "no match" });
@@ -70,7 +66,7 @@ export const action: ActionFunction = async ({ request }) => {
   return redirect("/", {
     headers: { "Set-Cookie": await sessionStorage.destroySession(session) },
   });
-};
+}
 
 export default function SettingsPage() {
   let actionData = useActionData<{ error?: string }>();

@@ -1,8 +1,4 @@
-import type {
-  ActionFunction,
-  LoaderFunction,
-  MetaFunction,
-} from "@remix-run/node";
+import type { ActionArgs, LoaderArgs, MetaFunction } from "@remix-run/node";
 import { redirect } from "@remix-run/node";
 import {
   Form,
@@ -17,7 +13,7 @@ import { resolve, parse } from "@conform-to/zod";
 import z from "zod";
 import { verify } from "~/bcrypt.server";
 import { db } from "~/db.server";
-import { sessionStorage } from "~/session.server";
+import { getSession, sessionStorage } from "~/session.server";
 import clsx from "clsx";
 import type { AuthRouteHandle } from "~/use-matches";
 
@@ -33,20 +29,8 @@ let login = z.object({
 
 let schema = resolve(login);
 
-interface ActionRouteData {
-  values: {
-    email: string;
-    password: string;
-    "remember-me"?: boolean | undefined;
-  };
-  errors: {
-    email?: string;
-    password?: string;
-  };
-}
-
-export let action: ActionFunction = async ({ request }) => {
-  let session = await sessionStorage.getSession(request.headers.get("Cookie"));
+export async function action({ request }: ActionArgs) {
+  let session = await getSession(request);
 
   let formData = await request.formData();
   let result = parse(formData, login);
@@ -66,7 +50,7 @@ export let action: ActionFunction = async ({ request }) => {
   });
 
   if (!user) {
-    return json<ActionRouteData>(
+    return json(
       {
         values: result.value,
         errors: { email: "Invalid email or password" },
@@ -78,7 +62,7 @@ export let action: ActionFunction = async ({ request }) => {
   let valid = await verify(result.value.password, user.password);
 
   if (!valid) {
-    return json<ActionRouteData>(
+    return json(
       {
         values: result.value,
         errors: { password: "Invalid email or password" },
@@ -97,14 +81,14 @@ export let action: ActionFunction = async ({ request }) => {
       }),
     },
   });
-};
+}
 
-export let loader: LoaderFunction = async ({ request }) => {
-  let session = await sessionStorage.getSession(request.headers.get("Cookie"));
+export async function loader({ request }: LoaderArgs) {
+  let session = await getSession(request);
   let userId = session.get("userId");
   if (userId) return redirect("/");
   return {};
-};
+}
 
 export let meta: MetaFunction = () => ({
   title: "Sign in to WTF.rent",
@@ -119,11 +103,11 @@ export default function LoginPage() {
   let transition = useTransition();
   let pendingForm = transition.submission;
 
-  let actionData = useActionData<ActionRouteData>();
+  let actionData = useActionData<typeof action>();
   let formProps = useForm();
   let [fieldsetProps, result] = useFieldset(schema, {
-    error: actionData?.errors,
-    initialValue: actionData?.values,
+    error: { ...actionData?.errors },
+    initialValue: { ...actionData?.values },
   });
 
   return (

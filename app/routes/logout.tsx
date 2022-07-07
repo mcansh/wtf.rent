@@ -1,9 +1,9 @@
-import type { ActionFunction, LoaderFunction } from "@remix-run/node";
+import type { ActionArgs } from "@remix-run/node";
 import { redirect } from "@remix-run/node";
-import { sessionStorage } from "~/session.server";
+import { getSession, sessionStorage } from "~/session.server";
 
-export let action: ActionFunction = async ({ request }) => {
-  let session = await sessionStorage.getSession(request.headers.get("Cookie"));
+export async function action({ request }: ActionArgs) {
+  let session = await getSession(request);
   let url = new URL(request.url);
   let returnTo = url.searchParams.get("returnTo") ?? "/";
   return redirect(returnTo, {
@@ -11,8 +11,8 @@ export let action: ActionFunction = async ({ request }) => {
       "Set-Cookie": await sessionStorage.destroySession(session),
     },
   });
-};
+}
 
-export let loader: LoaderFunction = () => {
+export function loader() {
   return redirect("/");
-};
+}

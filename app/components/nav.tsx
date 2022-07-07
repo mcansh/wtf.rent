@@ -6,10 +6,10 @@ import clsx from "clsx";
 import { Form, Link, useLocation } from "@remix-run/react";
 
 interface Props {
-  user?: Omit<User, "password">;
+  user?: Pick<User, "email" | "username" | "id"> | null;
 }
 
-export const Nav: React.FC<Props> = ({ user }) => {
+export function Nav({ user }: Props) {
   let location = useLocation();
 
   return (
@@ -128,4 +128,4 @@ export const Nav: React.FC<Props> = ({ user }) => {
       </div>
     </nav>
   );
-};
+}
