@@ -7,7 +7,7 @@ import {
   useLoaderData,
   useTransition,
 } from "@remix-run/react";
-import prisma from "~/db.server";
+import { db } from "~/db.server";
 import { sessionStorage } from "~/session.server";
 
 interface ActionData {
@@ -40,7 +40,7 @@ export let action: ActionFunction = async ({ request, params }) => {
     );
   }
 
-  let post = await prisma.post.update({
+  let post = await db.post.update({
     where: { id: params.id },
     data: { title, content },
   });
@@ -57,7 +57,7 @@ export let loader: LoaderFunction = async ({ request, params }) => {
   let userId = session.get("userId");
   if (!userId) return redirect("/login");
 
-  let post = await prisma.post.findFirst({
+  let post = await db.post.findFirst({
     where: { authorId: userId, id: params.id },
   });
 

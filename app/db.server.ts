@@ -11,15 +11,11 @@ declare global {
   var prismaClient: PrismaClient;
 }
 
-let prisma: PrismaClient;
-
-if (process.env.NODE_ENV === "production") {
-  prisma = new PrismaClient();
-} else {
-  if (!global.prismaClient) {
-    global.prismaClient = new PrismaClient();
-  }
-  prisma = global.prismaClient;
-}
-
-export default prisma;
+// this is needed because in development we don't want to restart
+// the server with every change, but we want to make sure we don't
+// create a new connection to the DB with every change either.
+// in production we'll have a single connection to the DB.
+export let db =
+  process.env.NODE_ENV === "production"
+    ? new PrismaClient()
+    : global.prismaClient ?? (global.prismaClient = new PrismaClient());

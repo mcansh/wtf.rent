@@ -15,7 +15,7 @@ import {
   useLocation,
   useTransition,
 } from "@remix-run/react";
-import prisma from "~/db.server";
+import { db } from "~/db.server";
 import { sessionStorage } from "~/session.server";
 
 let postWithComments = Prisma.validator<Prisma.PostArgs>()({
@@ -60,7 +60,7 @@ export const loader: LoaderFunction = async ({ request, params }) => {
   let session = await sessionStorage.getSession(request.headers.get("Cookie"));
   let userId = session.get("userId");
 
-  let post = await prisma.post.findUnique({
+  let post = await db.post.findUnique({
     where: { id: params.id },
     select: postWithComments.select,
   });
@@ -105,7 +105,7 @@ export const action: ActionFunction = async ({ request, params }) => {
       );
     }
 
-    let comment = await prisma.comment.findFirst({
+    let comment = await db.comment.findFirst({
       where: {
         authorId: userId,
         id: commentId,
@@ -120,6 +120,13 @@ export const action: ActionFunction = async ({ request, params }) => {
       );
     }
 
+    if (userId !== comment.authorId) {
+      return json<ActionRouteData>(
+        { error: { other: "You can only delete comments you've written" } },
+        { status: 400 }
+      );
+    }
+
     if (differenceInMinutes(new Date(), comment.createdAt) > 20) {
       return json<ActionRouteData>(
         {
@@ -129,7 +136,7 @@ export const action: ActionFunction = async ({ request, params }) => {
       );
     }
 
-    await prisma.comment.deleteMany({
+    await db.comment.deleteMany({
       where: {
         id: commentId,
         authorId: userId,
@@ -148,7 +155,7 @@ export const action: ActionFunction = async ({ request, params }) => {
       );
     }
 
-    await prisma.comment.create({
+    await db.comment.create({
       data: {
         content,
         author: { connect: { id: userId } },
@@ -205,10 +212,7 @@ export default function PostPage() {
       <div className="space-y-2 divide-y">
         {data.post.comments.length ? (
           data.post.comments.map((comment) => {
-            let commentAuthor = comment.author || {
-              username: "deleted user",
-              id: undefined,
-            };
+            let commentAuthor = comment.author;
             return (
               <div key={comment.id}>
                 <div

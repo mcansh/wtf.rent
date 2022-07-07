@@ -16,7 +16,7 @@ import { useForm, useFieldset, conform } from "@conform-to/react";
 import { resolve, parse } from "@conform-to/zod";
 import z from "zod";
 import { verify } from "~/bcrypt.server";
-import prisma from "~/db.server";
+import { db } from "~/db.server";
 import { sessionStorage } from "~/session.server";
 import clsx from "clsx";
 import type { AuthRouteHandle } from "~/use-matches";
@@ -61,7 +61,7 @@ export let action: ActionFunction = async ({ request }) => {
   let url = new URL(request.url);
   let returnTo = url.searchParams.get("returnTo") ?? "/";
 
-  let user = await prisma.user.findUnique({
+  let user = await db.user.findUnique({
     where: { email: result.value.email },
   });
 

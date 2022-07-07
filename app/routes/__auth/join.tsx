@@ -10,7 +10,7 @@ import { resolve, parse } from "@conform-to/zod";
 import z from "zod";
 import { sessionStorage } from "~/session.server";
 import { hash } from "~/bcrypt.server";
-import prisma from "~/db.server";
+import { db } from "~/db.server";
 import { Prisma } from "@prisma/client";
 import type { AuthRouteHandle } from "~/use-matches";
 
@@ -37,18 +37,18 @@ let schema = resolve(join);
 
 interface ActionRouteData {
   values: {
-    email: string;
-    username: string;
-    password: string;
-    passwordConfirm: string;
-    "remember-me"?: boolean | undefined;
-  };
+    email?: string | undefined;
+    username?: string | undefined;
+    password?: string | undefined;
+    passwordConfirm?: string | undefined;
+    "remember-me"?: string | boolean | undefined;
+  } | null;
   errors: {
-    email?: string;
-    username?: string;
-    password?: string;
-    passwordConfirm?: string;
-  };
+    email?: string | undefined;
+    username?: string | undefined;
+    password?: string | undefined;
+    passwordConfirm?: string | undefined;
+  } | null;
 }
 
 export let action: ActionFunction = async ({ request }) => {
@@ -58,14 +58,14 @@ export let action: ActionFunction = async ({ request }) => {
   let result = parse(formData, join);
 
   if (result.state !== "accepted") {
-    return json(
+    return json<ActionRouteData>(
       { values: result.value, errors: result.error },
       { status: 400 }
     );
   }
 
   try {
-    let user = await prisma.user.create({
+    let user = await db.user.create({
       data: {
         email: result.value.email,
         password: await hash(result.value.password),
@@ -135,8 +135,8 @@ export default function JoinPage() {
   let actionData = useActionData<ActionRouteData>();
   let formProps = useForm();
   let [fieldsetProps, result] = useFieldset(schema, {
-    error: actionData?.errors,
-    initialValue: actionData?.values,
+    error: { ...actionData?.errors },
+    initialValue: { ...actionData?.values },
   });
 
   return (

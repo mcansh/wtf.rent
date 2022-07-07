@@ -15,7 +15,7 @@ import {
 import type { User } from "@prisma/client";
 
 import { Nav } from "./components/nav";
-import prisma from "./db.server";
+import { db } from "./db.server";
 import { sessionStorage } from "./session.server";
 import stylesUrl from "./styles/global.css";
 import { useMatches } from "./use-matches";
@@ -32,7 +32,7 @@ export let loader: LoaderFunction = async ({ request }) => {
   let session = await sessionStorage.getSession(request.headers.get("Cookie"));
   let userId = session.get("userId");
   let user = userId
-    ? await prisma.user.findUnique({
+    ? await db.user.findUnique({
         where: { id: userId },
         select: {
           password: false,
@@ -48,11 +48,11 @@ export let loader: LoaderFunction = async ({ request }) => {
 
 interface DocumentProps {
   title?: string;
+  user?: RouteData["user"];
   children: React.ReactNode;
 }
 
-function Document({ children, title }: DocumentProps) {
-  let data = useLoaderData<RouteData | undefined>();
+function Document({ children, title, user }: DocumentProps) {
   let matches = useMatches();
   let bodyClassName = matches
     .filter((match) => match.handle && match.handle.bodyClassName)
@@ -69,7 +69,7 @@ function Document({ children, title }: DocumentProps) {
         <Links />
       </head>
       <body className={clsx("flex h-full flex-col", bodyClassName)}>
-        <Nav user={data?.user} />
+        <Nav user={user} />
         <div className="flex-auto">{children}</div>
         <Scripts />
         {process.env.NODE_ENV === "development" && <LiveReload />}
@@ -79,8 +79,9 @@ function Document({ children, title }: DocumentProps) {
 }
 
 export default function App() {
+  let data = useLoaderData<RouteData>();
   return (
-    <Document>
+    <Document user={data.user}>
       <Outlet />
     </Document>
   );

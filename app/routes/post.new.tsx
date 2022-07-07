@@ -1,7 +1,7 @@
 import type { ActionFunction, LoaderFunction } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
 import { Form, useActionData, useTransition } from "@remix-run/react";
-import prisma from "~/db.server";
+import { db } from "~/db.server";
 import { sessionStorage } from "~/session.server";
 
 interface ActionData {
@@ -33,7 +33,7 @@ export let action: ActionFunction = async ({ request }) => {
     );
   }
 
-  let post = await prisma.post.create({
+  let post = await db.post.create({
     data: {
       title,
       content,

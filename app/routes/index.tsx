@@ -7,7 +7,7 @@ import { Link, useLoaderData } from "@remix-run/react";
 import { json } from "@remix-run/node";
 import { Prisma } from "@prisma/client";
 import { format } from "date-fns";
-import prisma from "~/db.server";
+import { db } from "~/db.server";
 import stylesUrl from "~/styles/index.css";
 
 export let meta: MetaFunction = () => {
@@ -38,7 +38,7 @@ interface RouteData {
 }
 
 export let loader: LoaderFunction = async () => {
-  let posts = await prisma.post.findMany({
+  let posts = await db.post.findMany({
     orderBy: {
       createdAt: "desc",
     },
