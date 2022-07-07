@@ -14,5 +14,5 @@ export let action: ActionFunction = async ({ request }) => {
 };
 
 export let loader: LoaderFunction = () => {
-  throw new Response("", { status: 404 });
+  return redirect("/");
 };
