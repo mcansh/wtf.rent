@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["interactiveTransactions"]
 
 }
 
@@ -27,8 +28,8 @@ model Post {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   // relations
-  author    User?      @relation(fields: [authorId], references: [id])
-  authorId  String?
+  author    User    @relation(fields: [authorId], references: [id])
+  authorId  String
   comments  Comment[]
 }
 
@@ -38,8 +39,8 @@ model Comment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  author   User?   @relation(fields: [authorId], references: [id])
-  authorId String?
-  post     Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author   User   @relation(fields: [authorId], references: [id])
+  authorId String
+  post     Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId   String
 }

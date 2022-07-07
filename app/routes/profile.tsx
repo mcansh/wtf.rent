@@ -3,9 +3,10 @@ import { json } from "@remix-run/node";
 import { redirect } from "@remix-run/node";
 import { ExclamationCircleIcon } from "@heroicons/react/solid";
 import { sessionStorage } from "~/session.server";
-import prisma from "~/db.server";
+import { db } from "~/db.server";
 import { useActionData } from "@remix-run/react";
 import clsx from "clsx";
+import { hash, getResetToken } from "~/bcrypt.server";
 
 export const loader: LoaderFunction = async ({ request }) => {
   let session = await sessionStorage.getSession(request.headers.get("Cookie"));
@@ -28,7 +29,7 @@ export const action: ActionFunction = async ({ request }) => {
     return json({ error: "you must confirm your account's email" });
   }
 
-  let user = await prisma.user.findFirst({
+  let user = await db.user.findFirst({
     where: { id: userId, email },
   });
 
@@ -36,8 +37,34 @@ export const action: ActionFunction = async ({ request }) => {
     return json({ error: "no match" });
   }
 
-  await prisma.user.delete({
-    where: { id: userId },
+  await db.$transaction(async (prisma) => {
+    let anonymousUser = await prisma.user.findUnique({
+      where: { username: "anonymous" },
+    });
+
+    if (!anonymousUser) {
+      anonymousUser = await prisma.user.create({
+        data: {
+          username: "anonymous",
+          email: "anonymous@wtf.rent",
+          password: await hash(await getResetToken()),
+        },
+      });
+    }
+
+    await prisma.comment.updateMany({
+      where: { authorId: userId },
+      data: { authorId: anonymousUser.id },
+    });
+
+    await prisma.post.updateMany({
+      where: { authorId: userId },
+      data: { authorId: anonymousUser.id },
+    });
+
+    await prisma.user.delete({
+      where: { id: userId },
+    });
   });
 
   return redirect("/", {

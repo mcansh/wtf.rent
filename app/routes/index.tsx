@@ -72,8 +72,7 @@ export default function IndexPage() {
               </Link>
               <p className="prose line-clamp-1">{post.content}</p>
               <p className="text-slate-900s text-sm">
-                Posted by {post.author ? post.author.username : "deleted user"}{" "}
-                on{" "}
+                Posted by {post.author.username} on{" "}
                 <time dateTime={String(post.createdAt)}>
                   {format(new Date(post.createdAt), "M/d/yyyy h:mm a")}
                 </time>
