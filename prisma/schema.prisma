@@ -10,15 +10,24 @@ datasource db {
 }
 
 model User {
-  id        String    @id @default(cuid())
-  username  String    @unique
-  email     String    @unique
-  password  String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  // relations
-  posts     Post[]
-  comments  Comment[]
+  id           String      @id @default(cuid())
+  username     String      @unique
+  email        String      @unique
+  password     String
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  posts        Post[]
+  comments     Comment[]
+  resetToken   ResetToken?
+  resetTokenId String?     @unique
+}
+
+model ResetToken {
+  id     String   @id @default(cuid())
+  token  String   @unique
+  expiry DateTime
+  user   User     @relation(fields: [userId], references: [id])
+  userId String   @unique
 }
 
 model Post {

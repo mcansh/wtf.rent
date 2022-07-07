@@ -14,3 +14,8 @@ export let sessionStorage = createCookieSessionStorage({
     secure: process.env.NODE_ENV === "production",
   },
 });
+
+export function getSession(request: Request) {
+  let cookie = request.headers.get("Cookie");
+  return sessionStorage.getSession(cookie);
+}
