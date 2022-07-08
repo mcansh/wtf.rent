@@ -22,16 +22,14 @@ export async function loader() {
     include: { author: { select: { username: true } } },
   });
 
-  let serialized = posts.map((post) => {
-    return {
-      ...post,
-      formattedCreatedAt: format(post.createdAt, "M/d/yyyy h:mm a"),
-      formattedUpdatedAt: format(post.updatedAt, "M/d/yyyy h:mm a"),
-    };
-  });
-
   return json({
-    posts: serialized,
+    posts: posts.map((post) => {
+      return {
+        ...post,
+        formattedCreatedAt: format(post.createdAt, "M/d/yyyy h:mm a"),
+        formattedUpdatedAt: format(post.updatedAt, "M/d/yyyy h:mm a"),
+      };
+    }),
   });
 }
 
