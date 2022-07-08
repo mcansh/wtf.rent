@@ -10,11 +10,12 @@
     "css": "tailwind --output app/styles/global.css --postcss",
     "build": "run-s build:*",
     "build:css": "npm run css -- --minify",
-    "build:remix": "remix build",
+    "build:remix": "bun run node_modules/@remix-run/dev/dist/cli.js build",
     "dev": "run-p dev:*",
     "dev:css": "npm run css -- --watch",
-    "dev:remix": "remix dev",
-    "start": "remix-serve build"
+    "dev:remix": "bun run node_modules/@remix-run/dev/dist/cli.js watch",
+    "dev:server": "bun run ./server.ts dev",
+    "start": "bun run ./server.ts"
   },
   "dependencies": {
     "@conform-to/react": "0.1.0",
@@ -41,6 +42,7 @@
     "@types/react": "18.0.14",
     "@types/react-dom": "18.0.6",
     "autoprefixer": "10.4.7",
+    "bun-types": "0.0.83",
     "eslint": "8.19.0",
     "eslint-plugin-prefer-let": "3.0.1",
     "npm-run-all": "4.1.5",
