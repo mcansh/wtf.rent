@@ -53,6 +53,8 @@ COPY --from=build /workdir/node_modules/.prisma /workdir/node_modules/.prisma
 COPY --from=build /workdir/build /workdir/build
 COPY --from=build /workdir/public /workdir/public
 COPY --from=build /workdir/prisma /workdir/prisma
-ADD . .
+COPY --from=build /workdir/package.json /workdir/package.json
+COPY --from=build /workdir/remix.config.js /workdir/remix.config.js
+COPY start_with_migrations.sh ./start_with_migrations.sh
 
 ENTRYPOINT [ "./start_with_migrations.sh" ]
