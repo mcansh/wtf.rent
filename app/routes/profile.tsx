@@ -117,7 +117,7 @@ export default function SettingsPage() {
           </div>
           {actionData?.error ? (
             <p className="mt-2 text-sm text-red-600" id="email-error">
-              Your password must be less than 4 characters.
+              {actionData.error}
             </p>
           ) : null}
         </div>
