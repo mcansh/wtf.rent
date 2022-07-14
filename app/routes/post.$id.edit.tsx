@@ -7,13 +7,11 @@ import {
   useTransition,
 } from "@remix-run/react";
 import { db } from "~/db.server";
-import { getSession } from "~/session.server";
+import { requireUserId } from "~/session.server";
 
 export async function action({ request, params }: ActionArgs) {
-  let session = await getSession(request);
-  let userId = session.get("userId");
-  if (!userId) return redirect("/login");
   if (!params.id) throw new Error("params.id is required");
+  let userId = await requireUserId(request);
 
   let formData = await request.formData();
 
@@ -34,18 +32,16 @@ export async function action({ request, params }: ActionArgs) {
     );
   }
 
-  let post = await db.post.update({
-    where: { id: params.id },
+  await db.post.updateMany({
+    where: { id: params.id, authorId: userId },
     data: { title, content },
   });
 
-  return redirect(`/post/${post.id}`);
+  return redirect(`/post/${params.id}`);
 }
 
 export async function loader({ request, params }: LoaderArgs) {
-  let session = await getSession(request);
-  let userId = session.get("userId");
-  if (!userId) return redirect("/login");
+  let userId = await requireUserId(request);
 
   let post = await db.post.findFirst({
     where: { authorId: userId, id: params.id },

@@ -1,24 +1,25 @@
-import type { ActionArgs, LoaderArgs } from "@remix-run/node";
+import type { ActionArgs, LoaderArgs, MetaFunction } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { redirect } from "@remix-run/node";
-import { useActionData } from "@remix-run/react";
+import { useActionData, useLoaderData } from "@remix-run/react";
 import exclamationCircleIconUrl from "~/icons/solid/exclamation-circle.svg";
-import { getSession, sessionStorage } from "~/session.server";
+import { logout, requireUser } from "~/session.server";
 import { db } from "~/db.server";
 import clsx from "clsx";
 import { hash, getResetToken } from "~/bcrypt.server";
 
+export const meta: MetaFunction = () => {
+  return {
+    title: "My Profile",
+  };
+};
+
 export async function loader({ request }: LoaderArgs) {
-  let session = await getSession(request);
-  let userId = session.get("userId");
-  if (!userId) return redirect("/login");
-  return {};
+  let user = await requireUser(request);
+  return { user: { email: user.email } };
 }
 
 export async function action({ request }: ActionArgs) {
-  let session = await getSession(request);
-  let userId = session.get("userId");
-  if (!userId) return redirect("/login");
+  let user = await requireUser(request);
 
   let formData = await request.formData();
   let email = formData.get("email");
@@ -27,10 +28,8 @@ export async function action({ request }: ActionArgs) {
     return json({ error: "you must confirm your account's email" });
   }
 
-  let user = await db.user.findFirst({ where: { id: userId, email } });
-
-  if (!user) {
-    return json({ error: "no match" });
+  if (email !== user.email) {
+    return json({ error: "your email did not match" });
   }
 
   await db.$transaction(async (prisma) => {
@@ -49,27 +48,26 @@ export async function action({ request }: ActionArgs) {
     }
 
     await prisma.comment.updateMany({
-      where: { authorId: userId },
+      where: { authorId: user.id },
       data: { authorId: anonymousUser.id },
     });
 
     await prisma.post.updateMany({
-      where: { authorId: userId },
+      where: { authorId: user.id },
       data: { authorId: anonymousUser.id },
     });
 
     await prisma.user.delete({
-      where: { id: userId },
+      where: { id: user.id },
     });
   });
 
-  return redirect("/", {
-    headers: { "Set-Cookie": await sessionStorage.destroySession(session) },
-  });
+  return logout(request);
 }
 
 export default function SettingsPage() {
-  let actionData = useActionData<{ error?: string }>();
+  let data = useLoaderData<typeof loader>();
+  let actionData = useActionData<typeof action>();
 
   return (
     <div className="mx-auto max-w-7xl px-2 pt-4 sm:px-6 lg:px-8">
@@ -100,7 +98,7 @@ export default function SettingsPage() {
                   ? "border-red-300 pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500"
                   : "border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
               )}
-              placeholder="you@example.com"
+              placeholder={data.user.email}
               aria-invalid={actionData?.error ? "true" : undefined}
               aria-describedby={actionData?.error ? "email-error" : undefined}
             />

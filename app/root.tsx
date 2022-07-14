@@ -17,7 +17,7 @@ import type { User } from "@prisma/client";
 
 import { Nav } from "./components/nav";
 import { db } from "./db.server";
-import { getSession } from "./session.server";
+import { getUserId } from "./session.server";
 import stylesUrl from "./styles/global.css";
 import { useMatches } from "./use-matches";
 
@@ -26,8 +26,7 @@ export let links: LinksFunction = () => {
 };
 
 export async function loader({ request }: LoaderArgs) {
-  let session = await getSession(request);
-  let userId = session.get("userId");
+  let userId = await getUserId(request);
 
   if (typeof userId !== "string") {
     return json({ user: null });

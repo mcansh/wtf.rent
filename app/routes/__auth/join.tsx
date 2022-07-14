@@ -4,11 +4,10 @@ import { Form, Link, useActionData, useTransition } from "@remix-run/react";
 import { useForm, useFieldset, conform } from "@conform-to/react";
 import { resolve, parse } from "@conform-to/zod";
 import z from "zod";
-import { getSession, sessionStorage } from "~/session.server";
-import { hash } from "~/bcrypt.server";
-import { db } from "~/db.server";
+import { createUserSession, getUserId } from "~/session.server";
 import { Prisma } from "@prisma/client";
 import type { AuthRouteHandle } from "~/use-matches";
+import { createUser } from "~/models/user.server";
 
 let join = z
   .object({
@@ -32,8 +31,6 @@ let join = z
 let schema = resolve(join);
 
 export async function action({ request }: ActionArgs) {
-  let session = await getSession(request);
-
   let formData = await request.formData();
   let result = parse(formData, join);
 
@@ -45,23 +42,17 @@ export async function action({ request }: ActionArgs) {
   }
 
   try {
-    let user = await db.user.create({
-      data: {
-        email: result.value.email,
-        password: await hash(result.value.password),
-        username: result.value.username,
-      },
+    let user = await createUser({
+      email: result.value.email,
+      username: result.value.username,
+      password: result.value.password,
     });
 
-    session.set("userId", user.id);
-
-    return redirect("/", {
-      headers: {
-        "Set-Cookie": await sessionStorage.commitSession(session, {
-          // if remember me is checked, set a cookie that expires in 7 days
-          maxAge: result.value["remember-me"] ? 60 * 60 * 24 * 7 : undefined,
-        }),
-      },
+    return createUserSession({
+      userId: user.id,
+      request,
+      redirectTo: "/",
+      remember: !!result.value["remember-me"],
     });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -94,8 +85,7 @@ export async function action({ request }: ActionArgs) {
 }
 
 export async function loader({ request }: LoaderArgs) {
-  let session = await getSession(request);
-  let userId = session.get("userId");
+  let userId = await getUserId(request);
   if (userId) return redirect("/");
   return {};
 }

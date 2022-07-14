@@ -13,7 +13,7 @@ import { resolve, parse } from "@conform-to/zod";
 import z from "zod";
 import { verify } from "~/bcrypt.server";
 import { db } from "~/db.server";
-import { getSession, sessionStorage } from "~/session.server";
+import { createUserSession, getSession, getUserId } from "~/session.server";
 import clsx from "clsx";
 import type { AuthRouteHandle } from "~/use-matches";
 
@@ -71,21 +71,16 @@ export async function action({ request }: ActionArgs) {
     );
   }
 
-  session.set("userId", user.id);
-
-  return redirect(returnTo, {
-    headers: {
-      "Set-Cookie": await sessionStorage.commitSession(session, {
-        // if remember me is checked, set a cookie that expires in 7 days
-        maxAge: result.value["remember-me"] ? 60 * 60 * 24 * 7 : undefined,
-      }),
-    },
+  return createUserSession({
+    userId: user.id,
+    redirectTo: returnTo,
+    remember: !!result.value["remember-me"],
+    request,
   });
 }
 
 export async function loader({ request }: LoaderArgs) {
-  let session = await getSession(request);
-  let userId = session.get("userId");
+  let userId = await getUserId(request);
   if (userId) return redirect("/");
   return {};
 }

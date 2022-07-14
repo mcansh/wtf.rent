@@ -2,13 +2,10 @@ import type { ActionArgs, LoaderArgs } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
 import { Form, useActionData, useTransition } from "@remix-run/react";
 import { db } from "~/db.server";
-import { getSession } from "~/session.server";
+import { requireUserId } from "~/session.server";
 
 export async function action({ request }: ActionArgs) {
-  let session = await getSession(request);
-  let userId = session.get("userId");
-  if (!userId) return redirect("/login");
-
+  let userId = await requireUserId(request);
   let formData = await request.formData();
   let title = formData.get("title");
   let content = formData.get("content");
@@ -39,9 +36,7 @@ export async function action({ request }: ActionArgs) {
 }
 
 export async function loader({ request }: LoaderArgs) {
-  let session = await getSession(request);
-  let userId = session.get("userId");
-  if (!userId) return redirect("/login");
+  await requireUserId(request);
   return {};
 }
 

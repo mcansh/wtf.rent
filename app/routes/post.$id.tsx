@@ -12,7 +12,7 @@ import {
   useTransition,
 } from "@remix-run/react";
 import { db } from "~/db.server";
-import { getSession } from "~/session.server";
+import { requireUserId } from "~/session.server";
 
 let postWithComments = Prisma.validator<Prisma.PostArgs>()({
   select: {
@@ -34,8 +34,7 @@ let postWithComments = Prisma.validator<Prisma.PostArgs>()({
 });
 
 export async function loader({ request, params }: LoaderArgs) {
-  let session = await getSession(request);
-  let userId = session.get("userId");
+  let userId = await requireUserId(request);
 
   let post = await db.post.findUnique({
     where: { id: params.id },
@@ -66,8 +65,7 @@ export async function loader({ request, params }: LoaderArgs) {
 }
 
 export async function action({ request, params }: ActionArgs) {
-  let session = await getSession(request);
-  let userId = session.get("userId");
+  let userId = await requireUserId(request);
   let formData = await request.formData();
 
   let variant = formData.get("variant");
