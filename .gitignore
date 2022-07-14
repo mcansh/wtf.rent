@@ -1,10 +1,12 @@
 node_modules
+.DS_Store
 
+# build artifacts
 /.cache
 /build
 /public/build
-
 /app/styles/global.css
+/app/icons
 
 .env
 .eslintcache

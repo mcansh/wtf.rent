@@ -1,7 +1,7 @@
 import * as React from "react";
 import type { User } from "@prisma/client";
 import { Menu, Transition } from "@headlessui/react";
-import { BellIcon } from "@heroicons/react/outline";
+import bellIconUrl from "~/icons/outline/bell.svg";
 import clsx from "clsx";
 import { Form, Link, useLocation } from "@remix-run/react";
 
@@ -29,7 +29,9 @@ export function Nav({ user }: Props) {
                 className="rounded-full bg-gray-800 p-1 text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
               >
                 <span className="sr-only">View notifications</span>
-                <BellIcon className="h-6 w-6" aria-hidden="true" />
+                <svg className="h-6 w-6" aria-hidden="true">
+                  <use href={`${bellIconUrl}#bell`} />
+                </svg>
               </button>
 
               {/* Profile dropdown */}

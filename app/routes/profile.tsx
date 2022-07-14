@@ -1,10 +1,10 @@
 import type { ActionArgs, LoaderArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { redirect } from "@remix-run/node";
-import { ExclamationCircleIcon } from "@heroicons/react/solid";
+import { useActionData } from "@remix-run/react";
+import exclamationCircleIconUrl from "~/icons/solid/exclamation-circle.svg";
 import { getSession, sessionStorage } from "~/session.server";
 import { db } from "~/db.server";
-import { useActionData } from "@remix-run/react";
 import clsx from "clsx";
 import { hash, getResetToken } from "~/bcrypt.server";
 
@@ -101,24 +101,25 @@ export default function SettingsPage() {
                   : "border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
               )}
               placeholder="you@example.com"
-              aria-invalid="true"
+              aria-invalid={actionData?.error ? "true" : undefined}
               aria-describedby={actionData?.error ? "email-error" : undefined}
             />
 
             {actionData?.error ? (
-              <>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                  <ExclamationCircleIcon
-                    className="h-5 w-5 text-red-500"
-                    aria-hidden="true"
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                <svg className="h-5 w-5 text-red-500" aria-hidden="true">
+                  <use
+                    href={`${exclamationCircleIconUrl}#exclamation-circle`}
                   />
-                </div>
-                <p className="mt-2 text-sm text-red-600" id="email-error">
-                  {actionData.error}
-                </p>
-              </>
+                </svg>
+              </div>
             ) : null}
           </div>
+          {actionData?.error ? (
+            <p className="mt-2 text-sm text-red-600" id="email-error">
+              Your password must be less than 4 characters.
+            </p>
+          ) : null}
         </div>
 
         <div className="mt-4">
