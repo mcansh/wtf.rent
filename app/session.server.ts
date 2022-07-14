@@ -38,7 +38,9 @@ export async function getUser(request: Request) {
   if (userId === undefined) return null;
   let user = await getUserById(userId);
   if (user) return user;
-  throw await logout(request);
+  let url = new URL(request.url).pathname;
+  let redirectTo = url.search ? `${url}?${url.search}` : url;
+  throw await logout(request, redirectTo);
 }
 
 export async function requireUserId(
@@ -57,7 +59,9 @@ export async function requireUserId(
 export async function requireUser(request: Request) {
   let user = await getUser(request);
   if (user) return user;
-  throw await logout(request);
+  let url = new URL(request.url).pathname;
+  let redirectTo = url.search ? `${url}?${url.search}` : url;
+  throw await logout(request, redirectTo);
 }
 
 export async function createUserSession({
@@ -83,8 +87,7 @@ export async function createUserSession({
   });
 }
 
-export async function logout(request: Request, redirectTo?: string) {
-  redirectTo = redirectTo || new URL(request.url).pathname;
+export async function logout(request: Request, redirectTo: string = "/") {
   let session = await getSession(request);
   return redirect(redirectTo, {
     headers: { "Set-Cookie": await sessionStorage.destroySession(session) },
