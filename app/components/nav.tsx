@@ -1,9 +1,10 @@
 import * as React from "react";
 import type { User } from "@prisma/client";
 import { Menu, Transition } from "@headlessui/react";
-import bellIconUrl from "~/icons/outline/bell.svg";
 import clsx from "clsx";
 import { Form, Link, useLocation } from "@remix-run/react";
+
+import bellIconUrl from "~/icons/outline/bell.svg";
 
 interface Props {
   user?: Pick<User, "email" | "username" | "id"> | null;

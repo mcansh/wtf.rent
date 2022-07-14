@@ -11,10 +11,11 @@ import { json } from "@remix-run/node";
 import { useForm, useFieldset, conform } from "@conform-to/react";
 import { resolve, parse } from "@conform-to/zod";
 import z from "zod";
+import clsx from "clsx";
+
 import { verify } from "~/bcrypt.server";
 import { db } from "~/db.server";
 import { createUserSession, getSession, getUserId } from "~/session.server";
-import clsx from "clsx";
 import type { AuthRouteHandle } from "~/use-matches";
 
 let login = z.object({
@@ -30,8 +31,6 @@ let login = z.object({
 let schema = resolve(login);
 
 export async function action({ request }: ActionArgs) {
-  let session = await getSession(request);
-
   let formData = await request.formData();
   let result = parse(formData, login);
 

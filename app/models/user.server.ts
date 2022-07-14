@@ -1,4 +1,5 @@
 import type { User } from "@prisma/client";
+
 import { hash, verify } from "~/bcrypt.server";
 import { db } from "~/db.server";
 

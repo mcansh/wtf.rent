@@ -1,10 +1,11 @@
 import type { ActionArgs, LoaderArgs, MetaFunction } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { useActionData, useLoaderData } from "@remix-run/react";
+import clsx from "clsx";
+
 import exclamationCircleIconUrl from "~/icons/solid/exclamation-circle.svg";
 import { logout, requireUser } from "~/session.server";
 import { db } from "~/db.server";
-import clsx from "clsx";
 import { hash, getResetToken } from "~/bcrypt.server";
 
 export const meta: MetaFunction = () => {

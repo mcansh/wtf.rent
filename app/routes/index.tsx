@@ -2,6 +2,7 @@ import type { LinksFunction, MetaFunction } from "@remix-run/node";
 import { Link, useLoaderData } from "@remix-run/react";
 import { json } from "@remix-run/node";
 import { format } from "date-fns";
+
 import { db } from "~/db.server";
 import stylesUrl from "~/styles/index.css";
 
