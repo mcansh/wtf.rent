@@ -1,4 +1,14 @@
-import ReactDOM from "react-dom";
+import * as React from "react";
+import * as ReactDOM from "react-dom/client";
 import { RemixBrowser } from "@remix-run/react";
 
-ReactDOM.hydrate(<RemixBrowser />, document);
+requestIdleCallback(() => {
+  React.startTransition(() => {
+    ReactDOM.hydrateRoot(
+      document,
+      <React.StrictMode>
+        <RemixBrowser />
+      </React.StrictMode>
+    );
+  });
+});
