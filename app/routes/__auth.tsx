@@ -1,7 +1,7 @@
 import { Outlet } from "@remix-run/react";
 
-import type { RouteHandle } from "~/use-matches";
-import { useAuthMatches } from "~/use-matches";
+import type { RouteHandle } from "~/utils";
+import { useAuthMatches } from "~/utils";
 
 export let handle: RouteHandle = {
   bodyClassName: "bg-gray-50",

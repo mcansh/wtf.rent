@@ -7,7 +7,8 @@ import z from "zod";
 import { Prisma } from "@prisma/client";
 
 import { createUserSession, getUserId } from "~/session.server";
-import type { AuthRouteHandle } from "~/use-matches";
+import type { AuthRouteHandle } from "~/utils";
+import { safeRedirect } from "~/utils";
 import { createUser } from "~/models/user.server";
 
 let join = z
@@ -49,10 +50,12 @@ export async function action({ request }: ActionArgs) {
       password: result.value.password,
     });
 
+    let redirectTo = safeRedirect(formData.get("redirectTo"));
+
     return createUserSession({
       userId: user.id,
       request,
-      redirectTo: "/",
+      redirectTo,
       remember: !!result.value["remember-me"],
     });
   } catch (error) {

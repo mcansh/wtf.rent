@@ -15,8 +15,9 @@ import clsx from "clsx";
 
 import { verify } from "~/bcrypt.server";
 import { db } from "~/db.server";
-import { createUserSession, getSession, getUserId } from "~/session.server";
-import type { AuthRouteHandle } from "~/use-matches";
+import { createUserSession, getUserId } from "~/session.server";
+import type { AuthRouteHandle } from "~/utils";
+import { safeRedirect } from "~/utils";
 
 let login = z.object({
   email: z
@@ -42,7 +43,7 @@ export async function action({ request }: ActionArgs) {
   }
 
   let url = new URL(request.url);
-  let returnTo = url.searchParams.get("returnTo") ?? "/";
+  let redirectTo = safeRedirect(url.searchParams.get("returnTo"));
 
   let user = await db.user.findUnique({
     where: { email: result.value.email },
@@ -72,7 +73,7 @@ export async function action({ request }: ActionArgs) {
 
   return createUserSession({
     userId: user.id,
-    redirectTo: returnTo,
+    redirectTo,
     remember: !!result.value["remember-me"],
     request,
   });

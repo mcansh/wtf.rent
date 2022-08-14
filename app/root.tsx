@@ -19,7 +19,7 @@ import { Nav } from "./components/nav";
 import { db } from "./db.server";
 import { getUserId } from "./session.server";
 import stylesUrl from "./styles/global.css";
-import { useMatches } from "./use-matches";
+import { useMatches } from "./utils";
 
 export let links: LinksFunction = () => {
   return [{ rel: "stylesheet", href: stylesUrl }];
