@@ -3,10 +3,10 @@ import { json } from "@remix-run/node";
 import { useActionData, useLoaderData } from "@remix-run/react";
 import clsx from "clsx";
 
-import exclamationCircleIconUrl from "~/icons/solid/exclamation-circle.svg";
 import { logout, requireUser } from "~/session.server";
 import { db } from "~/db.server";
 import { hash, getResetToken } from "~/bcrypt.server";
+import { Svg } from '~/components/heroicons'
 
 export const meta: MetaFunction = () => {
   return {
@@ -106,11 +106,7 @@ export default function SettingsPage() {
 
             {actionData?.error ? (
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                <svg className="h-5 w-5 text-red-500" aria-hidden="true">
-                  <use
-                    href={`${exclamationCircleIconUrl}#exclamation-circle`}
-                  />
-                </svg>
+                <Svg name="solid:24:exclamation-circle" className="h-5 w-5 fill-red-500" />
               </div>
             ) : null}
           </div>

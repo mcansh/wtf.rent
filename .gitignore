@@ -10,3 +10,5 @@ node_modules
 
 .env
 .eslintcache
+
+app/components/heroicons.tsx
