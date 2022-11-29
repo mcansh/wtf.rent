@@ -1,8 +1,8 @@
-import type { ActionArgs, LoaderArgs, MetaFunction } from "@remix-run/node";
+import type { DataFunctionArgs, MetaFunction } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
 import { Form, Link, useActionData, useTransition } from "@remix-run/react";
 import { z } from "zod";
-import { zfd } from 'zod-form-data'
+import { zfd } from "zod-form-data";
 import { Prisma } from "@prisma/client";
 
 import { createUserSession, getUserId } from "~/session.server";
@@ -13,16 +13,21 @@ import { createUser } from "~/models/user.server";
 let join = zfd
   .formData({
     email: zfd.text(
-      z.string({ required_error: "Email is required" })
+      z
+        .string({ required_error: "Email is required" })
         .email("Your email address is invalid")
     ),
     username: zfd.text(z.string({ required_error: "Username is required" })),
-    password: zfd.text(z
-      .string({ required_error: "Password is required" })
-      .min(8, "The minimum password length is 8 characters")),
-    passwordConfirm: zfd.text(z.string({
-      required_error: "Confirm password is required",
-    })),
+    password: zfd.text(
+      z
+        .string({ required_error: "Password is required" })
+        .min(8, "The minimum password length is 8 characters")
+    ),
+    passwordConfirm: zfd.text(
+      z.string({
+        required_error: "Confirm password is required",
+      })
+    ),
     "remember-me": zfd.checkbox(),
   })
   .refine((value) => value.password === value.passwordConfirm, {
@@ -30,9 +35,9 @@ let join = zfd
     path: ["confirm"],
   });
 
-export async function action({ request }: ActionArgs) {
+export async function action({ request }: DataFunctionArgs) {
   let formData = await request.formData();
-  let result = join.safeParse(formData)
+  let result = join.safeParse(formData);
 
   if (!result.success) {
     return json(
@@ -63,8 +68,8 @@ export async function action({ request }: ActionArgs) {
         if (error.meta?.target) {
           let target = Array.isArray(error.meta.target)
             ? error.meta.target.filter(
-              (v): v is string => typeof v === "string"
-            )
+                (v): v is string => typeof v === "string"
+              )
             : [String(error.meta.target)];
 
           return json(
@@ -86,7 +91,7 @@ export async function action({ request }: ActionArgs) {
   }
 }
 
-export async function loader({ request }: LoaderArgs) {
+export async function loader({ request }: DataFunctionArgs) {
   let userId = await getUserId(request);
   if (userId) return redirect("/");
   return {};
@@ -112,10 +117,7 @@ export default function JoinPage() {
         method="post"
         className="bg-white px-4 py-8 shadow sm:rounded-lg sm:px-10"
       >
-        <fieldset
-          className="space-y-6"
-          disabled={!!pendingForm}
-        >
+        <fieldset className="space-y-6" disabled={!!pendingForm}>
           <div>
             <label
               htmlFor="email"
@@ -219,7 +221,10 @@ export default function JoinPage() {
               />
             </div>
             {actionData?.errors.passwordConfirm && (
-              <div id="passwordConfirm-error" className="mt-2 text-sm text-red-600">
+              <div
+                id="passwordConfirm-error"
+                className="mt-2 text-sm text-red-600"
+              >
                 {actionData.errors.passwordConfirm}
               </div>
             )}

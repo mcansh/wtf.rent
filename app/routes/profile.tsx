@@ -1,4 +1,4 @@
-import type { ActionArgs, LoaderArgs, MetaFunction } from "@remix-run/node";
+import type { DataFunctionArgs, MetaFunction } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { useActionData, useLoaderData } from "@remix-run/react";
 import clsx from "clsx";
@@ -6,7 +6,7 @@ import clsx from "clsx";
 import { logout, requireUser } from "~/session.server";
 import { db } from "~/db.server";
 import { hash, getResetToken } from "~/bcrypt.server";
-import { Svg } from '~/components/heroicons'
+import { Svg } from "~/components/heroicons";
 
 export const meta: MetaFunction = () => {
   return {
@@ -14,12 +14,12 @@ export const meta: MetaFunction = () => {
   };
 };
 
-export async function loader({ request }: LoaderArgs) {
+export async function loader({ request }: DataFunctionArgs) {
   let user = await requireUser(request);
   return { user: { email: user.email } };
 }
 
-export async function action({ request }: ActionArgs) {
+export async function action({ request }: DataFunctionArgs) {
   let user = await requireUser(request);
 
   let formData = await request.formData();
@@ -106,7 +106,10 @@ export default function SettingsPage() {
 
             {actionData?.error ? (
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                <Svg name="solid:24:exclamation-circle" className="h-5 w-5 fill-red-500" />
+                <Svg
+                  name="solid:24:exclamation-circle"
+                  className="h-5 w-5 fill-red-500"
+                />
               </div>
             ) : null}
           </div>

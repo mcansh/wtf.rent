@@ -1,4 +1,4 @@
-import type { ActionArgs, LoaderArgs } from "@remix-run/node";
+import type { DataFunctionArgs } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
 import {
   Form,
@@ -10,7 +10,7 @@ import {
 import { db } from "~/db.server";
 import { requireUserId } from "~/session.server";
 
-export async function action({ request, params }: ActionArgs) {
+export async function action({ request, params }: DataFunctionArgs) {
   if (!params.id) throw new Error("params.id is required");
   let userId = await requireUserId(request);
 
@@ -41,7 +41,7 @@ export async function action({ request, params }: ActionArgs) {
   return redirect(`/post/${params.id}`);
 }
 
-export async function loader({ request, params }: LoaderArgs) {
+export async function loader({ request, params }: DataFunctionArgs) {
   let userId = await requireUserId(request);
 
   let post = await db.post.findFirst({

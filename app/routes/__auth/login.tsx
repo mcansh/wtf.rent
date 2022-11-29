@@ -1,4 +1,4 @@
-import type { ActionArgs, LoaderArgs, MetaFunction } from "@remix-run/node";
+import type { DataFunctionArgs, MetaFunction } from "@remix-run/node";
 import { redirect } from "@remix-run/node";
 import {
   Form,
@@ -9,7 +9,7 @@ import {
 } from "@remix-run/react";
 import { json } from "@remix-run/node";
 import { z } from "zod";
-import { zfd } from 'zod-form-data'
+import { zfd } from "zod-form-data";
 import clsx from "clsx";
 
 import { verify } from "~/bcrypt.server";
@@ -19,19 +19,22 @@ import type { AuthRouteHandle } from "~/utils";
 import { safeRedirect } from "~/utils";
 
 let login = zfd.formData({
-  email: zfd.text(z
-    .string({ required_error: "Email is required" })
-    .email("Your email address is invalid")
+  email: zfd.text(
+    z
+      .string({ required_error: "Email is required" })
+      .email("Your email address is invalid")
   ),
-  password: zfd.text(z
-    .string({ required_error: "Password is required" })
-    .min(8, "The minimum password length is 8 characters")),
+  password: zfd.text(
+    z
+      .string({ required_error: "Password is required" })
+      .min(8, "The minimum password length is 8 characters")
+  ),
   "remember-me": zfd.checkbox(),
 });
 
-export async function action({ request }: ActionArgs) {
+export async function action({ request }: DataFunctionArgs) {
   let formData = await request.formData();
-  let result = login.safeParse(formData)
+  let result = login.safeParse(formData);
 
   if (!result.success) {
     return json(
@@ -77,7 +80,7 @@ export async function action({ request }: ActionArgs) {
   });
 }
 
-export async function loader({ request }: LoaderArgs) {
+export async function loader({ request }: DataFunctionArgs) {
   let userId = await getUserId(request);
   if (userId) return redirect("/");
   return {};
@@ -104,10 +107,7 @@ export default function LoginPage() {
         action={location.pathname + location.search}
         className="bg-white px-4 py-8 shadow sm:rounded-lg sm:px-10"
       >
-        <fieldset
-          className="space-y-6"
-          disabled={!!pendingForm}
-        >
+        <fieldset className="space-y-6" disabled={!!pendingForm}>
           <div>
             <label
               htmlFor="email"

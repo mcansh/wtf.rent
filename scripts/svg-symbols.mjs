@@ -10,7 +10,7 @@ let HEROICONS_PATH = path.join(process.cwd(), "node_modules/heroicons");
 let OUTFILE = path.join(process.cwd(), "app/icons/heroicons.svg");
 let COMPONENT_FILE = path.join(process.cwd(), "app/components/heroicons.tsx");
 
-let js = String.raw
+let js = String.raw;
 
 async function createSprite(inputDir, outFile) {
   let icons = glob.sync(`${inputDir}/**/*.svg`);
@@ -49,8 +49,11 @@ async function createSprite(inputDir, outFile) {
 
   await Promise.all([
     fse.writeFile(outFile, sprites.toString()),
-    fse.writeFile(COMPONENT_FILE, prettier.format(component, { parser: "typescript" }))
-  ])
+    fse.writeFile(
+      COMPONENT_FILE,
+      prettier.format(component, { parser: "typescript" })
+    ),
+  ]);
 }
 
 async function compile() {

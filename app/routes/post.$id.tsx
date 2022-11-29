@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import clsx from "clsx";
-import type { ActionArgs, LoaderArgs, MetaFunction } from "@remix-run/node";
+import type { DataFunctionArgs, MetaFunction } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
 import { differenceInMinutes, format } from "date-fns";
 import {
@@ -34,7 +34,7 @@ let postWithComments = Prisma.validator<Prisma.PostArgs>()({
   },
 });
 
-export async function loader({ request, params }: LoaderArgs) {
+export async function loader({ request, params }: DataFunctionArgs) {
   let userId = await getUserId(request);
 
   let post = await db.post.findUnique({
@@ -65,7 +65,7 @@ export async function loader({ request, params }: LoaderArgs) {
   });
 }
 
-export async function action({ request, params }: ActionArgs) {
+export async function action({ request, params }: DataFunctionArgs) {
   let userId = await requireUserId(request);
   let formData = await request.formData();
 

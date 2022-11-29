@@ -1,11 +1,11 @@
-import type { ActionArgs, LoaderArgs } from "@remix-run/node";
+import type { DataFunctionArgs } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
 import { Form, useActionData, useTransition } from "@remix-run/react";
 
 import { db } from "~/db.server";
 import { requireUserId } from "~/session.server";
 
-export async function action({ request }: ActionArgs) {
+export async function action({ request }: DataFunctionArgs) {
   let userId = await requireUserId(request);
   let formData = await request.formData();
   let title = formData.get("title");
@@ -36,7 +36,7 @@ export async function action({ request }: ActionArgs) {
   return redirect(`/post/${post.id}`);
 }
 
-export async function loader({ request }: LoaderArgs) {
+export async function loader({ request }: DataFunctionArgs) {
   await requireUserId(request);
   return {};
 }

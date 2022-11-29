@@ -1,7 +1,7 @@
 // @ts-ignore
 import * as React from "react";
 import clsx from "clsx";
-import type { LinksFunction, LoaderArgs } from "@remix-run/node";
+import type { LinksFunction, DataFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import {
   Link,
@@ -25,7 +25,7 @@ export let links: LinksFunction = () => {
   return [{ rel: "stylesheet", href: stylesUrl }];
 };
 
-export async function loader({ request }: LoaderArgs) {
+export async function loader({ request }: DataFunctionArgs) {
   let userId = await getUserId(request);
 
   if (typeof userId !== "string") {

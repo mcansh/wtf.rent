@@ -3,7 +3,8 @@ import type { User } from "@prisma/client";
 import { Menu, Transition } from "@headlessui/react";
 import clsx from "clsx";
 import { Form, Link, useLocation } from "@remix-run/react";
-import { Svg } from '~/components/heroicons'
+
+import { Svg } from "~/components/heroicons";
 
 interface Props {
   user?: Pick<User, "email" | "username" | "id"> | null;
@@ -29,7 +30,7 @@ export function Nav({ user }: Props) {
                 className="rounded-full bg-gray-800 p-1 text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
               >
                 <span className="sr-only">View notifications</span>
-                <Svg name="solid:20:bell" className="w-6 h-6 fill-current" />
+                <Svg name="solid:20:bell" className="h-6 w-6 fill-current" />
               </button>
 
               {/* Profile dropdown */}
