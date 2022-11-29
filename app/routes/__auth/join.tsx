@@ -128,12 +128,12 @@ export default function JoinPage() {
                 id="email"
                 autoComplete="email"
                 className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-                aria-errormessage={
-                  actionData?.errors.email ? "email-error" : undefined
-                }
                 name="email"
                 type="email"
-              // {...conform.input(result.email, { type: "email" })}
+                aria-invalid={Boolean(actionData?.errors.email)}
+                aria-describedby={
+                  actionData?.errors.email ? "email-error" : undefined
+                }
               />
             </div>
             {actionData?.errors.email && (
@@ -156,17 +156,17 @@ export default function JoinPage() {
                 autoComplete="username"
                 className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
                 name="username"
-              // aria-errormessage={
-              //   result.username.error ? "username-error" : undefined
-              // }
-              // {...conform.input(result.username, { type: "text" })}
+                aria-invalid={Boolean(actionData?.errors.username)}
+                aria-describedby={
+                  actionData?.errors.username ? "username-error" : undefined
+                }
               />
             </div>
-            {/* {result.username.error && (
+            {actionData?.errors.username && (
               <div id="username-error" className="mt-2 text-sm text-red-600">
-                {result.username.error}
+                {actionData.errors.username}
               </div>
-            )} */}
+            )}
           </div>
 
           <div>
@@ -183,17 +183,17 @@ export default function JoinPage() {
                 className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
                 name="password"
                 type="password"
-              // aria-errormessage={
-              //   result.password.error ? "password-error" : undefined
-              // }
-              // {...conform.input(result.password, { type: "password" })}
+                aria-invalid={Boolean(actionData?.errors.password)}
+                aria-describedby={
+                  actionData?.errors.password ? "password-error" : undefined
+                }
               />
             </div>
-            {/* {result.password.error && (
+            {actionData?.errors.password && (
               <div id="password-error" className="mt-2 text-sm text-red-600">
-                {result.password.error}
+                {actionData.errors.password}
               </div>
-            )} */}
+            )}
           </div>
 
           <div>
@@ -210,24 +210,19 @@ export default function JoinPage() {
                 className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
                 name="passwordConfirm"
                 type="password"
-              // aria-errormessage={
-              //   result.passwordConfirm.error
-              //     ? "passwordConfirm-error"
-              //     : undefined
-              // }
-              // {...conform.input(result.passwordConfirm, {
-              //   type: "password",
-              // })}
+                aria-invalid={Boolean(actionData?.errors.passwordConfirm)}
+                aria-describedby={
+                  actionData?.errors.passwordConfirm
+                    ? "passwordConfirm-error"
+                    : undefined
+                }
               />
             </div>
-            {/* {result.passwordConfirm.error && (
-              <div
-                id="passwordConfirm-error"
-                className="mt-2 text-sm text-red-600"
-              >
-                {result.passwordConfirm.error}
+            {actionData?.errors.passwordConfirm && (
+              <div id="passwordConfirm-error" className="mt-2 text-sm text-red-600">
+                {actionData.errors.passwordConfirm}
               </div>
-            )} */}
+            )}
           </div>
 
           <div className="flex items-center justify-between">

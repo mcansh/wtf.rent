@@ -127,10 +127,10 @@ export default function LoginPage() {
                     ? "border-red-300 placeholder-red-400 focus:border-red-500 focus:ring-red-500"
                     : "border-gray-300 placeholder-gray-400 focus:border-indigo-500 focus:ring-indigo-500"
                 )}
-              // aria-errormessage={
-              //   result.email.error ? "email-error" : undefined
-              // }
-              // {...conform.input(result.email, { type: "email" })}
+                aria-invalid={Boolean(actionData?.errors.email)}
+                aria-describedby={
+                  actionData?.errors.email ? "email-error" : undefined
+                }
               />
             </div>
           </div>
@@ -154,10 +154,10 @@ export default function LoginPage() {
                 )}
                 name="password"
                 type="password"
-              // aria-errormessage={
-              //   result.password.error ? "password-error" : undefined
-              // }
-              // {...conform.input(result.password, { type: "password" })}
+                aria-invalid={Boolean(actionData?.errors.password)}
+                aria-describedby={
+                  actionData?.errors.password ? "password-error" : undefined
+                }
               />
             </div>
           </div>
