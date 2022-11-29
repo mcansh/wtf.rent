@@ -1,9 +1,8 @@
 import type { ActionArgs, LoaderArgs, MetaFunction } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
 import { Form, Link, useActionData, useTransition } from "@remix-run/react";
-import { useForm, useFieldset, conform } from "@conform-to/react";
-import { resolve, parse } from "@conform-to/zod";
-import z from "zod";
+import { z } from "zod";
+import { zfd } from 'zod-form-data'
 import { Prisma } from "@prisma/client";
 
 import { createUserSession, getUserId } from "~/session.server";
@@ -11,43 +10,42 @@ import type { AuthRouteHandle } from "~/utils";
 import { safeRedirect } from "~/utils";
 import { createUser } from "~/models/user.server";
 
-let join = z
-  .object({
-    email: z
-      .string({ required_error: "Email is required" })
-      .email("You email address is invalid"),
-    username: z.string({ required_error: "Username is required" }),
-    password: z
+let join = zfd
+  .formData({
+    email: zfd.text(
+      z.string({ required_error: "Email is required" })
+        .email("Your email address is invalid")
+    ),
+    username: zfd.text(z.string({ required_error: "Username is required" })),
+    password: zfd.text(z
       .string({ required_error: "Password is required" })
-      .min(8, "The minimum password length is 8 characters"),
-    passwordConfirm: z.string({
+      .min(8, "The minimum password length is 8 characters")),
+    passwordConfirm: zfd.text(z.string({
       required_error: "Confirm password is required",
-    }),
-    "remember-me": z.boolean().optional(),
+    })),
+    "remember-me": zfd.checkbox(),
   })
   .refine((value) => value.password === value.passwordConfirm, {
     message: "The password do not match",
     path: ["confirm"],
   });
 
-let schema = resolve(join);
-
 export async function action({ request }: ActionArgs) {
   let formData = await request.formData();
-  let result = parse(formData, join);
+  let result = join.safeParse(formData)
 
-  if (result.state !== "accepted") {
+  if (!result.success) {
     return json(
-      { values: result.value, errors: result.error },
-      { status: 400 }
+      { values: {}, errors: result.error.formErrors.fieldErrors },
+      { status: 422 }
     );
   }
 
   try {
     let user = await createUser({
-      email: result.value.email,
-      username: result.value.username,
-      password: result.value.password,
+      email: result.data.email,
+      username: result.data.username,
+      password: result.data.password,
     });
 
     let redirectTo = safeRedirect(formData.get("redirectTo"));
@@ -56,7 +54,7 @@ export async function action({ request }: ActionArgs) {
       userId: user.id,
       request,
       redirectTo,
-      remember: !!result.value["remember-me"],
+      remember: result.data["remember-me"],
     });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -65,20 +63,20 @@ export async function action({ request }: ActionArgs) {
         if (error.meta?.target) {
           let target = Array.isArray(error.meta.target)
             ? error.meta.target.filter(
-                (v): v is string => typeof v === "string"
-              )
+              (v): v is string => typeof v === "string"
+            )
             : [String(error.meta.target)];
 
           return json(
             {
-              values: result.value,
+              values: result.data,
               errors: Object.fromEntries(
                 target.map((t) => {
                   return [t, `A user with this ${t} already exists`];
                 })
               ),
             },
-            { status: 400 }
+            { status: 422 }
           );
         }
       }
@@ -107,23 +105,16 @@ export default function JoinPage() {
   let pendingForm = transition.submission;
 
   let actionData = useActionData<typeof action>();
-  let formProps = useForm();
-  let [fieldsetProps, result] = useFieldset(schema, {
-    error: { ...actionData?.errors },
-    initialValue: { ...actionData?.values },
-  });
 
   return (
     <>
       <Form
         method="post"
-        {...formProps}
         className="bg-white px-4 py-8 shadow sm:rounded-lg sm:px-10"
       >
         <fieldset
           className="space-y-6"
           disabled={!!pendingForm}
-          {...fieldsetProps}
         >
           <div>
             <label
@@ -138,14 +129,16 @@ export default function JoinPage() {
                 autoComplete="email"
                 className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
                 aria-errormessage={
-                  result.email.error ? "email-error" : undefined
+                  actionData?.errors.email ? "email-error" : undefined
                 }
-                {...conform.input(result.email, { type: "email" })}
+                name="email"
+                type="email"
+              // {...conform.input(result.email, { type: "email" })}
               />
             </div>
-            {result.email.error && (
+            {actionData?.errors.email && (
               <div id="email-error" className="mt-2 text-sm text-red-600">
-                {result.email.error}
+                {actionData.errors.email}
               </div>
             )}
           </div>
@@ -162,17 +155,18 @@ export default function JoinPage() {
                 id="username"
                 autoComplete="username"
                 className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-                aria-errormessage={
-                  result.username.error ? "username-error" : undefined
-                }
-                {...conform.input(result.username, { type: "text" })}
+                name="username"
+              // aria-errormessage={
+              //   result.username.error ? "username-error" : undefined
+              // }
+              // {...conform.input(result.username, { type: "text" })}
               />
             </div>
-            {result.username.error && (
+            {/* {result.username.error && (
               <div id="username-error" className="mt-2 text-sm text-red-600">
                 {result.username.error}
               </div>
-            )}
+            )} */}
           </div>
 
           <div>
@@ -187,17 +181,19 @@ export default function JoinPage() {
                 id="password"
                 autoComplete="new-password"
                 className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-                aria-errormessage={
-                  result.password.error ? "password-error" : undefined
-                }
-                {...conform.input(result.password, { type: "password" })}
+                name="password"
+                type="password"
+              // aria-errormessage={
+              //   result.password.error ? "password-error" : undefined
+              // }
+              // {...conform.input(result.password, { type: "password" })}
               />
             </div>
-            {result.password.error && (
+            {/* {result.password.error && (
               <div id="password-error" className="mt-2 text-sm text-red-600">
                 {result.password.error}
               </div>
-            )}
+            )} */}
           </div>
 
           <div>
@@ -212,24 +208,26 @@ export default function JoinPage() {
                 id="passwordConfirm"
                 autoComplete="new-password"
                 className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-                aria-errormessage={
-                  result.passwordConfirm.error
-                    ? "passwordConfirm-error"
-                    : undefined
-                }
-                {...conform.input(result.passwordConfirm, {
-                  type: "password",
-                })}
+                name="passwordConfirm"
+                type="password"
+              // aria-errormessage={
+              //   result.passwordConfirm.error
+              //     ? "passwordConfirm-error"
+              //     : undefined
+              // }
+              // {...conform.input(result.passwordConfirm, {
+              //   type: "password",
+              // })}
               />
             </div>
-            {result.passwordConfirm.error && (
+            {/* {result.passwordConfirm.error && (
               <div
                 id="passwordConfirm-error"
                 className="mt-2 text-sm text-red-600"
               >
                 {result.passwordConfirm.error}
               </div>
-            )}
+            )} */}
           </div>
 
           <div className="flex items-center justify-between">

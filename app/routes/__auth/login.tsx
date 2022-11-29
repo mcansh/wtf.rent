@@ -8,9 +8,8 @@ import {
   useTransition,
 } from "@remix-run/react";
 import { json } from "@remix-run/node";
-import { useForm, useFieldset, conform } from "@conform-to/react";
-import { resolve, parse } from "@conform-to/zod";
-import z from "zod";
+import { z } from "zod";
+import { zfd } from 'zod-form-data'
 import clsx from "clsx";
 
 import { verify } from "~/bcrypt.server";
@@ -19,25 +18,24 @@ import { createUserSession, getUserId } from "~/session.server";
 import type { AuthRouteHandle } from "~/utils";
 import { safeRedirect } from "~/utils";
 
-let login = z.object({
-  email: z
+let login = zfd.formData({
+  email: zfd.text(z
     .string({ required_error: "Email is required" })
-    .email("You email address is invalid"),
-  password: z
+    .email("Your email address is invalid")
+  ),
+  password: zfd.text(z
     .string({ required_error: "Password is required" })
-    .min(8, "The minimum password length is 8 characters"),
-  "remember-me": z.boolean().optional(),
+    .min(8, "The minimum password length is 8 characters")),
+  "remember-me": zfd.checkbox(),
 });
-
-let schema = resolve(login);
 
 export async function action({ request }: ActionArgs) {
   let formData = await request.formData();
-  let result = parse(formData, login);
+  let result = login.safeParse(formData)
 
-  if (result.state !== "accepted") {
+  if (!result.success) {
     return json(
-      { values: result.value, errors: result.error },
+      { values: {}, errors: result.error.formErrors.fieldErrors },
       { status: 400 }
     );
   }
@@ -46,35 +44,35 @@ export async function action({ request }: ActionArgs) {
   let redirectTo = safeRedirect(url.searchParams.get("returnTo"));
 
   let user = await db.user.findUnique({
-    where: { email: result.value.email },
+    where: { email: result.data.email },
   });
 
   if (!user) {
     return json(
       {
-        values: result.value,
-        errors: { email: "Invalid email or password" },
+        values: result.data,
+        errors: { email: "Invalid email or password", password: null },
       },
-      { status: 400 }
+      { status: 422 }
     );
   }
 
-  let valid = await verify(result.value.password, user.password);
+  let valid = await verify(result.data.password, user.password);
 
   if (!valid) {
     return json(
       {
-        values: result.value,
-        errors: { password: "Invalid email or password" },
+        values: result.data,
+        errors: { email: null, password: "Invalid email or password" },
       },
-      { status: 400 }
+      { status: 422 }
     );
   }
 
   return createUserSession({
     userId: user.id,
     redirectTo,
-    remember: !!result.value["remember-me"],
+    remember: result.data["remember-me"],
     request,
   });
 }
@@ -94,29 +92,21 @@ export let handle: AuthRouteHandle = {
 };
 
 export default function LoginPage() {
+  let actionData = useActionData<typeof action>();
   let location = useLocation();
   let transition = useTransition();
   let pendingForm = transition.submission;
-
-  let actionData = useActionData<typeof action>();
-  let formProps = useForm();
-  let [fieldsetProps, result] = useFieldset(schema, {
-    error: { ...actionData?.errors },
-    initialValue: { ...actionData?.values },
-  });
 
   return (
     <>
       <Form
         method="post"
         action={location.pathname + location.search}
-        {...formProps}
         className="bg-white px-4 py-8 shadow sm:rounded-lg sm:px-10"
       >
         <fieldset
           className="space-y-6"
           disabled={!!pendingForm}
-          {...fieldsetProps}
         >
           <div>
             <label
@@ -129,23 +119,20 @@ export default function LoginPage() {
               <input
                 id="email"
                 autoComplete="email"
+                name="email"
+                type="email"
                 className={clsx(
                   "block w-full appearance-none rounded-md border px-3 py-2 shadow-sm focus:outline-none sm:text-sm",
-                  result.email.error
+                  actionData?.errors.email
                     ? "border-red-300 placeholder-red-400 focus:border-red-500 focus:ring-red-500"
                     : "border-gray-300 placeholder-gray-400 focus:border-indigo-500 focus:ring-indigo-500"
                 )}
-                aria-errormessage={
-                  result.email.error ? "email-error" : undefined
-                }
-                {...conform.input(result.email, { type: "email" })}
+              // aria-errormessage={
+              //   result.email.error ? "email-error" : undefined
+              // }
+              // {...conform.input(result.email, { type: "email" })}
               />
             </div>
-            {result.email.error && (
-              <div id="email-error" className="mt-2 text-sm text-red-600">
-                {result.email.error}
-              </div>
-            )}
           </div>
 
           <div>
@@ -161,21 +148,18 @@ export default function LoginPage() {
                 autoComplete="new-password"
                 className={clsx(
                   "block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:outline-none  sm:text-sm",
-                  result.password.error
+                  actionData?.errors.password
                     ? "border-red-300 placeholder-red-400 focus:border-red-500 focus:ring-red-500"
                     : "border-gray-300 placeholder-gray-400 focus:border-indigo-500 focus:ring-indigo-500"
                 )}
-                aria-errormessage={
-                  result.password.error ? "password-error" : undefined
-                }
-                {...conform.input(result.password, { type: "password" })}
+                name="password"
+                type="password"
+              // aria-errormessage={
+              //   result.password.error ? "password-error" : undefined
+              // }
+              // {...conform.input(result.password, { type: "password" })}
               />
             </div>
-            {result.password.error && (
-              <div id="password-error" className="mt-2 text-sm text-red-600">
-                {result.password.error}
-              </div>
-            )}
           </div>
 
           <div className="flex items-center justify-between">
@@ -185,7 +169,6 @@ export default function LoginPage() {
                 name="remember-me"
                 type="checkbox"
                 className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                defaultChecked={result["remember-me"].initialValue === "on"}
               />
               <label
                 htmlFor="remember-me"
