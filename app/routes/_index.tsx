@@ -4,17 +4,12 @@ import { json } from "@remix-run/node";
 import { format } from "date-fns";
 
 import { db } from "~/db.server";
-import stylesUrl from "~/styles/index.css";
 
 export let meta: MetaFunction = () => {
   return {
     title: "wtf.rent",
     description: "put shitty landlords on blast",
   };
-};
-
-export let links: LinksFunction = () => {
-  return [{ rel: "stylesheet", href: stylesUrl }];
 };
 
 export async function loader() {

@@ -1,8 +1,13 @@
 /** @type {import('@remix-run/dev').AppConfig} */
-module.exports = {
+export default {
   appDirectory: "app",
   browserBuildDirectory: "public/build",
   publicPath: "/build/",
   serverBuildDirectory: "build",
-  devServerPort: 8002,
+  future: {
+    unstable_dev: true,
+    unstable_postcss: true,
+    unstable_tailwind: true,
+    v2_routeConvention: true,
+  },
 };

@@ -14,15 +14,18 @@ import {
   useLoaderData,
 } from "@remix-run/react";
 import type { User } from "@prisma/client";
+import globalStylesHref from "tailwindcss/tailwind.css";
 
 import { Nav } from "./components/nav";
 import { db } from "./db.server";
 import { getUserId } from "./session.server";
-import stylesUrl from "./styles/global.css";
 import { useMatches } from "./utils";
 
 export let links: LinksFunction = () => {
-  return [{ rel: "stylesheet", href: stylesUrl }];
+  return [
+    { rel: "preload", href: globalStylesHref, as: "style" },
+    { rel: "stylesheet", href: globalStylesHref },
+  ];
 };
 
 export async function loader({ request }: DataFunctionArgs) {
