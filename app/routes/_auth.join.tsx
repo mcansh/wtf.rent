@@ -32,7 +32,7 @@ let join = zfd
   })
   .refine((value) => value.password === value.passwordConfirm, {
     message: "The password do not match",
-    path: ["confirm"],
+    path: ["passwordConfirm"],
   });
 
 export async function action({ request }: DataFunctionArgs) {
@@ -132,7 +132,7 @@ export default function JoinPage() {
                 className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
                 name="email"
                 type="email"
-                aria-invalid={Boolean(actionData?.errors.email)}
+                aria-invalid={actionData?.errors.email ? "true" : undefined}
                 aria-describedby={
                   actionData?.errors.email ? "email-error" : undefined
                 }

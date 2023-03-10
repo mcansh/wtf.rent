@@ -1,9 +1,10 @@
-import type { LinksFunction, MetaFunction } from "@remix-run/node";
+import type { MetaFunction } from "@remix-run/node";
 import { Link, useLoaderData } from "@remix-run/react";
 import { json } from "@remix-run/node";
 import { format } from "date-fns";
 
 import { db } from "~/db.server";
+import { Svg } from "~/components/heroicons";
 
 export let meta: MetaFunction = () => {
   return {
@@ -15,7 +16,10 @@ export let meta: MetaFunction = () => {
 export async function loader() {
   let posts = await db.post.findMany({
     orderBy: { createdAt: "desc" },
-    include: { author: { select: { username: true } } },
+    include: {
+      author: { select: { username: true } },
+      _count: { select: { comments: true } },
+    },
   });
 
   return json({
@@ -38,18 +42,35 @@ export default function IndexPage() {
         <p className="text-xl">put shitty landlords on blast.</p>
         <div className="space-y-2">
           {data.posts.map((post) => (
-            <div key={post.id} className="rounded bg-slate-200 px-2 py-4">
-              <Link
-                className="inline-block max-w-prose text-lg line-clamp-1 hover:underline"
-                to={`post/${post.id}`}
-              >
-                <h2>{post.title}</h2>
-              </Link>
-              <p className="prose line-clamp-1">{post.content}</p>
-              <p className="text-slate-900s text-sm">
-                Posted by {post.author.username} on{" "}
-                <time dateTime={post.createdAt}>{post.formattedCreatedAt}</time>
-              </p>
+            <div
+              key={post.id}
+              className="relative rounded bg-slate-200 px-2 py-4 flex justify-between items-center"
+            >
+              <div>
+                <Link
+                  className="inline-block max-w-prose text-lg line-clamp-1 hover:underline"
+                  to={`post/${post.id}`}
+                >
+                  <h2>{post.title}</h2>
+                </Link>
+                <p className="prose line-clamp-1">{post.content}</p>
+                <p className="text-slate-900s text-sm">
+                  Posted by {post.author.username} on{" "}
+                  <time dateTime={post.createdAt}>
+                    {post.formattedCreatedAt}
+                  </time>
+                </p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Svg
+                  name="solid:24:chat-bubble-bottom-center-text"
+                  className="h-6 w-6"
+                />
+                <span className="text-slate-900s text-sm not-sr-only">
+                  {post._count.comments}
+                </span>
+                <div className="sr-only">{post._count.comments} comments</div>
+              </div>
             </div>
           ))}
         </div>
