@@ -54,7 +54,6 @@ COPY --from=build /workdir/build /workdir/build
 COPY --from=build /workdir/public /workdir/public
 COPY --from=build /workdir/prisma /workdir/prisma
 COPY --from=build /workdir/package.json /workdir/package.json
-COPY --from=build /workdir/remix.config.js /workdir/remix.config.js
 COPY ./scripts/start_with_migrations.sh ./scripts/start_with_migrations.sh
 
 ENTRYPOINT [ "./scripts/start_with_migrations.sh" ]
