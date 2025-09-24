@@ -2,4 +2,4 @@
 
 set -ex
 npx prisma migrate deploy
-npm run start
+node ./server.js
