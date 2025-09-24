@@ -55,5 +55,6 @@ COPY --from=build /workdir/public /workdir/public
 COPY --from=build /workdir/prisma /workdir/prisma
 COPY --from=build /workdir/package.json /workdir/package.json
 COPY ./scripts/start_with_migrations.sh ./scripts/start_with_migrations.sh
+COPY ./server.js ./server.js
 
 ENTRYPOINT [ "./scripts/start_with_migrations.sh" ]
