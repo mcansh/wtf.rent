@@ -65,12 +65,11 @@ function Document({ children, title, user }: DocumentProps) {
         {title ? <title>{title}</title> : null}
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
-        <Links />
+        <Links nonce={nonce} />
       </head>
       <body className={clsx("flex h-full flex-col", bodyClassName)}>
         <Nav user={user} />
         <div className="flex-auto">{children}</div>
-        <Scripts nonce={nonce} />
       </body>
     </html>
   );

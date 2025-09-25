@@ -40,7 +40,7 @@ export default function handleRequest(
       "Content-Security-Policy": {
         "default-src": [NONE],
         "script-src": [NONCE(nonce), SELF],
-        "style-src": [SELF],
+        "style-src": [NONCE(nonce), SELF],
         "img-src": [SELF],
         "connect-src": [SELF, "ws:"],
       },

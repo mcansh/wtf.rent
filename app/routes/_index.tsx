@@ -12,8 +12,8 @@ export function meta(): Route.MetaDescriptors {
   ];
 }
 
-export async function loader() {
-  let posts = await db.post.findMany({
+export async function ServerComponent() {
+  let dbPosts = await db.post.findMany({
     orderBy: { createdAt: "desc" },
     include: {
       author: { select: { username: true } },
@@ -21,26 +21,21 @@ export async function loader() {
     },
   });
 
-  return data({
-    posts: posts.map((post) => {
+  let posts = dbPosts.map((post) => {
       return {
         ...post,
         createdAt: post.createdAt.toISOString(),
         formattedCreatedAt: format(post.createdAt, "M/d/yyyy h:mm a"),
         formattedUpdatedAt: format(post.updatedAt, "M/d/yyyy h:mm a"),
       };
-    }),
-  });
-}
+    })
 
-export default function IndexPage() {
-  let data = useLoaderData<typeof loader>();
   return (
     <main className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
       <h1 className="pt-4 text-4xl font-semibold">wtf.rent</h1>
       <p className="text-xl">put shitty landlords on blast.</p>
       <div className="space-y-2">
-        {data.posts.map((post) => (
+        {posts.map((post) => (
           <div
             key={post.id}
             className="relative flex items-center justify-between rounded bg-slate-200 px-2 py-4"
