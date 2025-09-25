@@ -1,5 +1,4 @@
-import { Outlet } from "@remix-run/react";
-
+import { Outlet } from "react-router";
 import type { RouteHandle } from "~/utils";
 import { useAuthMatches } from "~/utils";
 

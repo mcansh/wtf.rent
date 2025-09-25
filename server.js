@@ -1,18 +1,10 @@
-let path = require("node:path");
-
-let fastify = require("fastify");
-let { remixFastifyPlugin } = require("@mcansh/remix-fastify");
-
-let MODE = process.env.NODE_ENV;
+import { reactRouterFastify } from "@mcansh/remix-fastify/react-router";
+import fastify from "fastify";
 
 async function start() {
   let app = fastify();
 
-  await app.register(remixFastifyPlugin, {
-    build: path.join(process.cwd(), "build/index.js"),
-    mode: MODE,
-    purgeRequireCacheInDevelopment: false,
-  });
+  await app.register(reactRouterFastify);
 
   let port = process.env.PORT ? Number(process.env.PORT) || 3000 : 3000;
 

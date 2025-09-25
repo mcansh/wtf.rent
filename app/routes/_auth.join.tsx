@@ -1,32 +1,30 @@
-import type { DataFunctionArgs, MetaFunction } from "@remix-run/node";
-import { json, redirect } from "@remix-run/node";
-import { Form, Link, useActionData, useTransition } from "@remix-run/react";
+import { Prisma } from "@prisma/client";
+import { data, Form, Link, redirect, useNavigation } from "react-router";
 import { z } from "zod";
 import { zfd } from "zod-form-data";
-import { Prisma } from "@prisma/client";
-
+import { createUser } from "~/models/user.server";
 import { createUserSession, getUserId } from "~/session.server";
 import type { AuthRouteHandle } from "~/utils";
 import { safeRedirect } from "~/utils";
-import { createUser } from "~/models/user.server";
+import type { Route } from "./+types/_auth.join";
 
-let join = zfd
+const join = zfd
   .formData({
     email: zfd.text(
       z
         .string({ required_error: "Email is required" })
-        .email("Your email address is invalid")
+        .email("Your email address is invalid"),
     ),
     username: zfd.text(z.string({ required_error: "Username is required" })),
     password: zfd.text(
       z
         .string({ required_error: "Password is required" })
-        .min(8, "The minimum password length is 8 characters")
+        .min(8, "The minimum password length is 8 characters"),
     ),
     passwordConfirm: zfd.text(
       z.string({
         required_error: "Confirm password is required",
-      })
+      }),
     ),
     "remember-me": zfd.checkbox(),
   })
@@ -35,14 +33,14 @@ let join = zfd
     path: ["passwordConfirm"],
   });
 
-export async function action({ request }: DataFunctionArgs) {
+export async function action({ request }: Route.ActionArgs) {
   let formData = await request.formData();
   let result = join.safeParse(formData);
 
   if (!result.success) {
-    return json(
+    return data(
       { values: {}, errors: result.error.formErrors.fieldErrors },
-      { status: 422 }
+      { status: 422 },
     );
   }
 
@@ -68,20 +66,20 @@ export async function action({ request }: DataFunctionArgs) {
         if (error.meta?.target) {
           let target = Array.isArray(error.meta.target)
             ? error.meta.target.filter(
-                (v): v is string => typeof v === "string"
+                (v): v is string => typeof v === "string",
               )
             : [String(error.meta.target)];
 
-          return json(
+          return data(
             {
               values: result.data,
               errors: Object.fromEntries(
                 target.map((t) => {
                   return [t, `A user with this ${t} already exists`];
-                })
+                }),
               ),
             },
-            { status: 422 }
+            { status: 422 },
           );
         }
       }
@@ -91,25 +89,23 @@ export async function action({ request }: DataFunctionArgs) {
   }
 }
 
-export async function loader({ request }: DataFunctionArgs) {
+export async function loader({ request }: Route.LoaderArgs) {
   let userId = await getUserId(request);
   if (userId) return redirect("/");
   return {};
 }
 
-export let meta: MetaFunction = () => ({
-  title: "Join WTF.rent",
-});
+// export const meta: MetaFunction = () => ({
+//   title: "Join WTF.rent",
+// });
 
-export let handle: AuthRouteHandle = {
+export const handle: AuthRouteHandle = {
   title: "Join WTF.rent",
 };
 
-export default function JoinPage() {
-  let transition = useTransition();
-  let pendingForm = transition.submission;
-
-  let actionData = useActionData<typeof action>();
+export default function JoinPage({ actionData }: Route.ComponentProps) {
+  let navigation = useNavigation();
+  let pendingForm = navigation.state === "submitting";
 
   return (
     <>
@@ -129,7 +125,7 @@ export default function JoinPage() {
               <input
                 id="email"
                 autoComplete="email"
-                className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+                className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none sm:text-sm"
                 name="email"
                 type="email"
                 aria-invalid={actionData?.errors.email ? "true" : undefined}
@@ -156,7 +152,7 @@ export default function JoinPage() {
               <input
                 id="username"
                 autoComplete="username"
-                className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+                className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none sm:text-sm"
                 name="username"
                 aria-invalid={Boolean(actionData?.errors.username)}
                 aria-describedby={
@@ -182,7 +178,7 @@ export default function JoinPage() {
               <input
                 id="password"
                 autoComplete="new-password"
-                className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+                className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none sm:text-sm"
                 name="password"
                 type="password"
                 aria-invalid={Boolean(actionData?.errors.password)}
@@ -209,7 +205,7 @@ export default function JoinPage() {
               <input
                 id="passwordConfirm"
                 autoComplete="new-password"
-                className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+                className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none sm:text-sm"
                 name="passwordConfirm"
                 type="password"
                 aria-invalid={Boolean(actionData?.errors.passwordConfirm)}
@@ -250,7 +246,7 @@ export default function JoinPage() {
           <div>
             <button
               type="submit"
-              className="flex w-full justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              className="flex w-full justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none"
             >
               Join
             </button>

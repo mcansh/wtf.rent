@@ -1,45 +1,40 @@
-import { Prisma } from "@prisma/client";
 import clsx from "clsx";
-import type { DataFunctionArgs, MetaFunction } from "@remix-run/node";
-import { json, redirect } from "@remix-run/node";
 import { differenceInMinutes, format } from "date-fns";
 import {
+  data,
   Form,
   Link,
+  redirect,
   useActionData,
   useLoaderData,
   useLocation,
-  useTransition,
-} from "@remix-run/react";
-
-import { db } from "~/db.server";
+  useNavigation,
+} from "react-router";
+import { db } from "~/.server/db";
 import { getUserId, requireUserId } from "~/session.server";
+import type { Route } from "./+types/post.$id";
 
-let postWithComments = Prisma.validator<Prisma.PostArgs>()({
-  select: {
-    id: true,
-    title: true,
-    content: true,
-    createdAt: true,
-    updatedAt: true,
-    author: { select: { id: true, username: true } },
-    comments: {
-      select: {
-        id: true,
-        content: true,
-        createdAt: true,
-        author: { select: { id: true, username: true } },
-      },
-    },
-  },
-});
-
-export async function loader({ request, params }: DataFunctionArgs) {
+export async function loader({ request, params }: Route.LoaderArgs) {
   let userId = await getUserId(request);
 
   let post = await db.post.findUnique({
     where: { id: params.id },
-    select: postWithComments.select,
+    select: {
+      id: true,
+      title: true,
+      content: true,
+      createdAt: true,
+      updatedAt: true,
+      author: { select: { id: true, username: true } },
+      comments: {
+        select: {
+          id: true,
+          content: true,
+          createdAt: true,
+          author: { select: { id: true, username: true } },
+        },
+      },
+    },
   });
 
   if (!post) {
@@ -48,7 +43,7 @@ export async function loader({ request, params }: DataFunctionArgs) {
 
   let userCreatedPost = post.author?.id === userId;
 
-  return json({
+  return data({
     post: {
       ...post,
       createdAt: format(post.createdAt, "yyyy-MM-dd HH:mm O"),
@@ -65,7 +60,7 @@ export async function loader({ request, params }: DataFunctionArgs) {
   });
 }
 
-export async function action({ request, params }: DataFunctionArgs) {
+export async function action({ request, params }: Route.ActionArgs) {
   let userId = await requireUserId(request);
   let formData = await request.formData();
 
@@ -75,7 +70,7 @@ export async function action({ request, params }: DataFunctionArgs) {
     let commentId = formData.get("commentId");
 
     if (typeof commentId !== "string") {
-      return json({ error: { other: "Invalid comment id" } }, { status: 400 });
+      return data({ error: { other: "Invalid comment id" } }, { status: 400 });
     }
 
     let comment = await db.comment.findFirst({
@@ -87,22 +82,22 @@ export async function action({ request, params }: DataFunctionArgs) {
     });
 
     if (!comment) {
-      return json({ error: { other: "Comment not found" } }, { status: 404 });
+      return data({ error: { other: "Comment not found" } }, { status: 404 });
     }
 
     if (userId !== comment.authorId) {
-      return json(
+      return data(
         { error: { other: "You can only delete comments you've written" } },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (differenceInMinutes(new Date(), comment.createdAt) > 20) {
-      return json(
+      return data(
         {
           error: { other: "You can't delete a comment older than 20 minutes" },
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -119,9 +114,9 @@ export async function action({ request, params }: DataFunctionArgs) {
     let content = formData.get("content");
 
     if (typeof content !== "string" || content.length === 0) {
-      return json(
+      return data(
         { error: { comment: "comment is required" } },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -137,24 +132,20 @@ export async function action({ request, params }: DataFunctionArgs) {
   return redirect(`/post/${params.id}`);
 }
 
-export const meta: MetaFunction = ({ data }) => {
-  if (data && data.post) {
-    return {
+export function meta({ data }: Route.MetaArgs): Route.MetaDescriptors {
+  return [
+    {
       title: `${data.post.title} | wtf.rent`,
-    };
-  }
-
-  return {
-    title: "404 Not Found | wtf.rent",
-  };
-};
+    },
+  ];
+}
 
 export default function PostPage() {
   let location = useLocation();
   let data = useLoaderData<typeof loader>();
   let actionData = useActionData<typeof action>();
-  let transition = useTransition();
-  let pendingForm = transition.submission;
+  let navigation = useNavigation();
+  let pendingForm = navigation.state === "submitting";
 
   return (
     <main className="mx-auto max-w-7xl px-2 py-4 sm:px-6 lg:px-8">
@@ -238,12 +229,13 @@ export default function PostPage() {
               className={clsx(
                 actionData && "comment" in actionData.error
                   ? "text-red-500"
-                  : ""
+                  : "",
               )}
             >
               Leave a comment
             </label>
             <textarea
+              key={location.key}
               className={clsx("block w-full", {
                 "border-red-500": actionData && "comment" in actionData.error,
               })}

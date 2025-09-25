@@ -1,10 +1,9 @@
-import * as React from "react";
-import type { User } from "@prisma/client";
 import { Menu, Transition } from "@headlessui/react";
+import type { User } from "@prisma/client";
 import clsx from "clsx";
-import { Form, Link, useLocation } from "@remix-run/react";
-
-import { Svg } from "~/components/heroicons";
+import solid20Bell from "heroicons/20/solid/bell.svg";
+import * as React from "react";
+import { Form, Link, useLocation } from "react-router";
 
 interface Props {
   user?: Pick<User, "email" | "username" | "id"> | null;
@@ -27,16 +26,18 @@ export function Nav({ user }: Props) {
             <div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
               <button
                 type="button"
-                className="rounded-full bg-gray-800 p-1 text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
+                className="rounded-full bg-gray-800 p-1 text-gray-400 hover:text-white focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800 focus:outline-none"
               >
                 <span className="sr-only">View notifications</span>
-                <Svg name="solid:20:bell" className="h-6 w-6 fill-current" />
+                <svg className="h-6 w-6 fill-current" aria-hidden>
+                  <use href={solid20Bell} />
+                </svg>
               </button>
 
               {/* Profile dropdown */}
               <Menu as="div" className="relative ml-3">
                 <div>
-                  <Menu.Button className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800">
+                  <Menu.Button className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-800 text-sm focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800 focus:outline-none">
                     <span className="sr-only">Open user menu</span>
                     <span className="rounded-full text-lg text-white">
                       {user.username.slice(0, 1).toUpperCase()}
@@ -52,14 +53,14 @@ export function Nav({ user }: Props) {
                   leaveFrom="transform opacity-100 scale-100"
                   leaveTo="transform opacity-0 scale-95"
                 >
-                  <Menu.Items className="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                  <Menu.Items className="ring-opacity-5 absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black focus:outline-none">
                     <Menu.Item>
                       {({ active }) => (
                         <Link
                           to="/post/new"
                           className={clsx(
                             active ? "bg-gray-100" : "",
-                            "block px-4 py-2 text-sm text-gray-700"
+                            "block px-4 py-2 text-sm text-gray-700",
                           )}
                         >
                           New Post
@@ -72,7 +73,7 @@ export function Nav({ user }: Props) {
                           to="/profile"
                           className={clsx(
                             active ? "bg-gray-100" : "",
-                            "block px-4 py-2 text-sm text-gray-700"
+                            "block px-4 py-2 text-sm text-gray-700",
                           )}
                         >
                           Your Profile
@@ -85,7 +86,7 @@ export function Nav({ user }: Props) {
                           href="#"
                           className={clsx(
                             active ? "bg-gray-100" : "",
-                            "block px-4 py-2 text-sm text-gray-700"
+                            "block px-4 py-2 text-sm text-gray-700",
                           )}
                         >
                           Settings
@@ -95,7 +96,7 @@ export function Nav({ user }: Props) {
                     <Menu.Item>
                       {({ active }) => {
                         let returnTo = encodeURIComponent(
-                          location.pathname + location.search
+                          location.pathname + location.search,
                         );
                         let logoutUrl = "/logout?returnTo=" + returnTo;
 
@@ -105,7 +106,7 @@ export function Nav({ user }: Props) {
                             action={logoutUrl}
                             className={clsx(
                               active ? "bg-gray-100" : "",
-                              "block px-4 py-2 text-sm text-gray-700"
+                              "block px-4 py-2 text-sm text-gray-700",
                             )}
                           >
                             <button type="submit">Sign out</button>

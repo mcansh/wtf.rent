@@ -1,7 +1,10 @@
 generator client {
-  provider = "prisma-client-js"
-  previewFeatures = ["interactiveTransactions"]
-
+  provider = "prisma-client"
+  output   = "../app/.server/generated/prisma"
+  runtime                = "nodejs"
+  moduleFormat           = "esm"
+  generatedFileExtension = "ts"
+  importFileExtension    = "ts"
 }
 
 datasource db {

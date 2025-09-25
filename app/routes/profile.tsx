@@ -1,36 +1,32 @@
-import type { DataFunctionArgs, MetaFunction } from "@remix-run/node";
-import { json } from "@remix-run/node";
-import { useActionData, useLoaderData } from "@remix-run/react";
 import clsx from "clsx";
-
+import exclamationCircle from "heroicons/24/solid/exclamation-circle.svg";
+import { data, useActionData, useLoaderData } from "react-router";
+import { db } from "~/.server/db";
+import { getResetToken, hash } from "~/bcrypt.server";
 import { logout, requireUser } from "~/session.server";
-import { db } from "~/db.server";
-import { hash, getResetToken } from "~/bcrypt.server";
-import { Svg } from "~/components/heroicons";
+import type { Route } from "./+types/profile";
 
-export const meta: MetaFunction = () => {
-  return {
-    title: "My Profile",
-  };
-};
+export function meta(): Route.MetaDescriptors {
+  return [{ title: "My Profile" }];
+}
 
-export async function loader({ request }: DataFunctionArgs) {
+export async function loader({ request }: Route.LoaderArgs) {
   let user = await requireUser(request);
   return { user: { email: user.email } };
 }
 
-export async function action({ request }: DataFunctionArgs) {
+export async function action({ request }: Route.ActionArgs) {
   let user = await requireUser(request);
 
   let formData = await request.formData();
   let email = formData.get("email");
 
   if (typeof email !== "string" || email.length === 0) {
-    return json({ error: "you must confirm your account's email" });
+    return data({ error: "you must confirm your account's email" });
   }
 
   if (email !== user.email) {
-    return json({ error: "your email did not match" });
+    return data({ error: "your email did not match" });
   }
 
   await db.$transaction(async (prisma) => {
@@ -43,7 +39,7 @@ export async function action({ request }: DataFunctionArgs) {
         data: {
           username: "anonymous",
           email: "anonymous@wtf.rent",
-          password: await hash(await getResetToken()),
+          password: await hash(await getResetToken(), 12),
         },
       });
     }
@@ -96,8 +92,8 @@ export default function SettingsPage() {
               className={clsx(
                 "block w-full rounded-md shadow-sm sm:text-sm",
                 actionData?.error
-                  ? "border-red-300 pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500"
-                  : "border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                  ? "border-red-300 pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500 focus:outline-none"
+                  : "border-gray-300 focus:border-indigo-500 focus:ring-indigo-500",
               )}
               placeholder={data.user.email}
               aria-invalid={actionData?.error ? "true" : undefined}
@@ -106,10 +102,9 @@ export default function SettingsPage() {
 
             {actionData?.error ? (
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                <Svg
-                  name="solid:24:exclamation-circle"
-                  className="h-5 w-5 fill-red-500"
-                />
+                <svg className="h-5 w-5 fill-red-500" aria-hidden>
+                  <use href={exclamationCircle} />
+                </svg>
               </div>
             ) : null}
           </div>
@@ -123,7 +118,7 @@ export default function SettingsPage() {
         <div className="mt-4">
           <button
             type="submit"
-            className="inline-flex items-center rounded-md border border-transparent bg-red-600 px-6 py-3 text-base font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+            className="inline-flex items-center rounded-md border border-transparent bg-red-600 px-6 py-3 text-base font-medium text-white shadow-sm hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none"
           >
             Yup, I'm sure
           </button>

@@ -8,4 +8,4 @@ export async function getResetToken(): Promise<string> {
   return resetTokenBuffer.toString("hex");
 }
 
-export { verify, hash } from "@node-rs/bcrypt";
+export { hash, compare as verify } from "bcrypt";

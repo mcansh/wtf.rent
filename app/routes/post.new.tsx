@@ -1,27 +1,26 @@
-import type { DataFunctionArgs } from "@remix-run/node";
-import { json, redirect } from "@remix-run/node";
-import { Form, useActionData, useTransition } from "@remix-run/react";
+import { data, Form, redirect, useNavigation } from "react-router";
 
-import { db } from "~/db.server";
+import { db } from "~/.server/db";
 import { requireUserId } from "~/session.server";
+import type { Route } from "./+types/post.new";
 
-export async function action({ request }: DataFunctionArgs) {
+export async function action({ request }: Route.ActionArgs) {
   let userId = await requireUserId(request);
   let formData = await request.formData();
   let title = formData.get("title");
   let content = formData.get("content");
 
   if (typeof title !== "string" || !title.length) {
-    return json(
+    return data(
       { field: "title", error: "Title is required" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   if (typeof content !== "string" || !content.length) {
-    return json(
+    return data(
       { field: "content", error: "Body is required" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -36,15 +35,14 @@ export async function action({ request }: DataFunctionArgs) {
   return redirect(`/post/${post.id}`);
 }
 
-export async function loader({ request }: DataFunctionArgs) {
+export async function loader({ request }: Route.LoaderArgs) {
   await requireUserId(request);
   return {};
 }
 
-export default function JoinPage() {
-  let actionData = useActionData<typeof action>();
-  let transition = useTransition();
-  let pendingForm = transition.submission;
+export default function JoinPage({ actionData }: Route.ComponentProps) {
+  let navigation = useNavigation();
+  let pendingForm = navigation.state === "submitting";
 
   return (
     <main className="mx-auto max-w-7xl px-2 py-4 sm:px-6 lg:px-8">
@@ -75,7 +73,7 @@ export default function JoinPage() {
         </fieldset>
         <button
           type="submit"
-          className="flex w-full justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+          className="flex w-full justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none"
         >
           Post
         </button>

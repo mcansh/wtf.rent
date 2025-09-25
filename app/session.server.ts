@@ -1,5 +1,5 @@
 import type { User } from "@prisma/client";
-import { createCookieSessionStorage, redirect } from "@remix-run/node";
+import { createCookieSessionStorage, redirect } from "react-router";
 
 import { getUserById } from "./models/user.server";
 
@@ -26,7 +26,7 @@ export function getSession(request: Request) {
 const USER_SESSION_KEY = "userId";
 
 export async function getUserId(
-  request: Request
+  request: Request,
 ): Promise<User["id"] | undefined> {
   let session = await getSession(request);
   let userId = session.get(USER_SESSION_KEY);
@@ -45,7 +45,7 @@ export async function getUser(request: Request) {
 
 export async function requireUserId(
   request: Request,
-  redirectTo: string = new URL(request.url).pathname
+  redirectTo: string = new URL(request.url).pathname,
 ) {
   let userId = await getUserId(request);
   if (!userId) {

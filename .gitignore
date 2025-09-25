@@ -1,14 +1,6 @@
-node_modules
+/node_modules/
 .DS_Store
-
-# build artifacts
-/.cache
-/build
-/public/build
-/app/styles/global.css
-/app/icons
-
+/build/
 .env
-.eslintcache
-
-app/components/heroicons.tsx
+/.react-router/
+/app/.server/generated/

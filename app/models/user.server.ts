@@ -1,7 +1,7 @@
 import type { User } from "@prisma/client";
 
+import { db } from "~/.server/db";
 import { hash, verify } from "~/bcrypt.server";
-import { db } from "~/db.server";
 
 export async function getUserById(id: User["id"]) {
   return db.user.findUnique({ where: { id } });
@@ -19,7 +19,7 @@ export async function createUser({
   return db.user.create({
     data: {
       email: email,
-      password: await hash(password),
+      password: await hash(password, 12),
       username: username,
     },
   });
@@ -31,7 +31,7 @@ export async function deleteUserByEmail(email: User["email"]) {
 
 export async function verifyLogin(
   email: User["email"],
-  password: User["password"]
+  password: User["password"],
 ) {
   let user = await getUserByEmail(email);
   if (!user) return null;

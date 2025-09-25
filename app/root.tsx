@@ -1,38 +1,34 @@
-// @ts-ignore
-import * as React from "react";
+import type { User } from "@prisma/client";
 import clsx from "clsx";
-import type { LinksFunction, DataFunctionArgs } from "@remix-run/node";
-import { json } from "@remix-run/node";
+import * as React from "react";
+import type { LinksFunction, LoaderFunctionArgs } from "react-router";
 import {
-  Link,
+  data,
   Links,
-  LiveReload,
   Meta,
   Outlet,
   Scripts,
-  useCatch,
   useLoaderData,
-} from "@remix-run/react";
-import type { User } from "@prisma/client";
-import globalStylesHref from "tailwindcss/tailwind.css";
+} from "react-router";
+import globalStylesHref from "./app.css?url";
 
+import { db } from "./.server/db";
 import { Nav } from "./components/nav";
-import { db } from "./db.server";
 import { getUserId } from "./session.server";
 import { useMatches } from "./utils";
 
-export let links: LinksFunction = () => {
+export const links: LinksFunction = () => {
   return [
     { rel: "preload", href: globalStylesHref, as: "style" },
     { rel: "stylesheet", href: globalStylesHref },
   ];
 };
 
-export async function loader({ request }: DataFunctionArgs) {
+export async function loader({ request }: LoaderFunctionArgs) {
   let userId = await getUserId(request);
 
   if (typeof userId !== "string") {
-    return json({ user: null });
+    return data({ user: null });
   }
 
   let user = await db.user.findUnique({
@@ -44,7 +40,7 @@ export async function loader({ request }: DataFunctionArgs) {
     },
   });
 
-  return json({ user });
+  return data({ user });
 }
 
 interface DocumentProps {
@@ -73,79 +69,78 @@ function Document({ children, title, user }: DocumentProps) {
         <Nav user={user} />
         <div className="flex-auto">{children}</div>
         <Scripts />
-        {process.env.NODE_ENV === "development" && <LiveReload />}
       </body>
     </html>
   );
 }
 
 export default function App() {
-  let data = useLoaderData<typeof loader>();
+  let loaderData = useLoaderData<typeof loader>();
   return (
-    <Document user={data.user}>
+    <Document user={loaderData.user}>
       <Outlet />
     </Document>
   );
 }
 
-export function CatchBoundary() {
-  let caught = useCatch();
+// export function CatchBoundary() {
+//   let caught = useCatch();
 
-  switch (caught.status) {
-    case 401: {
-      return (
-        <Document title={`${caught.status} ${caught.statusText}`}>
-          <h1>
-            {caught.status} {caught.statusText}
-          </h1>
-        </Document>
-      );
-    }
+//   switch (caught.status) {
+//     case 401: {
+//       return (
+//         <Document title={`${caught.status} ${caught.statusText}`}>
+//           <h1>
+//             {caught.status} {caught.statusText}
+//           </h1>
+//         </Document>
+//       );
+//     }
 
-    case 404: {
-      return (
-        <Document title={`${caught.status} ${caught.statusText}`}>
-          <div className="flex min-h-full flex-col bg-white pt-16 pb-12">
-            <main className="mx-auto flex w-full max-w-7xl flex-grow flex-col justify-center px-4 sm:px-6 lg:px-8">
-              <div className="flex flex-shrink-0 justify-center">
-                <a href="/" className="inline-flex">
-                  <span className="sr-only">wtf.rent</span>
-                </a>
-              </div>
-              <div className="py-16">
-                <div className="text-center">
-                  <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">
-                    404 error
-                  </p>
-                  <h1 className="mt-2 text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">
-                    Page not found.
-                  </h1>
-                  <p className="mt-2 text-base text-gray-500">
-                    Sorry, we couldn’t find the page you’re looking for.
-                  </p>
-                  <div className="mt-6">
-                    <Link
-                      to="/"
-                      className="text-base font-medium text-indigo-600 hover:text-indigo-500"
-                    >
-                      Go back home<span aria-hidden="true"> &rarr;</span>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </main>
-          </div>
-        </Document>
-      );
-    }
+//     case 404: {
+//       return (
+//         <Document title={`${caught.status} ${caught.statusText}`}>
+//           <div className="flex min-h-full flex-col bg-white pt-16 pb-12">
+//             <main className="mx-auto flex w-full max-w-7xl flex-grow flex-col justify-center px-4 sm:px-6 lg:px-8">
+//               <div className="flex flex-shrink-0 justify-center">
+//                 <a href="/" className="inline-flex">
+//                   <span className="sr-only">wtf.rent</span>
+//                 </a>
+//               </div>
+//               <div className="py-16">
+//                 <div className="text-center">
+//                   <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">
+//                     404 error
+//                   </p>
+//                   <h1 className="mt-2 text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">
+//                     Page not found.
+//                   </h1>
+//                   <p className="mt-2 text-base text-gray-500">
+//                     Sorry, we couldn’t find the page you’re looking for.
+//                   </p>
+//                   <div className="mt-6">
+//                     <Link
+//                       to="/"
+//                       className="text-base font-medium text-indigo-600 hover:text-indigo-500"
+//                     >
+//                       Go back home<span aria-hidden="true"> &rarr;</span>
+//                     </Link>
+//                   </div>
+//                 </div>
+//               </div>
+//             </main>
+//           </div>
+//         </Document>
+//       );
+//     }
 
-    default: {
-      throw new Error(
-        `Unexpected caught response with status: ${caught.status}`
-      );
-    }
-  }
-}
+//     default: {
+//       throw new Error(
+//         `Unexpected caught response with status: ${caught.status}`
+//       );
+//     }
+//   }
+// }
 
 export function ErrorBoundary({ error }: { error: Error }) {
   console.error(error);

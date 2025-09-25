@@ -1,45 +1,44 @@
-import type { DataFunctionArgs, MetaFunction } from "@remix-run/node";
-import { redirect } from "@remix-run/node";
+import clsx from "clsx";
 import {
+  data,
   Form,
   Link,
-  useActionData,
+  redirect,
   useLocation,
-  useTransition,
-} from "@remix-run/react";
-import { json } from "@remix-run/node";
+  useNavigation,
+} from "react-router";
 import { z } from "zod";
 import { zfd } from "zod-form-data";
-import clsx from "clsx";
 
+import { db } from "~/.server/db";
 import { verify } from "~/bcrypt.server";
-import { db } from "~/db.server";
 import { createUserSession, getUserId } from "~/session.server";
 import type { AuthRouteHandle } from "~/utils";
 import { safeRedirect } from "~/utils";
+import type { Route } from "./+types/_auth.login";
 
 let login = zfd.formData({
   email: zfd.text(
     z
       .string({ required_error: "Email is required" })
-      .email("Your email address is invalid")
+      .email("Your email address is invalid"),
   ),
   password: zfd.text(
     z
       .string({ required_error: "Password is required" })
-      .min(8, "The minimum password length is 8 characters")
+      .min(8, "The minimum password length is 8 characters"),
   ),
   "remember-me": zfd.checkbox(),
 });
 
-export async function action({ request }: DataFunctionArgs) {
+export async function action({ request }: Route.ActionArgs) {
   let formData = await request.formData();
   let result = login.safeParse(formData);
 
   if (!result.success) {
-    return json(
+    return data(
       { values: {}, errors: result.error.formErrors.fieldErrors },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -51,24 +50,24 @@ export async function action({ request }: DataFunctionArgs) {
   });
 
   if (!user) {
-    return json(
+    return data(
       {
         values: result.data,
         errors: { email: "Invalid email or password", password: null },
       },
-      { status: 422 }
+      { status: 422 },
     );
   }
 
   let valid = await verify(result.data.password, user.password);
 
   if (!valid) {
-    return json(
+    return data(
       {
         values: result.data,
         errors: { email: null, password: "Invalid email or password" },
       },
-      { status: 422 }
+      { status: 422 },
     );
   }
 
@@ -80,25 +79,24 @@ export async function action({ request }: DataFunctionArgs) {
   });
 }
 
-export async function loader({ request }: DataFunctionArgs) {
+export async function loader({ request }: Route.LoaderArgs) {
   let userId = await getUserId(request);
   if (userId) return redirect("/");
   return {};
 }
 
-export let meta: MetaFunction = () => ({
-  title: "Sign in to WTF.rent",
-});
+export function meta(): Route.MetaDescriptors {
+  return [{ title: "Sign in to WTF.rent" }];
+}
 
 export let handle: AuthRouteHandle = {
   title: "Sign in to WTF.rent",
 };
 
-export default function LoginPage() {
-  let actionData = useActionData<typeof action>();
+export default function LoginPage({ actionData }: Route.ComponentProps) {
   let location = useLocation();
-  let transition = useTransition();
-  let pendingForm = transition.submission;
+  let navigation = useNavigation();
+  let pendingForm = navigation.state === "submitting";
 
   return (
     <>
@@ -125,7 +123,7 @@ export default function LoginPage() {
                   "block w-full appearance-none rounded-md border px-3 py-2 shadow-sm focus:outline-none sm:text-sm",
                   actionData?.errors.email
                     ? "border-red-300 placeholder-red-400 focus:border-red-500 focus:ring-red-500"
-                    : "border-gray-300 placeholder-gray-400 focus:border-indigo-500 focus:ring-indigo-500"
+                    : "border-gray-300 placeholder-gray-400 focus:border-indigo-500 focus:ring-indigo-500",
                 )}
                 aria-invalid={Boolean(actionData?.errors.email)}
                 aria-describedby={
@@ -147,10 +145,10 @@ export default function LoginPage() {
                 id="password"
                 autoComplete="new-password"
                 className={clsx(
-                  "block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:outline-none  sm:text-sm",
+                  "block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:outline-none sm:text-sm",
                   actionData?.errors.password
                     ? "border-red-300 placeholder-red-400 focus:border-red-500 focus:ring-red-500"
-                    : "border-gray-300 placeholder-gray-400 focus:border-indigo-500 focus:ring-indigo-500"
+                    : "border-gray-300 placeholder-gray-400 focus:border-indigo-500 focus:ring-indigo-500",
                 )}
                 name="password"
                 type="password"
@@ -191,7 +189,7 @@ export default function LoginPage() {
           <div>
             <button
               type="submit"
-              className="flex w-full justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              className="flex w-full justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none"
             >
               Sign in
             </button>
