@@ -1,6 +1,6 @@
 import clsx from "clsx";
 import exclamationCircle from "heroicons/24/solid/exclamation-circle.svg";
-import { data, useActionData, useLoaderData } from "react-router";
+import { data } from "react-router";
 import { db } from "~/.server/db";
 import { getResetToken, hash } from "~/bcrypt.server";
 import { logout, requireUser } from "~/session.server";
@@ -63,9 +63,7 @@ export async function action({ request }: Route.ActionArgs) {
   return logout(request);
 }
 
-export default function SettingsPage() {
-  let data = useLoaderData<typeof loader>();
-  let actionData = useActionData<typeof action>();
+export default function SettingsPage({actionData,loaderData}: Route.ComponentProps) {
 
   return (
     <div className="mx-auto max-w-7xl px-2 pt-4 sm:px-6 lg:px-8">
@@ -96,7 +94,7 @@ export default function SettingsPage() {
                   ? "border-red-300 pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500 focus:outline-none"
                   : "border-gray-300 focus:border-indigo-500 focus:ring-indigo-500",
               )}
-              placeholder={data.user.email}
+              placeholder={loaderData.user.email}
               aria-invalid={actionData?.error ? "true" : undefined}
               aria-describedby={actionData?.error ? "email-error" : undefined}
             />

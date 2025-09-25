@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import chatBubbleBottomCenterText from "heroicons/24/solid/chat-bubble-bottom-center-text.svg";
-import { data, Link, useLoaderData } from "react-router";
+import { Link } from "react-router";
 
 import { db } from "~/.server/db";
 import type { Route } from "./+types/_index";
