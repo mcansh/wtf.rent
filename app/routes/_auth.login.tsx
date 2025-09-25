@@ -9,7 +9,6 @@ import {
 } from "react-router";
 import { z } from "zod";
 import { zfd } from "zod-form-data";
-
 import { db } from "~/.server/db";
 import { verify } from "~/bcrypt.server";
 import { createUserSession, getUserId } from "~/session.server";
@@ -24,9 +23,7 @@ let login = zfd.formData({
       .email("Your email address is invalid"),
   ),
   password: zfd.text(
-    z
-      .string({ required_error: "Password is required" })
-      .min(8, "The minimum password length is 8 characters"),
+    z.string({ required_error: "Password is required" }).min(8, "The minimum password length is 8 characters"),
   ),
   "remember-me": zfd.checkbox(),
 });
@@ -131,6 +128,11 @@ export default function LoginPage({ actionData }: Route.ComponentProps) {
                 }
               />
             </div>
+            {actionData?.errors.email && (
+              <div id="email-error" className="mt-2 text-sm text-red-600">
+                {actionData.errors.email}
+              </div>
+            )}
           </div>
 
           <div>
@@ -158,6 +160,11 @@ export default function LoginPage({ actionData }: Route.ComponentProps) {
                 }
               />
             </div>
+            {actionData?.errors.password && (
+              <div id="password-error" className="mt-2 text-sm text-red-600">
+                {actionData.errors.password}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-between">
