@@ -43,7 +43,16 @@ export default function handleRequest(
         "style-src": [SELF],
         "img-src": [SELF],
         "connect-src": [SELF, "ws:"],
-      }
+      },
+      "Cross-Origin-Embedder-Policy": "require-corp",
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Resource-Policy": "same-origin",
+      "Referrer-Policy": "strict-origin-when-cross-origin",
+      "X-Content-Type-Options": "nosniff",
+      "X-DNS-Prefetch-Control": "on",
+      "Strict-Transport-Security": true,
+      "X-Frame-Options": "DENY",
+      "X-XSS-Protection": "1; mode=block"
     });
 
     const { pipe, abort } = renderToPipeableStream(
