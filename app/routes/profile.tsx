@@ -29,6 +29,7 @@ export async function action({ request }: Route.ActionArgs) {
     return data({ error: "your email did not match" });
   }
 
+  // TODO: do this in a background job
   await db.$transaction(async (prisma) => {
     let anonymousUser = await prisma.user.findUnique({
       where: { username: "anonymous" },
