@@ -5,8 +5,6 @@ import {
   Form,
   Link,
   redirect,
-  useActionData,
-  useLoaderData,
   useLocation,
   useNavigation,
 } from "react-router";
@@ -140,10 +138,8 @@ export function meta({ data }: Route.MetaArgs): Route.MetaDescriptors {
   ];
 }
 
-export default function PostPage() {
+export default function PostPage({actionData,loaderData}: Route.ComponentProps) {
   let location = useLocation();
-  let data = useLoaderData<typeof loader>();
-  let actionData = useActionData<typeof action>();
   let navigation = useNavigation();
   let pendingForm = navigation.state === "submitting";
 
@@ -157,22 +153,22 @@ export default function PostPage() {
       <div>
         <div className="flex items-center justify-between">
           <h1 className="max-w-prose text-2xl font-semibold">
-            {data.post.title}
+            {loaderData.post.title}
           </h1>
-          {data.userCreatedPost && <Link to="edit">Edit</Link>}
+          {loaderData.userCreatedPost && <Link to="edit">Edit</Link>}
         </div>
-        <h2>Posted {data.post.createdAt}</h2>
-        <h2>Updated {data.post.updatedAt}</h2>
+        <h2>Posted {loaderData.post.createdAt}</h2>
+        <h2>Updated {loaderData.post.updatedAt}</h2>
       </div>
       <div
         className="prose mb-6 whitespace-pre-wrap"
-        dangerouslySetInnerHTML={{ __html: data.post.content }}
+        dangerouslySetInnerHTML={{ __html: loaderData.post.content }}
       />
 
       <h3 className="font-lg font-medium">Comments</h3>
       <div className="space-y-2 divide-y">
-        {data.post.comments.length ? (
-          data.post.comments.map((comment) => {
+        {loaderData.post.comments.length ? (
+          loaderData.post.comments.map((comment) => {
             let commentAuthor = comment.author;
             return (
               <div key={comment.id}>
@@ -183,7 +179,7 @@ export default function PostPage() {
                 <div className="flex space-x-4">
                   <p className="text-sm">{commentAuthor.username}</p>
                   <p className="text-sm">{comment.createdAt}</p>
-                  {commentAuthor.id === data.userId && (
+                  {commentAuthor.id === loaderData.userId && (
                     <Form method="post" className="text-sm">
                       <input
                         type="hidden"
@@ -207,8 +203,8 @@ export default function PostPage() {
         )}
       </div>
 
-      <div className={clsx(!data.userId && "relative")}>
-        {!data.userId && (
+      <div className={clsx(!loaderData.userId && "relative")}>
+        {!loaderData.userId && (
           <p className="absolute top-1/2 left-1/2 z-10 -mt-2 w-full -translate-x-1/2 -translate-y-1/2 px-4 text-center">
             To leave a comment, you must be{" "}
             <Link
@@ -221,9 +217,9 @@ export default function PostPage() {
         )}
         <Form
           method="post"
-          className={clsx(!data.userId && "opacity-60", "mt-4")}
+          className={clsx(!loaderData.userId && "opacity-60", "mt-4")}
         >
-          <fieldset disabled={!!pendingForm || !data.userId}>
+          <fieldset disabled={!!pendingForm || !loaderData.userId}>
             <label
               htmlFor="content"
               className={clsx(
