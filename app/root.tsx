@@ -11,11 +11,11 @@ import {
   useLoaderData,
 } from "react-router";
 import globalStylesHref from "./app.css?url";
-
 import { db } from "./.server/db";
 import { Nav } from "./components/nav";
 import { getUserId } from "./session.server";
 import { useMatches } from "./utils";
+import { useNonce } from "@mcansh/http-helmet/react";
 
 export const links: LinksFunction = () => {
   return [
@@ -55,6 +55,8 @@ function Document({ children, title, user }: DocumentProps) {
     .filter((match) => match.handle && match.handle.bodyClassName)
     .map((match) => match.handle.bodyClassName);
 
+  let nonce = useNonce();
+
   return (
     <html lang="en" className="h-full">
       <head>
@@ -68,7 +70,7 @@ function Document({ children, title, user }: DocumentProps) {
       <body className={clsx("flex h-full flex-col", bodyClassName)}>
         <Nav user={user} />
         <div className="flex-auto">{children}</div>
-        <Scripts />
+        <Scripts nonce={nonce} />
       </body>
     </html>
   );
