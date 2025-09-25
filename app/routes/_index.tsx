@@ -53,16 +53,16 @@ export default function IndexPage() {
                 <h2>{post.title}</h2>
               </Link>
               <p className="prose line-clamp-1">{post.content}</p>
-              <p className="text-slate-900s text-sm">
+              <p className="text-slate-900 text-sm">
                 Posted by {post.author.username} on{" "}
                 <time dateTime={post.createdAt}>{post.formattedCreatedAt}</time>
               </p>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 text-slate-900">
               <svg className="h-6 w-6" aria-hidden>
                 <use href={chatBubbleBottomCenterText} />
               </svg>
-              <span className="text-slate-900s not-sr-only text-sm">
+              <span className="not-sr-only text-sm">
                 {post._count.comments}
               </span>
               <div className="sr-only">{post._count.comments} comments</div>
