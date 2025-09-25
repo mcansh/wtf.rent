@@ -7,14 +7,14 @@ export async function action({ request }: Route.ActionArgs) {
   return logout(request);
 }
 
-export async function loader({request}: Route.LoaderArgs) {
+export async function loader({ request }: Route.LoaderArgs) {
   await requireUserId(request, "/");
-  return null
+  return null;
 }
 
 export default function LogoutPage() {
   return (
-    <div className="mx-auto h-full grid place-items-center max-w-7xl px-2 sm:px-6 lg:px-8">
+    <div className="mx-auto grid h-full max-w-7xl place-items-center px-2 sm:px-6 lg:px-8">
       <Form method="post">
         <button
           type="submit"

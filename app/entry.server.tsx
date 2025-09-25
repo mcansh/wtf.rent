@@ -1,4 +1,11 @@
-import { createNonce, createSecureHeaders, mergeHeaders, NONCE, NONE, SELF } from "@mcansh/http-helmet";
+import {
+  createNonce,
+  createSecureHeaders,
+  mergeHeaders,
+  NONCE,
+  NONE,
+  SELF,
+} from "@mcansh/http-helmet";
 import { NonceProvider } from "@mcansh/http-helmet/react";
 import { createReadableStreamFromReadable } from "@react-router/node";
 import { isbot } from "isbot";
@@ -52,7 +59,7 @@ export default function handleRequest(
       "X-DNS-Prefetch-Control": "on",
       "Strict-Transport-Security": true,
       "X-Frame-Options": "DENY",
-      "X-XSS-Protection": "1; mode=block"
+      "X-XSS-Protection": "1; mode=block",
     });
 
     const { pipe, abort } = renderToPipeableStream(

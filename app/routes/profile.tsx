@@ -63,8 +63,10 @@ export async function action({ request }: Route.ActionArgs) {
   return logout(request);
 }
 
-export default function SettingsPage({actionData,loaderData}: Route.ComponentProps) {
-
+export default function SettingsPage({
+  actionData,
+  loaderData,
+}: Route.ComponentProps) {
   return (
     <div className="mx-auto max-w-7xl px-2 pt-4 sm:px-6 lg:px-8">
       <h1 className="text-4xl font-semibold">Your Profile</h1>

@@ -1,26 +1,21 @@
+import { useNonce } from "@mcansh/http-helmet/react";
 import type { User } from "@prisma/client";
 import clsx from "clsx";
 import * as React from "react";
-import {
-  data,
-  Links,
-  Meta,
-  Outlet,
-} from "react-router";
-import globalStylesHref from "./app.css?url";
+import { data, Links, Meta, Outlet } from "react-router";
+import type { Route } from "./+types/root";
 import { db } from "./.server/db";
+import globalStylesHref from "./app.css?url";
 import { Nav } from "./components/nav";
 import { getUserId } from "./session.server";
 import { useMatches } from "./utils";
-import { useNonce } from "@mcansh/http-helmet/react";
-import type { Route } from "./+types/root";
 
 export function links(): Route.LinkDescriptors {
   return [
     { rel: "preload", href: globalStylesHref, as: "style" },
     { rel: "stylesheet", href: globalStylesHref },
   ];
-};
+}
 
 export async function loader({ request }: Route.LoaderArgs) {
   let userId = await getUserId(request);
@@ -73,7 +68,7 @@ function Document({ children, title, user }: DocumentProps) {
   );
 }
 
-export default function App({loaderData}: Route.ComponentProps) {
+export default function App({ loaderData }: Route.ComponentProps) {
   return (
     <Document user={loaderData.user}>
       <Outlet />

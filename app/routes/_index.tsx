@@ -22,13 +22,13 @@ export async function ServerComponent() {
   });
 
   let posts = dbPosts.map((post) => {
-      return {
-        ...post,
-        createdAt: post.createdAt.toISOString(),
-        formattedCreatedAt: format(post.createdAt, "M/d/yyyy h:mm a"),
-        formattedUpdatedAt: format(post.updatedAt, "M/d/yyyy h:mm a"),
-      };
-    })
+    return {
+      ...post,
+      createdAt: post.createdAt.toISOString(),
+      formattedCreatedAt: format(post.createdAt, "M/d/yyyy h:mm a"),
+      formattedUpdatedAt: format(post.updatedAt, "M/d/yyyy h:mm a"),
+    };
+  });
 
   return (
     <main className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
@@ -48,7 +48,7 @@ export async function ServerComponent() {
                 <h2>{post.title}</h2>
               </Link>
               <p className="prose line-clamp-1">{post.content}</p>
-              <p className="text-slate-900 text-sm">
+              <p className="text-sm text-slate-900">
                 Posted by {post.author.username} on{" "}
                 <time dateTime={post.createdAt}>{post.formattedCreatedAt}</time>
               </p>

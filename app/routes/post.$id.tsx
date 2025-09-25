@@ -138,7 +138,10 @@ export function meta({ data }: Route.MetaArgs): Route.MetaDescriptors {
   ];
 }
 
-export default function PostPage({actionData,loaderData}: Route.ComponentProps) {
+export default function PostPage({
+  actionData,
+  loaderData,
+}: Route.ComponentProps) {
   let location = useLocation();
   let navigation = useNavigation();
   let pendingForm = navigation.state === "submitting";

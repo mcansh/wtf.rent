@@ -23,7 +23,9 @@ let login = zfd.formData({
       .email("Your email address is invalid"),
   ),
   password: zfd.text(
-    z.string({ required_error: "Password is required" }).min(8, "The minimum password length is 8 characters"),
+    z
+      .string({ required_error: "Password is required" })
+      .min(8, "The minimum password length is 8 characters"),
   ),
   "remember-me": zfd.checkbox(),
 });
