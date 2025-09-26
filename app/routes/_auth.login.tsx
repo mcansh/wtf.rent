@@ -12,8 +12,8 @@ import { zfd } from "zod-form-data";
 import { db } from "~/.server/db";
 import { verify } from "~/bcrypt.server";
 import { createUserSession, getUserId } from "~/session.server";
-import type { AuthRouteHandle } from "~/utils";
-import { safeRedirect } from "~/utils";
+import type { AuthRouteHandle } from "~/utils/use-matches";
+import { safeRedirect } from "~/.server/http";
 import type { Route } from "./+types/_auth.login";
 
 let login = zfd.formData({

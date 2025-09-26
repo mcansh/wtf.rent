@@ -10,13 +10,13 @@ import tsconfigPaths from "vite-tsconfig-paths";
 export default defineConfig({
   plugins: [
     tailwindcss(),
+    denyImports({
+      client: { files: ["**/.server/*", "**/*.server.*"] },
+    }),
     tsconfigPaths(),
     svgSprite(),
     reactRouterRSC(),
     rsc(),
     devtoolsJson(),
-    denyImports({
-      client: { files: ["**/.server/*", "**/*.server.*"] },
-    }),
   ],
 });

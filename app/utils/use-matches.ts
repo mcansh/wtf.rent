@@ -1,3 +1,4 @@
+"use client";
 import { useMatches as useRemixMatches } from "react-router";
 
 export interface RouteHandle {

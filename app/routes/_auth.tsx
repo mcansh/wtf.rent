@@ -1,6 +1,7 @@
+"use client";
 import { Outlet } from "react-router";
-import type { RouteHandle } from "~/utils";
-import { useAuthMatches } from "~/utils";
+import type { RouteHandle } from "~/utils/use-matches";
+import { useAuthMatches } from "~/utils/use-matches";
 
 export let handle: RouteHandle = {
   bodyClassName: "bg-gray-50",

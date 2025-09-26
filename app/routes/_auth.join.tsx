@@ -5,7 +5,7 @@ import { zfd } from "zod-form-data";
 import { createUser } from "~/models/user.server";
 import { createUserSession, getUserId } from "~/session.server";
 import type { AuthRouteHandle } from "~/utils";
-import { safeRedirect } from "~/utils";
+import { safeRedirect } from "~/.server/http";
 import type { Route } from "./+types/_auth.join";
 
 const join = zfd

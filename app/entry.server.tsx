@@ -49,7 +49,7 @@ export default function handleRequest(
         "script-src": [NONCE(nonce), SELF],
         "style-src": [NONCE(nonce), SELF],
         "img-src": [SELF],
-        "connect-src": [SELF, "ws:"],
+        "connect-src": [SELF, ...(import.meta.env.DEV ? ["ws:"] : [])],
       },
       "Cross-Origin-Embedder-Policy": "require-corp",
       "Cross-Origin-Opener-Policy": "same-origin",

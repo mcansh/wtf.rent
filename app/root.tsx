@@ -1,14 +1,9 @@
-import { useNonce } from "@mcansh/http-helmet/react";
-import type { User } from "@prisma/client";
-import clsx from "clsx";
-import * as React from "react";
-import { data, Links, Meta, Outlet } from "react-router";
+import { data, Outlet, useLoaderData } from "react-router";
 import type { Route } from "./+types/root";
 import { db } from "./.server/db";
 import globalStylesHref from "./app.css?url";
-import { Nav } from "./components/nav";
 import { getUserId } from "./session.server";
-import { useMatches } from "./utils";
+import { Document } from "./components/document";
 
 export function links(): Route.LinkDescriptors {
   return [
@@ -36,44 +31,14 @@ export async function loader({ request }: Route.LoaderArgs) {
   return data({ user });
 }
 
-interface DocumentProps {
-  title?: string;
-  children: React.ReactNode;
-  user?: Pick<User, "email" | "username" | "id"> | null;
+export default function App() {
+  return <Outlet />
 }
 
-function Document({ children, title, user }: DocumentProps) {
-  let matches = useMatches();
-  let bodyClassName = matches
-    .filter((match) => match.handle && match.handle.bodyClassName)
-    .map((match) => match.handle.bodyClassName);
+export function Layout({ children }: { children: React.ReactNode }) {
+  let loaderData = useLoaderData<typeof loader>()
 
-  let nonce = useNonce();
-
-  return (
-    <html lang="en" className="h-full">
-      <head>
-        <meta charSet="utf-8" />
-        <link rel="icon" href="/favicon.png" type="image/png" />
-        {title ? <title>{title}</title> : null}
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <Meta />
-        <Links nonce={nonce} />
-      </head>
-      <body className={clsx("flex h-full flex-col", bodyClassName)}>
-        <Nav user={user} />
-        <div className="flex-auto">{children}</div>
-      </body>
-    </html>
-  );
-}
-
-export default function App({ loaderData }: Route.ComponentProps) {
-  return (
-    <Document user={loaderData.user}>
-      <Outlet />
-    </Document>
-  );
+  return <Document user={loaderData.user}>{children}</Document>;
 }
 
 // export function CatchBoundary() {

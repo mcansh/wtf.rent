@@ -1,5 +1,3 @@
-export * from "./use-matches";
-
 const DEFAULT_REDIRECT = "/";
 
 /**
