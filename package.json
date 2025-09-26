@@ -9,19 +9,17 @@
     "build": "vite build",
     "dev": "NODE_ENV=development node --env-file .env --watch-path ./server.js ./server.js",
     "format": "prettier --ignore-path .gitignore --ignore-unknown --write .",
-    "start": "NODE_ENV=production node ./server.js"
+    "start": "react-router-serve ./build/server/index.js"
   },
   "dependencies": {
     "@headlessui/react": "1.7.13",
     "@mcansh/http-helmet": "^0.13.2",
-    "@mcansh/remix-fastify": "^4.1.2",
     "@prisma/client": "6.16.2",
     "@react-router/node": "^7.9.2",
     "@react-router/serve": "^7.9.2",
     "bcrypt": "^6.0.0",
     "clsx": "2.1.1",
     "date-fns": "2.29.3",
-    "fastify": "^5.6.1",
     "isbot": "5.1.31",
     "react": "19.1.1",
     "react-dom": "19.1.1",
