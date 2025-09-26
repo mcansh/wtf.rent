@@ -2,8 +2,8 @@ import { data, Outlet, useLoaderData } from "react-router";
 import type { Route } from "./+types/root";
 import { db } from "./.server/db";
 import globalStylesHref from "./app.css?url";
-import { getUserId } from "./session.server";
 import { Document } from "./components/document";
+import { getUserId } from "./session.server";
 
 export function links(): Route.LinkDescriptors {
   return [
@@ -32,11 +32,11 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export default function App() {
-  return <Outlet />
+  return <Outlet />;
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  let loaderData = useLoaderData<typeof loader>()
+  let loaderData = useLoaderData<typeof loader>();
 
   return <Document user={loaderData.user}>{children}</Document>;
 }

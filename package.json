@@ -8,7 +8,7 @@
   "scripts": {
     "build": "vite build",
     "dev": "NODE_ENV=development node --env-file .env --watch-path ./server.js ./server.js",
-    "format": "prettier --ignore-path .gitignore --ignore-unknown --write .",
+    "format": "prettier --ignore-path .prettierignore --ignore-path .gitignore --ignore-unknown --write .",
     "start": "react-router-serve ./build/server/index.js"
   },
   "dependencies": {

@@ -2,10 +2,10 @@ import { Prisma } from "@prisma/client";
 import { data, Form, Link, redirect, useNavigation } from "react-router";
 import { z } from "zod";
 import { zfd } from "zod-form-data";
+import { safeRedirect } from "~/.server/http";
 import { createUser } from "~/models/user.server";
 import { createUserSession, getUserId } from "~/session.server";
-import type { AuthRouteHandle } from "~/utils";
-import { safeRedirect } from "~/.server/http";
+import type { AuthRouteHandle } from "~/utils/use-matches";
 import type { Route } from "./+types/_auth.join";
 
 const join = zfd
