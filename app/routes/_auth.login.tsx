@@ -7,36 +7,28 @@ import {
   useLocation,
   useNavigation,
 } from "react-router";
-import { z } from "zod";
-import { zfd } from "zod-form-data";
+import * as z from "zod";
+import { verify } from "~/.server/bcrypt";
 import { db } from "~/.server/db";
 import { safeRedirect } from "~/.server/http";
-import { verify } from "~/bcrypt.server";
-import { createUserSession, getUserId } from "~/session.server";
+import { createUserSession, getUserId } from "~/.server/session";
+import { hasErrors, RenderErrors } from "~/utils/errors";
 import type { AuthRouteHandle } from "~/utils/use-matches";
 import type { Route } from "./+types/_auth.login";
 
-let login = zfd.formData({
-  email: zfd.text(
-    z
-      .string({ required_error: "Email is required" })
-      .email("Your email address is invalid"),
-  ),
-  password: zfd.text(
-    z
-      .string({ required_error: "Password is required" })
-      .min(8, "The minimum password length is 8 characters"),
-  ),
-  "remember-me": zfd.checkbox(),
+let loginSchema = z.object({
+  email: z.email(),
+  password: z.string(),
+  "remember-me": z.boolean(),
 });
 
 export async function action({ request }: Route.ActionArgs) {
   let formData = await request.formData();
-  let result = login.safeParse(formData);
+  let result = loginSchema.safeParse(formData);
 
   if (!result.success) {
     return data(
-      { values: {}, errors: result.error.formErrors.fieldErrors },
+      { values: {}, errors: z.treeifyError(result.error).properties },
       { status: 400 },
     );
   }
@@ -52,7 +44,11 @@ export async function action({ request }: Route.ActionArgs) {
     return data(
       {
         values: result.data,
-        errors: { email: "Invalid email or password", password: null },
+        errors: {
+          email: {
+            errors: ["Invalid email or password"],
+          },
+        },
       },
       { status: 422 },
     );
@@ -64,7 +60,11 @@ export async function action({ request }: Route.ActionArgs) {
     return data(
       {
         values: result.data,
-        errors: { email: null, password: "Invalid email or password" },
+        errors: {
+          password: {
+            errors: ["Invalid email or password"],
+          },
+        },
       },
       { status: 422 },
     );
@@ -120,21 +120,19 @@ export default function LoginPage({ actionData }: Route.ComponentProps) {
                 type="email"
                 className={clsx(
                   "block w-full appearance-none rounded-md border px-3 py-2 shadow-sm focus:outline-none sm:text-sm",
-                  actionData?.errors.email
+                  hasErrors(actionData?.errors, "email")
                     ? "border-red-300 placeholder-red-400 focus:border-red-500 focus:ring-red-500"
                     : "border-gray-300 placeholder-gray-400 focus:border-indigo-500 focus:ring-indigo-500",
                 )}
-                aria-invalid={Boolean(actionData?.errors.email)}
+                aria-invalid={hasErrors(actionData?.errors, "email")}
                 aria-describedby={
-                  actionData?.errors.email ? "email-error" : undefined
+                  hasErrors(actionData?.errors, "email")
+                    ? "email-error"
+                    : undefined
                 }
               />
             </div>
-            {actionData?.errors.email && (
-              <div id="email-error" className="mt-2 text-sm text-red-600">
-                {actionData.errors.email}
-              </div>
-            )}
+            <RenderErrors errors={actionData?.errors} field="email" />
           </div>
 
           <div>
@@ -150,23 +148,21 @@ export default function LoginPage({ actionData }: Route.ComponentProps) {
                 autoComplete="new-password"
                 className={clsx(
                   "block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:outline-none sm:text-sm",
-                  actionData?.errors.password
+                  hasErrors(actionData?.errors, "password")
                     ? "border-red-300 placeholder-red-400 focus:border-red-500 focus:ring-red-500"
                     : "border-gray-300 placeholder-gray-400 focus:border-indigo-500 focus:ring-indigo-500",
                 )}
                 name="password"
                 type="password"
-                aria-invalid={Boolean(actionData?.errors.password)}
+                aria-invalid={hasErrors(actionData?.errors, "password")}
                 aria-describedby={
-                  actionData?.errors.password ? "password-error" : undefined
+                  hasErrors(actionData?.errors, "password")
+                    ? "password-error"
+                    : undefined
                 }
               />
             </div>
-            {actionData?.errors.password && (
-              <div id="password-error" className="mt-2 text-sm text-red-600">
-                {actionData.errors.password}
-              </div>
-            )}
+            <RenderErrors errors={actionData?.errors} field="password" />
           </div>
 
           <div className="flex items-center justify-between">

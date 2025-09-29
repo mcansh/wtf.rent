@@ -1,92 +1,58 @@
-import { Prisma } from "@prisma/client";
+import { decode } from "decode-formdata";
 import { data, Form, Link, redirect, useNavigation } from "react-router";
 import { z } from "zod";
-import { zfd } from "zod-form-data";
 import { safeRedirect } from "~/.server/http";
 import { createUser } from "~/.server/models/user";
 import { createUserSession, getUserId } from "~/.server/session";
+import { hasErrors, RenderErrors } from "~/utils/errors";
 import type { AuthRouteHandle } from "~/utils/use-matches";
 import type { Route } from "./+types/_auth.join";
 
-const join = zfd
-  .formData({
-    email: zfd.text(
-      z
-        .string({ required_error: "Email is required" })
-        .email("Your email address is invalid"),
-    ),
-    username: zfd.text(z.string({ required_error: "Username is required" })),
-    password: zfd.text(
-      z
-        .string({ required_error: "Password is required" })
-        .min(8, "The minimum password length is 8 characters"),
-    ),
-    passwordConfirm: zfd.text(
-      z.string({
-        required_error: "Confirm password is required",
-      }),
-    ),
-    "remember-me": zfd.checkbox(),
+let joinSchema = z
+  .object({
+    email: z.email(),
+    username: z.string().min(1, "Username is required"),
+    password: z.string().min(8, "The minimum password length is 8 characters"),
+    "password-confirmation": z
+      .string()
+      .min(1, "Password confirmation is required"),
+    "remember-me": z.boolean(),
   })
-  .refine((value) => value.password === value.passwordConfirm, {
-    message: "The password do not match",
-    path: ["passwordConfirm"],
+  .refine((data) => data.password === data["password-confirmation"], {
+    message: "The passwords do not match",
+    path: ["'password-confirmation'"],
   });
 
 export async function action({ request }: Route.ActionArgs) {
   let formData = await request.formData();
-  let result = join.safeParse(formData);
+
+  let formValues = decode(formData, {
+    booleans: ["remember-me"],
+  });
+
+  let result = joinSchema.safeParse(formValues);
 
   if (!result.success) {
     return data(
-      { values: {}, errors: result.error.formErrors.fieldErrors },
+      { values: {}, errors: z.treeifyError(result.error).properties },
       { status: 422 },
     );
   }
 
-  try {
-    let user = await createUser({
-      email: result.data.email,
-      username: result.data.username,
-      password: result.data.password,
-    });
+  let user = await createUser({
+    email: result.data.email,
+    username: result.data.username,
+    password: result.data.password,
+  });
 
-    let redirectTo = safeRedirect(formData.get("redirectTo"));
+  let redirectTo = safeRedirect(formData.get("redirectTo"));
 
-    return createUserSession({
-      userId: user.id,
-      request,
-      redirectTo,
-      remember: result.data["remember-me"],
-    });
-  } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      // The .code property can be accessed in a type-safe manner
-      if (error.code === "P2002") {
-        if (error.meta?.target) {
-          let target = Array.isArray(error.meta.target)
-            ? error.meta.target.filter(
-                (v): v is string => typeof v === "string",
-              )
-            : [String(error.meta.target)];
-
-          return data(
-            {
-              values: result.data,
-              errors: Object.fromEntries(
-                target.map((t) => {
-                  return [t, `A user with this ${t} already exists`];
-                }),
-              ),
-            },
-            { status: 422 },
-          );
-        }
-      }
-    }
-
-    throw error;
-  }
+  return createUserSession({
+    userId: user.id,
+    request,
+    redirectTo,
+    remember: result.data["remember-me"],
+  });
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -95,12 +61,14 @@ export async function loader({ request }: Route.LoaderArgs) {
   return {};
 }
 
-// export const meta: MetaFunction = () => ({
-//   title: "Join WTF.rent",
-// });
+let title = "Join WTF.rent";
+
+export function meta(): Route.MetaDescriptors {
+  return [{ title }];
+}
 
 export const handle: AuthRouteHandle = {
-  title: "Join WTF.rent",
+  title,
 };
 
 export default function JoinPage({ actionData }: Route.ComponentProps) {
@@ -128,17 +96,15 @@ export default function JoinPage({ actionData }: Route.ComponentProps) {
                 className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none sm:text-sm"
                 name="email"
                 type="email"
-                aria-invalid={actionData?.errors.email ? "true" : undefined}
+                aria-invalid={
+                  hasErrors(actionData?.errors, "email") ? "true" : undefined
+                }
                 aria-describedby={
-                  actionData?.errors.email ? "email-error" : undefined
+                  actionData?.errors?.email ? "email-error" : undefined
                 }
               />
             </div>
-            {actionData?.errors.email && (
-              <div id="email-error" className="mt-2 text-sm text-red-600">
-                {actionData.errors.email}
-              </div>
-            )}
+            <RenderErrors errors={actionData?.errors} field="email" />
           </div>
 
           <div>
@@ -154,17 +120,17 @@ export default function JoinPage({ actionData }: Route.ComponentProps) {
                 autoComplete="username"
                 className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none sm:text-sm"
                 name="username"
-                aria-invalid={Boolean(actionData?.errors.username)}
+                aria-invalid={
+                  hasErrors(actionData?.errors, "username") ? "true" : undefined
+                }
                 aria-describedby={
-                  actionData?.errors.username ? "username-error" : undefined
+                  hasErrors(actionData?.errors, "username")
+                    ? "username-error"
+                    : undefined
                 }
               />
             </div>
-            {actionData?.errors.username && (
-              <div id="username-error" className="mt-2 text-sm text-red-600">
-                {actionData.errors.username}
-              </div>
-            )}
+            <RenderErrors errors={actionData?.errors} field="username" />
           </div>
 
           <div>
@@ -181,49 +147,49 @@ export default function JoinPage({ actionData }: Route.ComponentProps) {
                 className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none sm:text-sm"
                 name="password"
                 type="password"
-                aria-invalid={Boolean(actionData?.errors.password)}
+                aria-invalid={
+                  hasErrors(actionData?.errors, "password") ? "true" : undefined
+                }
                 aria-describedby={
-                  actionData?.errors.password ? "password-error" : undefined
+                  hasErrors(actionData?.errors, "password")
+                    ? "password-error"
+                    : undefined
                 }
               />
             </div>
-            {actionData?.errors.password && (
-              <div id="password-error" className="mt-2 text-sm text-red-600">
-                {actionData.errors.password}
-              </div>
-            )}
+            <RenderErrors errors={actionData?.errors} field="password" />
           </div>
 
           <div>
             <label
-              htmlFor="passwordConfirm"
+              htmlFor="password-confirmation"
               className="block text-sm font-medium text-gray-700"
             >
               Password confirmation
             </label>
             <div className="mt-1">
               <input
-                id="passwordConfirm"
+                id="password-confirmation"
                 autoComplete="new-password"
                 className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none sm:text-sm"
-                name="passwordConfirm"
+                name="password-confirmation"
                 type="password"
-                aria-invalid={Boolean(actionData?.errors.passwordConfirm)}
+                aria-invalid={
+                  hasErrors(actionData?.errors, "password-confirmation")
+                    ? "true"
+                    : undefined
+                }
                 aria-describedby={
-                  actionData?.errors.passwordConfirm
-                    ? "passwordConfirm-error"
+                  hasErrors(actionData?.errors, "password-confirmation")
+                    ? "password-confirmation-error"
                     : undefined
                 }
               />
             </div>
-            {actionData?.errors.passwordConfirm && (
-              <div
-                id="passwordConfirm-error"
-                className="mt-2 text-sm text-red-600"
-              >
-                {actionData.errors.passwordConfirm}
-              </div>
-            )}
+            <RenderErrors
+              errors={actionData?.errors}
+              field="password-confirmation"
+            />
           </div>
 
           <div className="flex items-center justify-between">

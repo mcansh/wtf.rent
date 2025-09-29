@@ -1,13 +1,19 @@
 import type { User } from "@prisma/client";
-import { createCookie, createCookieSessionStorage, redirect } from "react-router";
+import {
+  createCookie,
+  createCookieSessionStorage,
+  redirect,
+} from "react-router";
 import { createTypedCookie } from "remix-utils/typed-cookie";
 import z from "zod";
 import { env } from "./env";
 import { getUserById } from "./models/user";
 
-let sessionSchema = z.object({
-  userId: z.string().nullish(),
-}).nullable();
+let sessionSchema = z
+  .object({
+    userId: z.string().nullish(),
+  })
+  .nullable();
 
 let cookie = createCookie("_session", {
   sameSite: "lax",
@@ -18,7 +24,7 @@ let cookie = createCookie("_session", {
 });
 
 export let sessionStorage = createCookieSessionStorage({
-  cookie: createTypedCookie({ cookie, schema: sessionSchema })
+  cookie: createTypedCookie({ cookie, schema: sessionSchema }),
 });
 
 export function getSession(request: Request) {
@@ -30,7 +36,7 @@ export async function getUserId(
   request: Request,
 ): Promise<User["id"] | undefined> {
   let session = await getSession(request);
-  let userId = session.get('userId');
+  let userId = session.get("userId");
   return userId;
 }
 
@@ -75,7 +81,7 @@ export async function createUserSession({
   redirectTo: string;
 }): Promise<Response> {
   let session = await getSession(request);
-  session.set('userId', userId);
+  session.set("userId", userId);
   // if remember is true, keep them logged in for a week
   // otherwise keep them logged in for their browser session
   let maxAge = remember ? 60 * 60 * 24 * 7 : undefined;
