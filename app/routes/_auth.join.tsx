@@ -3,8 +3,8 @@ import { data, Form, Link, redirect, useNavigation } from "react-router";
 import { z } from "zod";
 import { zfd } from "zod-form-data";
 import { safeRedirect } from "~/.server/http";
-import { createUser } from "~/models/user.server";
-import { createUserSession, getUserId } from "~/session.server";
+import { createUser } from "~/.server/models/user";
+import { createUserSession, getUserId } from "~/.server/session";
 import type { AuthRouteHandle } from "~/utils/use-matches";
 import type { Route } from "./+types/_auth.join";
 

@@ -1,6 +1,5 @@
 import { Form } from "react-router";
-
-import { logout, requireUserId } from "~/session.server";
+import { logout, requireUserId } from "~/.server/session";
 import type { Route } from "./+types/logout";
 
 export async function action({ request }: Route.ActionArgs) {

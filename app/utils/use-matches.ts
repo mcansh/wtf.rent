@@ -1,13 +1,14 @@
 "use client";
+
 import { useMatches as useRemixMatches } from "react-router";
 
-export interface RouteHandle {
+export type RouteHandle = {
   bodyClassName?: string;
-}
+};
 
-export interface AuthRouteHandle {
+export type AuthRouteHandle = {
   title: string;
-}
+};
 
 type Match<Handle> = Omit<ReturnType<typeof useRemixMatches>, "handle"> & {
   handle: Handle;

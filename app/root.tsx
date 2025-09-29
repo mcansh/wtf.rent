@@ -1,7 +1,7 @@
 import { data, Outlet, useLoaderData } from "react-router";
 import type { Route } from "./+types/root";
 import { db } from "./.server/db";
-import globalStylesHref from "./app.css?url";
+import { getUserId } from "./.server/session";
 import { Document } from "./components/document";
 import { getUserId } from "./session.server";
 

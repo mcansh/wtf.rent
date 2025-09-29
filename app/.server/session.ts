@@ -1,21 +1,24 @@
 import type { User } from "@prisma/client";
-import { createCookieSessionStorage, redirect } from "react-router";
+import { createCookie, createCookieSessionStorage, redirect } from "react-router";
+import { createTypedCookie } from "remix-utils/typed-cookie";
+import z from "zod";
+import { env } from "./env";
+import { getUserById } from "./models/user";
 
-import { getUserById } from "./models/user.server";
+let sessionSchema = z.object({
+  userId: z.string().nullish(),
+}).nullable();
 
-if (!process.env.SESSION_SECRET) {
-  throw new Error("SESSION_SECRET is not defined");
-}
+let cookie = createCookie("_session", {
+  sameSite: "lax",
+  path: "/",
+  httpOnly: true,
+  secrets: env.SESSION_SECRET,
+  secure: import.meta.env.PROD,
+});
 
 export let sessionStorage = createCookieSessionStorage({
-  cookie: {
-    name: "_session",
-    sameSite: "lax",
-    path: "/",
-    httpOnly: true,
-    secrets: [process.env.SESSION_SECRET],
-    secure: process.env.NODE_ENV === "production",
-  },
+  cookie: createTypedCookie({ cookie, schema: sessionSchema })
 });
 
 export function getSession(request: Request) {
@@ -23,13 +26,11 @@ export function getSession(request: Request) {
   return sessionStorage.getSession(cookie);
 }
 
-const USER_SESSION_KEY = "userId";
-
 export async function getUserId(
   request: Request,
 ): Promise<User["id"] | undefined> {
   let session = await getSession(request);
-  let userId = session.get(USER_SESSION_KEY);
+  let userId = session.get('userId');
   return userId;
 }
 
@@ -46,21 +47,19 @@ export async function getUser(request: Request) {
 export async function requireUserId(
   request: Request,
   redirectTo: string = new URL(request.url).pathname,
-) {
+): Promise<User["id"]> {
   let userId = await getUserId(request);
-  if (!userId) {
-    let searchParams = new URLSearchParams();
-    searchParams.set("redirectTo", redirectTo);
-    throw redirect(`/login?${searchParams.toString()}`);
-  }
-  return userId;
+  if (typeof userId === "string") return userId;
+  let searchParams = new URLSearchParams();
+  searchParams.set("redirectTo", redirectTo);
+  throw redirect(`/login?${searchParams.toString()}`);
 }
 
-export async function requireUser(request: Request) {
+export async function requireUser(request: Request): Promise<User> {
   let user = await getUser(request);
   if (user) return user;
-  let url = new URL(request.url).pathname;
-  let redirectTo = url.search ? `${url}?${url.search}` : url;
+  let url = new URL(request.url);
+  let redirectTo = url.search ? `${url.pathname}?${url.search}` : url.pathname;
   throw await logout(request, redirectTo);
 }
 
@@ -74,9 +73,9 @@ export async function createUserSession({
   userId: User["id"];
   remember: boolean;
   redirectTo: string;
-}) {
+}): Promise<Response> {
   let session = await getSession(request);
-  session.set(USER_SESSION_KEY, userId);
+  session.set('userId', userId);
   // if remember is true, keep them logged in for a week
   // otherwise keep them logged in for their browser session
   let maxAge = remember ? 60 * 60 * 24 * 7 : undefined;

@@ -1,9 +1,9 @@
 import clsx from "clsx";
 import exclamationCircle from "heroicons/24/solid/exclamation-circle.svg";
 import { data } from "react-router";
+import { getResetToken, hash } from "~/.server/bcrypt";
 import { db } from "~/.server/db";
-import { getResetToken, hash } from "~/bcrypt.server";
-import { logout, requireUser } from "~/session.server";
+import { logout, requireUser } from "~/.server/session";
 import type { Route } from "./+types/profile";
 
 export function meta(): Route.MetaDescriptors {

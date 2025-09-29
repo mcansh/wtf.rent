@@ -1,7 +1,6 @@
 import { data, Form, redirect, useNavigation } from "react-router";
-
 import { db } from "~/.server/db";
-import { requireUserId } from "~/session.server";
+import { requireUserId } from "~/.server/session";
 import type { Route } from "./+types/post.$id.edit";
 
 export async function action({ request, params }: Route.ActionArgs) {

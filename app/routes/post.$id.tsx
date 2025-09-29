@@ -9,7 +9,7 @@ import {
   useNavigation,
 } from "react-router";
 import { db } from "~/.server/db";
-import { getUserId, requireUserId } from "~/session.server";
+import { getUserId, requireUserId } from "~/.server/session";
 import type { Route } from "./+types/post.$id";
 
 export async function loader({ request, params }: Route.LoaderArgs) {
