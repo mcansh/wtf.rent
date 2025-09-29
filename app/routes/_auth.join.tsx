@@ -4,7 +4,7 @@ import { z } from "zod";
 import { safeRedirect } from "~/.server/http";
 import { createUser } from "~/.server/models/user";
 import { createUserSession, getUserId } from "~/.server/session";
-import { hasErrors, RenderErrors } from "~/utils/errors";
+import { Input } from "~/components/input";
 import type { AuthRouteHandle } from "~/utils/use-matches";
 import type { Route } from "./+types/_auth.join";
 
@@ -89,22 +89,14 @@ export default function JoinPage({ actionData }: Route.ComponentProps) {
             >
               Email address
             </label>
-            <div className="mt-1">
-              <input
-                id="email"
-                autoComplete="email"
-                className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none sm:text-sm"
-                name="email"
-                type="email"
-                aria-invalid={
-                  hasErrors(actionData?.errors, "email") ? "true" : undefined
-                }
-                aria-describedby={
-                  actionData?.errors?.email ? "email-error" : undefined
-                }
-              />
-            </div>
-            <RenderErrors errors={actionData?.errors} field="email" />
+            <Input
+              id="email"
+              autoComplete="email"
+              name="email"
+              type="email"
+              errors={actionData?.errors}
+              field="email"
+            />
           </div>
 
           <div>
@@ -114,23 +106,13 @@ export default function JoinPage({ actionData }: Route.ComponentProps) {
             >
               Username
             </label>
-            <div className="mt-1">
-              <input
-                id="username"
-                autoComplete="username"
-                className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none sm:text-sm"
-                name="username"
-                aria-invalid={
-                  hasErrors(actionData?.errors, "username") ? "true" : undefined
-                }
-                aria-describedby={
-                  hasErrors(actionData?.errors, "username")
-                    ? "username-error"
-                    : undefined
-                }
-              />
-            </div>
-            <RenderErrors errors={actionData?.errors} field="username" />
+            <Input
+              id="username"
+              autoComplete="username"
+              name="username"
+              errors={actionData?.errors}
+              field="username"
+            />
           </div>
 
           <div>
@@ -140,24 +122,14 @@ export default function JoinPage({ actionData }: Route.ComponentProps) {
             >
               Password
             </label>
-            <div className="mt-1">
-              <input
-                id="password"
-                autoComplete="new-password"
-                className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none sm:text-sm"
-                name="password"
-                type="password"
-                aria-invalid={
-                  hasErrors(actionData?.errors, "password") ? "true" : undefined
-                }
-                aria-describedby={
-                  hasErrors(actionData?.errors, "password")
-                    ? "password-error"
-                    : undefined
-                }
-              />
-            </div>
-            <RenderErrors errors={actionData?.errors} field="password" />
+            <Input
+              id="password"
+              autoComplete="new-password"
+              name="password"
+              type="password"
+              field="password"
+              errors={actionData?.errors}
+            />
           </div>
 
           <div>
@@ -167,28 +139,13 @@ export default function JoinPage({ actionData }: Route.ComponentProps) {
             >
               Password confirmation
             </label>
-            <div className="mt-1">
-              <input
-                id="password-confirmation"
-                autoComplete="new-password"
-                className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none sm:text-sm"
-                name="password-confirmation"
-                type="password"
-                aria-invalid={
-                  hasErrors(actionData?.errors, "password-confirmation")
-                    ? "true"
-                    : undefined
-                }
-                aria-describedby={
-                  hasErrors(actionData?.errors, "password-confirmation")
-                    ? "password-confirmation-error"
-                    : undefined
-                }
-              />
-            </div>
-            <RenderErrors
-              errors={actionData?.errors}
+            <Input
+              id="password-confirmation"
+              autoComplete="new-password"
+              name="password-confirmation"
+              type="password"
               field="password-confirmation"
+              errors={actionData?.errors}
             />
           </div>
 

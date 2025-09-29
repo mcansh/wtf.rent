@@ -1,4 +1,4 @@
-import clsx from "clsx";
+import { decode } from "decode-formdata";
 import {
   data,
   Form,
@@ -12,7 +12,7 @@ import { verify } from "~/.server/bcrypt";
 import { db } from "~/.server/db";
 import { safeRedirect } from "~/.server/http";
 import { createUserSession, getUserId } from "~/.server/session";
-import { hasErrors, RenderErrors } from "~/utils/errors";
+import { Input } from "~/components/input";
 import type { AuthRouteHandle } from "~/utils/use-matches";
 import type { Route } from "./+types/_auth.login";
 
@@ -24,7 +24,12 @@ let loginSchema = z.object({
 
 export async function action({ request }: Route.ActionArgs) {
   let formData = await request.formData();
-  let result = loginSchema.safeParse(formData);
+
+  let formValues = decode(formData, {
+    booleans: ["remember-me"],
+  });
+
+  let result = loginSchema.safeParse(formValues);
 
   if (!result.success) {
     return data(
@@ -112,27 +117,14 @@ export default function LoginPage({ actionData }: Route.ComponentProps) {
             >
               Email
             </label>
-            <div className="mt-1">
-              <input
-                id="email"
-                autoComplete="email"
-                name="email"
-                type="email"
-                className={clsx(
-                  "block w-full appearance-none rounded-md border px-3 py-2 shadow-sm focus:outline-none sm:text-sm",
-                  hasErrors(actionData?.errors, "email")
-                    ? "border-red-300 placeholder-red-400 focus:border-red-500 focus:ring-red-500"
-                    : "border-gray-300 placeholder-gray-400 focus:border-indigo-500 focus:ring-indigo-500",
-                )}
-                aria-invalid={hasErrors(actionData?.errors, "email")}
-                aria-describedby={
-                  hasErrors(actionData?.errors, "email")
-                    ? "email-error"
-                    : undefined
-                }
-              />
-            </div>
-            <RenderErrors errors={actionData?.errors} field="email" />
+            <Input
+              id="email"
+              autoComplete="email"
+              name="email"
+              type="email"
+              field="email"
+              errors={actionData?.errors}
+            />
           </div>
 
           <div>
@@ -142,27 +134,14 @@ export default function LoginPage({ actionData }: Route.ComponentProps) {
             >
               Password
             </label>
-            <div className="mt-1">
-              <input
-                id="password"
-                autoComplete="new-password"
-                className={clsx(
-                  "block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:outline-none sm:text-sm",
-                  hasErrors(actionData?.errors, "password")
-                    ? "border-red-300 placeholder-red-400 focus:border-red-500 focus:ring-red-500"
-                    : "border-gray-300 placeholder-gray-400 focus:border-indigo-500 focus:ring-indigo-500",
-                )}
-                name="password"
-                type="password"
-                aria-invalid={hasErrors(actionData?.errors, "password")}
-                aria-describedby={
-                  hasErrors(actionData?.errors, "password")
-                    ? "password-error"
-                    : undefined
-                }
-              />
-            </div>
-            <RenderErrors errors={actionData?.errors} field="password" />
+            <Input
+              id="password"
+              field="password"
+              autoComplete="new-password"
+              name="password"
+              type="password"
+              errors={actionData?.errors}
+            />
           </div>
 
           <div className="flex items-center justify-between">
