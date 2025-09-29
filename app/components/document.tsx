@@ -1,18 +1,18 @@
 "use client";
 import { useNonce } from "@mcansh/http-helmet/react";
-import { clsx } from "clsx";
+import { clsx } from "clsx/lite";
 import { Links, Meta } from "react-router";
 import type { User } from "~/.server/generated/prisma/client";
+import globalStylesHref from "~/app.css?url";
 import { useMatches } from "~/utils/use-matches";
 import { Nav } from "./nav";
 
 interface DocumentProps {
-  title?: string;
   children: React.ReactNode;
   user?: Pick<User, "email" | "username" | "id"> | null;
 }
 
-export function Document({ children, title, user }: DocumentProps) {
+export function Document({ children, user }: DocumentProps) {
   let matches = useMatches();
   let bodyClassName = matches
     .filter((match) => match.handle && match.handle.bodyClassName)
@@ -25,8 +25,8 @@ export function Document({ children, title, user }: DocumentProps) {
       <head>
         <meta charSet="utf-8" />
         <link rel="icon" href="/favicon.png" type="image/png" />
-        {title ? <title>{title}</title> : null}
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="stylesheet" href={globalStylesHref} precedence="high" />
         <Meta />
         <Links nonce={nonce} />
       </head>
