@@ -1,8 +1,8 @@
 import {
-  isRouteErrorResponse,
-  Link,
-  Outlet,
-  useLoaderData,
+    isRouteErrorResponse,
+    Link,
+    Outlet,
+    useLoaderData,
 } from "react-router";
 import type { Route } from "./+types/root";
 import { db } from "./.server/db";
@@ -101,7 +101,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   }
 
   return (
-    <Document>
+    <>
       <title>Uh-oh!</title>
       <h1>App Error</h1>
       <pre>{errorMessage}</pre>
@@ -109,6 +109,6 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         Replace this UI with what you want users to see when your app throws
         uncaught errors.
       </p>
-    </Document>
+    </>
   );
 }

@@ -1,11 +1,11 @@
-import type { User } from "@prisma/client";
 import {
-  createCookie,
-  createCookieSessionStorage,
-  redirect,
+    createCookie,
+    createCookieSessionStorage,
+    redirect,
 } from "react-router";
 import { createTypedCookie } from "remix-utils/typed-cookie";
 import z from "zod";
+import type { User } from "~/.server/generated/prisma/client";
 import { env } from "./env";
 import { getUserById } from "./models/user";
 

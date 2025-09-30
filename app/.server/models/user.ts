@@ -1,6 +1,6 @@
-import type { User } from "@prisma/client";
 import { hash, verify } from "~/.server/bcrypt";
 import { db } from "~/.server/db";
+import type { User } from "~/.server/generated/prisma/client";
 
 export async function getUserById(id: User["id"]) {
   return db.user.findUnique({ where: { id } });

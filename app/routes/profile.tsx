@@ -1,8 +1,7 @@
 import clsx from "clsx";
 import exclamationCircle from "heroicons/24/solid/exclamation-circle.svg";
-import { data } from "react-router";
-import { getResetToken, hash } from "~/.server/bcrypt";
-import { db } from "~/.server/db";
+import { data, Form } from "react-router";
+import { accountDeletionQueue } from "~/.server/redis";
 import { logout, requireUser } from "~/.server/session";
 import type { Route } from "./+types/profile";
 
@@ -29,38 +28,9 @@ export async function action({ request }: Route.ActionArgs) {
     return data({ error: "your email did not match" });
   }
 
-  // TODO: do this in a background job
-  await db.$transaction(async (prisma) => {
-    let anonymousUser = await prisma.user.findUnique({
-      where: { username: "anonymous" },
-    });
+  await accountDeletionQueue.add(user.id, { userId: user.id });
 
-    if (!anonymousUser) {
-      anonymousUser = await prisma.user.create({
-        data: {
-          username: "anonymous",
-          email: "anonymous@wtf.rent",
-          password: await hash(await getResetToken(), 12),
-        },
-      });
-    }
-
-    await prisma.comment.updateMany({
-      where: { authorId: user.id },
-      data: { authorId: anonymousUser.id },
-    });
-
-    await prisma.post.updateMany({
-      where: { authorId: user.id },
-      data: { authorId: anonymousUser.id },
-    });
-
-    await prisma.user.delete({
-      where: { id: user.id },
-    });
-  });
-
-  return logout(request);
+  return await logout(request);
 }
 
 export default function SettingsPage({
@@ -71,7 +41,7 @@ export default function SettingsPage({
     <div className="mx-auto max-w-7xl px-2 pt-4 sm:px-6 lg:px-8">
       <h1 className="text-4xl font-semibold">Your Profile</h1>
 
-      <form method="post" className="pt-6">
+      <Form method="post" className="pt-6" reloadDocument>
         <h2 className="text-2xl font-semibold">Delete My Account</h2>
         <p className="py-2 text-red-600">
           Note this will only delete your account, but not any of the posts or
@@ -124,7 +94,7 @@ export default function SettingsPage({
             Yup, I'm sure
           </button>
         </div>
-      </form>
+      </Form>
     </div>
   );
 }

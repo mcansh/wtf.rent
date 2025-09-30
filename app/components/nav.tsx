@@ -1,9 +1,9 @@
 import { Menu, Transition } from "@headlessui/react";
-import type { User } from "@prisma/client";
 import clsx from "clsx";
 import solid20Bell from "heroicons/20/solid/bell.svg";
 import * as React from "react";
 import { Form, Link, useLocation } from "react-router";
+import type { User } from "~/.server/generated/prisma/client";
 
 interface Props {
   user?: Pick<User, "email" | "username" | "id"> | null;

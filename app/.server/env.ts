@@ -8,6 +8,7 @@ const envSchema = z.object({
       return s.split(",").map((s) => s.trim());
     }),
   DATABASE_URL: z.url(),
+  REDIS_URL: z.url(),
 });
 
 export const env = envSchema.parse(process.env);
