@@ -1,0 +1,13 @@
+{
+  "$schema": "https://remix.run/schemas/remix.json",
+  "db": {
+    "adapter": {
+      "type": "postgres",
+      "connectionString": { "env": "DATABASE_URL" }
+    },
+    "migrations": {
+      "directory": "./db/migrations",
+      "journalTable": "app_migrations"
+    }
+  }
+}
