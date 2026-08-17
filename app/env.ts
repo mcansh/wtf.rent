@@ -1,5 +1,5 @@
 import * as s from "remix/data-schema"
-import { url, minLength, min } from "remix/data-schema/checks"
+import { url } from "remix/data-schema/checks"
 import * as coerce from "remix/data-schema/coerce"
 
 export function arrayMinLength<T>(min: number): s.Check<Array<T>> {
@@ -12,13 +12,10 @@ export function arrayMinLength<T>(min: number): s.Check<Array<T>> {
   }
 }
 
-export function ensureArrayItemMinLength<T>(min: number): s.Check<Array<T>> {
+export function ensureArrayItemMinLength(min: number): s.Check<string[]> {
   return {
     check(value) {
-      return (
-        Array.isArray(value) &&
-        value.every((item) => typeof item === "string" && item.length >= min)
-      )
+      return Array.isArray(value) && value.every((item) => item.length >= min)
     },
     code: "array.itemMinLength",
     message: `Expected array of strings with each item having at least ${min} characters`,

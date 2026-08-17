@@ -76,7 +76,7 @@ describe("login", () => {
   })
 
   it("uses one generic error for unknown users and wrong passwords", async () => {
-    let knownUserApp = createAuthTestApp({ database: new FakeUserDatabase([user]).asDatabase() })
+    let knownUserApp = createAuthTestApp({ database: new FakeUserDatabase([user]) })
     let wrongPasswordForm = await createCsrfFormRequest(knownUserApp, routes.login.action.href(), {
       email: user.email,
       password: "incorrect-password",
@@ -120,7 +120,7 @@ describe("login", () => {
 
   it("rotates the session and redirects safely after successful login", async () => {
     let database = new FakeUserDatabase([user])
-    let app = createAuthTestApp({ database: database.asDatabase() })
+    let app = createAuthTestApp({ database })
     let oldCookie = await createSessionCookie(app, (session) => session.set("marker", "before"))
     let pathname = routes.login.action.href(undefined, {
       searchParams: { returnTo: routes.directory.href() },
@@ -144,7 +144,7 @@ describe("login", () => {
 
   it("ignores external return paths and redirects authenticated users away", async () => {
     let database = new FakeUserDatabase([user])
-    let app = createAuthTestApp({ database: database.asDatabase() })
+    let app = createAuthTestApp({ database })
     let form = await createCsrfFormRequest(app, "/login?returnTo=https://evil.example", {
       email: user.email,
       password: "not-a-real-user-password",

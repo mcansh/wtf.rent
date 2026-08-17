@@ -2,12 +2,24 @@ import type { OxlintConfig } from "oxlint"
 import { defineConfig } from "oxlint"
 
 export const IGNORE_PATTERNS = [
+  ".agent/**",
+  ".agents/**",
+  ".claude/**",
+  ".codex/**",
+  ".continue/**",
+  ".cursor/**",
+  ".gemini/**",
+  ".opencode/**",
+  ".pi/**",
+  ".roo/**",
+  ".windsurf/**",
   "**/coverage/**",
   "node_modules/**",
   "pnpm-lock.yaml",
   "app/**/out.css",
   "app/routes/**",
   "app/root.tsx",
+  "tools/oxlint/anti-slop/**",
 ] as const satisfies OxlintConfig["ignorePatterns"]
 
 export default defineConfig({
@@ -25,6 +37,9 @@ export default defineConfig({
     builtin: true,
   },
   ignorePatterns: IGNORE_PATTERNS,
+  jsPlugins: [
+    { name: "anti-slop", specifier: "./tools/oxlint/anti-slop/index.ts" },
+  ],
   options: {
     typeAware: true,
   },
@@ -38,6 +53,21 @@ export default defineConfig({
     },
   },
   rules: {
+    "anti-slop/no-chained-type-assertions": "error",
+    "anti-slop/no-conditional-empty-object-spread": "error",
+    "anti-slop/no-known-value-widening": "error",
+    "anti-slop/no-module-mocking": "error",
+    "anti-slop/no-object-parameters": "error",
+    "anti-slop/no-reflect-apply": "error",
+    "anti-slop/no-reflect-get": "error",
+    "anti-slop/no-runtime-typeof": "error",
+    "anti-slop/no-shape-in-symbol-names": "error",
+    "anti-slop/no-unknown-parameters": "error",
+    "anti-slop/no-unknown-returns": "error",
+    "anti-slop/no-unknown-type-aliases": "error",
+    "anti-slop/no-unsafe-dictionary-type": "error",
+    "anti-slop/no-widen-then-assert": "error",
+    "anti-slop/require-safety-comment-for-type-assertion": "error",
     "no-unused-vars": "off",
     "no-unused-expressions": "off",
     "no-useless-escape": "off",

@@ -1,6 +1,7 @@
 import { describe, it } from "node:test"
 
 import * as assert from "remix/assert"
+import { Session } from "remix/session"
 
 import {
   createLoginThrottle,
@@ -32,15 +33,23 @@ describe("auth helpers", () => {
   })
 
   it("parses only the expected auth-session shape", () => {
-    assert.deepEqual(parseAuthSession({ userId: "user-1" }), { userId: "user-1" })
-    assert.equal(parseAuthSession({ userId: 1 }), null)
-    assert.equal(parseAuthSession(null), null)
+    let session = new Session()
+
+    session.set("auth", { userId: "user-1" })
+    assert.deepEqual(parseAuthSession(session), { userId: "user-1" })
+
+    session.set("auth", { userId: 1 })
+    assert.equal(parseAuthSession(session), null)
+
+    session.set("auth", null)
+    assert.equal(parseAuthSession(session), null)
   })
 
   it("redirects authenticated users and passes guests through", async () => {
     let middleware = requireGuest()
     let nextCalls = 0
 
+    // SAFETY: requireGuest reads only Auth and url; this stub provides both exercised properties.
     let guestResponse = await middleware(
       {
         get: () => ({ ok: false }),
@@ -54,6 +63,7 @@ describe("auth helpers", () => {
     assert.equal(await guestResponse.text(), "guest")
     assert.equal(nextCalls, 1)
 
+    // SAFETY: requireGuest reads only Auth and url; this stub provides both exercised properties.
     let userResponse = await middleware(
       {
         get: () => ({ ok: true, identity: { id: "user-1" }, method: "session" }),
