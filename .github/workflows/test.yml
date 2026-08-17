@@ -1,0 +1,48 @@
+name: 🧪 Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: ⚙️ Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: ⎔ Setup node
+        uses: nubjs/setup-nub@c25c1b308d1719a1c07b0dfeea5a9a36d7f5da79 # v0.7.5
+        with:
+          node-version-file: package.json
+          cache: "pnpm"
+
+      - name: 🟧 Install dependencies
+        run: pnpm install --recursive --frozen-lockfile --strict-peer-dependencies
+
+      - name: 🏗 Build
+        run: pnpm run build
+
+  test:
+    name: 🧪 Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: ⎔ Setup node
+        uses: nubjs/setup-nub@c25c1b308d1719a1c07b0dfeea5a9a36d7f5da79 # v0.7.5
+        with:
+          node-version-file: package.json
+          cache: "pnpm"
+
+      - name: 🟧 Install dependencies
+        run: pnpm install --recursive --frozen-lockfile --strict-peer-dependencies
+
+      - name: 🧪 Run Tests
+        run: pnpm run test
