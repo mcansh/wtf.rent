@@ -34,7 +34,7 @@ describe("profile and logout", () => {
   })
 
   it("shows Profile and a session-backed logout form to authenticated users", async () => {
-    let app = createAuthTestApp({ database: new FakeUserDatabase([user]).asDatabase() })
+    let app = createAuthTestApp({ database: new FakeUserDatabase([user]) })
     let authCookie = await createSessionCookie(app, (session) =>
       session.set("auth", { userId: user.id }),
     )
@@ -66,7 +66,7 @@ describe("profile and logout", () => {
   })
 
   it("renders the authenticated user's profile without exposing their password hash", async () => {
-    let app = createAuthTestApp({ database: new FakeUserDatabase([user]).asDatabase() })
+    let app = createAuthTestApp({ database: new FakeUserDatabase([user]) })
     let cookie = await createSessionCookie(app, (session) =>
       session.set("auth", { userId: user.id }),
     )
@@ -80,7 +80,7 @@ describe("profile and logout", () => {
   })
 
   it("logs out only by POST, clears auth, rotates the session, and redirects home", async () => {
-    let app = createAuthTestApp({ database: new FakeUserDatabase([user]).asDatabase() })
+    let app = createAuthTestApp({ database: new FakeUserDatabase([user]) })
     let csrfToken = "logout-csrf-token"
     let oldCookie = await createSessionCookie(app, (session) => {
       session.set("auth", { userId: user.id })

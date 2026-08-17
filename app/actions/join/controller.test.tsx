@@ -92,7 +92,7 @@ describe("join", () => {
 
   it("translates duplicate email and username constraints into safe field errors", async () => {
     let emailDatabase = new FakeUserDatabase([existingUser])
-    let emailApp = createAuthTestApp({ database: emailDatabase.asDatabase() })
+    let emailApp = createAuthTestApp({ database: emailDatabase })
     let duplicateEmailForm = await createCsrfFormRequest(emailApp, routes.join.action.href(), {
       username: "another-renter",
       email: existingUser.email,
@@ -103,7 +103,7 @@ describe("join", () => {
     let emailHtml = await duplicateEmail.text()
 
     let usernameDatabase = new FakeUserDatabase([existingUser])
-    let usernameApp = createAuthTestApp({ database: usernameDatabase.asDatabase() })
+    let usernameApp = createAuthTestApp({ database: usernameDatabase })
     let duplicateUsernameForm = await createCsrfFormRequest(
       usernameApp,
       routes.join.action.href(),
@@ -130,7 +130,7 @@ describe("join", () => {
 
   it("normalizes data, hashes the password, rotates the session, and redirects safely", async () => {
     let database = new FakeUserDatabase()
-    let app = createAuthTestApp({ database: database.asDatabase() })
+    let app = createAuthTestApp({ database })
     let oldCookie = await createSessionCookie(app, (session) => session.set("marker", "before"))
     let pathname = routes.join.action.href(undefined, {
       searchParams: { returnTo: routes.directory.href() },
@@ -164,7 +164,7 @@ describe("join", () => {
 
   it("redirects authenticated users away", async () => {
     let database = new FakeUserDatabase([existingUser])
-    let app = createAuthTestApp({ database: database.asDatabase() })
+    let app = createAuthTestApp({ database })
     let authCookie = await createSessionCookie(app, (session) =>
       session.set("auth", { userId: existingUser.id }),
     )
