@@ -1,5 +1,6 @@
 import { createCookie } from "remix/cookie"
 import type { Cookie } from "remix/cookie"
+import { DataTableDatabaseError } from "remix/data-table"
 import type { Database } from "remix/data-table"
 import type { Session, SessionStorage } from "remix/session"
 import { createMemorySessionStorage } from "remix/session-storage/memory"
@@ -60,10 +61,14 @@ export class FakeUserDatabase {
     _options: { returnRow: true },
   ): Promise<User> {
     if (this.users.some((user) => user.email === values.email)) {
-      throw new FakeUniqueConstraintError("User_email_key")
+      throw new DataTableDatabaseError("Database execution failed", {
+        cause: new FakeUniqueConstraintError("User_email_key"),
+      })
     }
     if (this.users.some((user) => user.username === values.username)) {
-      throw new FakeUniqueConstraintError("User_username_key")
+      throw new DataTableDatabaseError("Database execution failed", {
+        cause: new FakeUniqueConstraintError("User_username_key"),
+      })
     }
 
     let now = new Date("2026-08-17T00:00:00.000Z")

@@ -2,6 +2,7 @@ import { completeAuth } from "remix/auth"
 import * as s from "remix/data-schema"
 import { email, maxLength, minLength } from "remix/data-schema/checks"
 import * as f from "remix/data-schema/form-data"
+import { DataTableDatabaseError } from "remix/data-table"
 import { getCsrfToken } from "remix/middleware/csrf"
 import { redirect } from "remix/response/redirect"
 import { createController } from "remix/router"
@@ -184,18 +185,20 @@ function JoinPage(handle: Handle<JoinPageProps>) {
 }
 
 function getDuplicateUserField(error: unknown): "email" | "username" | null {
+  let databaseError = error instanceof DataTableDatabaseError ? error.cause : error
+
   if (
-    typeof error !== "object" ||
-    error == null ||
-    !("code" in error) ||
-    !("constraint" in error)
+    typeof databaseError !== "object" ||
+    databaseError == null ||
+    !("code" in databaseError) ||
+    !("constraint" in databaseError)
   ) {
     return null
   }
 
-  if (error.code !== "23505") return null
-  if (error.constraint === "User_email_key") return "email"
-  if (error.constraint === "User_username_key") return "username"
+  if (databaseError.code !== "23505") return null
+  if (databaseError.constraint === "User_email_key") return "email"
+  if (databaseError.constraint === "User_username_key") return "username"
 
   return null
 }
