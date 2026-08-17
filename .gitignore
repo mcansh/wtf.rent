@@ -1,14 +1,8 @@
-node_modules
+node_modules/
+db/*.sqlite
 .DS_Store
-
-# build artifacts
-/.cache
-/build
-/public/build
-/app/styles/global.css
-/app/icons
-
 .env
-.eslintcache
-
-app/components/heroicons.tsx
+tmp/
+.cache/postgres
+app/assets/out.css
+app/public/out.css
