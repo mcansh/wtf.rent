@@ -37,9 +37,7 @@ export default defineConfig({
     builtin: true,
   },
   ignorePatterns: IGNORE_PATTERNS,
-  jsPlugins: [
-    { name: "anti-slop", specifier: "./tools/oxlint/anti-slop/index.ts" },
-  ],
+  jsPlugins: [{ name: "anti-slop", specifier: "./tools/oxlint/anti-slop/index.ts" }],
   options: {
     typeAware: true,
   },
@@ -80,8 +78,8 @@ export default defineConfig({
       files: ["**/*.{ts,tsx}"],
       plugins: ["typescript", "import"],
       jsPlugins: [
-        "./scripts/oxlint-plugins/interface-pascal-case-plugin.ts",
-        "./scripts/oxlint-plugins/no-typescript-accessibility-plugin.ts",
+        "./tools/oxlint/interface-pascal-case-plugin.ts",
+        "./tools/oxlint/no-typescript-accessibility-plugin.ts",
       ],
       rules: {
         "import/consistent-type-specifier-style": ["error", "prefer-top-level"],
@@ -102,8 +100,8 @@ export default defineConfig({
     {
       files: ["**/*.{ts,tsx,js,jsx}"],
       jsPlugins: [
-        "./scripts/oxlint-plugins/prefer-let-locals-plugin.ts",
-        "./scripts/oxlint-plugins/canonical-header-names-plugin.ts",
+        "./tools/oxlint/prefer-let-locals-plugin.ts",
+        "./tools/oxlint/canonical-header-names-plugin.ts",
       ],
       rules: {
         "remix-headers/canonical-header-name": "error",
