@@ -11,6 +11,7 @@ import {
   seedStructuredReport,
   seedReportUser,
 } from "../../../test/reports.ts"
+import { PUBLIC_COMMENT_PAGE_SIZE } from "../../data/comments.ts"
 import { comments, posts } from "../../data/schema.ts"
 import { routes } from "../../routes.ts"
 import { REPORT_CATEGORY_LABELS } from "./report-input.ts"
@@ -216,6 +217,8 @@ describe("report comments", () => {
     let otherHtml = await otherResponse.text()
 
     assert.equal(authorResponse.status, 200)
+    assert.equal(authorResponse.headers.get("Cache-Control"), "private, no-store")
+    assert.equal(authorResponse.headers.get("Vary"), "Cookie")
     assert.match(authorHtml, /No comments yet\./)
     assert.match(
       authorHtml,
@@ -235,6 +238,55 @@ describe("report comments", () => {
     assert.equal(otherResponse.status, 200)
     assert.match(otherHtml, /Add a comment/)
     assert.doesNotMatch(otherHtml, />Edit report</)
+  })
+
+  it("bounds the latest page and follows stable older-comment cursors", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let author = await seedReportUser(app)
+    let report = await seedStructuredReport(app, {
+      id: "comment-page-detail",
+      authorId: author.id,
+    })
+
+    for (let index = 0; index < PUBLIC_COMMENT_PAGE_SIZE + 2; index++) {
+      let createdAt = new Date(Date.UTC(2026, 7, 1, 0, index))
+      await seedComment(app, {
+        id: `detail-page-comment-${String(index).padStart(3, "0")}`,
+        authorId: author.id,
+        postId: report.id,
+        content: `Detail page comment ${index}`,
+        createdAt,
+        updatedAt: createdAt,
+      })
+    }
+
+    let latestResponse = await app.router.fetch(request(routes.post.show.href({ id: report.id })))
+    let latestHtml = await latestResponse.text()
+    let olderHref = latestHtml
+      .match(/href="([^"]+)"[^>]*>Older comments<\/a>/)?.[1]
+      ?.replaceAll("&amp;", "&")
+
+    assert.equal(latestResponse.status, 200)
+    assert.match(latestHtml, /Showing the latest 50 public comments/)
+    assert.match(latestHtml, /Detail page comment 51/)
+    assert.doesNotMatch(latestHtml, /Detail page comment 0<\//)
+    assert.ok(olderHref)
+
+    let olderResponse = await app.router.fetch(
+      request(
+        new URL(olderHref, "http://localhost").pathname +
+          new URL(olderHref, "http://localhost").search,
+      ),
+    )
+    let olderHtml = await olderResponse.text()
+
+    assert.equal(olderResponse.status, 200)
+    assert.match(olderHtml, /Showing older public comments/)
+    assert.match(olderHtml, /Detail page comment 0/)
+    assert.match(olderHtml, /Detail page comment 1/)
+    assert.doesNotMatch(olderHtml, /Detail page comment 51/)
+    assert.match(olderHtml, /Back to latest comments/)
   })
 
   it("enforces CSRF and returns linked 422 errors without writing", async (t) => {
@@ -447,8 +499,11 @@ describe("edit report", () => {
     assert.match(html, /name="_csrf" value="[A-Za-z0-9_-]+"/)
     assert.match(html, /name="address"[^>]*value="818 Owner Only Street"/)
     assert.match(html, /name="title"[^>]*value="A title only the author can edit"/)
+    assert.match(html, /<option value="MAINTENANCE" selected(?:="")?>Maintenance<\/option>/)
     assert.match(html, /Save changes/)
     assert.doesNotMatch(html, /name="(?:authorId|status|createdAt|experienceConfirmedAt)"/)
+    assert.equal(response.headers.get("Cache-Control"), "private, no-store")
+    assert.equal(response.headers.get("Vary"), "Cookie")
 
     let unauthorized = await app.router.fetch(
       request(routes.post.edit.href({ id: report.id }), "GET", otherCookie),
@@ -501,6 +556,8 @@ describe("edit report", () => {
 
     assert.equal(missingCsrf.status, 403)
     assert.equal(invalid.status, 422)
+    assert.equal(invalid.headers.get("Cache-Control"), "private, no-store")
+    assert.equal(invalid.headers.get("Vary"), "Cookie")
     assert.match(html, /We couldn’t save these changes yet\./)
     assert.match(html, /id="address-error"/)
     assert.match(html, /aria-describedby="[^"]*address-error[^"]*"/)
@@ -573,6 +630,98 @@ describe("edit report", () => {
     assert.equal(publicResponse.status, 200)
     assert.match(publicHtml, /Repairs are now handled promptly/)
     assert.doesNotMatch(publicHtml, /456 Woodward Avenue|forged-author@example\.test/)
+  })
+
+  it("returns indistinguishable 404 responses for unauthorized, hidden, and missing updates", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let author = await seedReportUser(app)
+    let other = await seedReportUser(app, {
+      id: "update-other-renter",
+      username: "update-other-renter",
+      email: "update-other-renter@example.test",
+    })
+    let report = await seedStructuredReport(app, {
+      id: "update-owner-only",
+      authorId: author.id,
+      address: "919 Update Owner Street",
+    })
+    let hidden = await seedStructuredReport(app, {
+      id: "update-hidden",
+      authorId: author.id,
+      status: "HIDDEN",
+    })
+    let authorCookie = await createAuthenticatedReportSession(app, author)
+    let otherCookie = await createAuthenticatedReportSession(app, other)
+    let authorForm = await getReportCsrfForm(app, routes.post.new.href(), authorCookie)
+    let otherForm = await getReportCsrfForm(app, routes.post.new.href(), otherCookie)
+
+    let unauthorized = await app.router.fetch(
+      reportUpdateRequest(
+        report.id,
+        validReportValues({ _csrf: otherForm.token }),
+        otherForm.cookie,
+      ),
+    )
+    let hiddenResponse = await app.router.fetch(
+      reportUpdateRequest(
+        hidden.id,
+        validReportValues({ _csrf: authorForm.token }),
+        authorForm.cookie,
+      ),
+    )
+    let missing = await app.router.fetch(
+      reportUpdateRequest(
+        "missing-update",
+        validReportValues({ _csrf: authorForm.token }),
+        authorForm.cookie,
+      ),
+    )
+    let unauthorizedHtml = await unauthorized.text()
+    let hiddenHtml = await hiddenResponse.text()
+    let missingHtml = await missing.text()
+
+    assert.equal(unauthorized.status, 404)
+    assert.equal(hiddenResponse.status, 404)
+    assert.equal(missing.status, 404)
+    assert.equal(unauthorizedHtml, hiddenHtml)
+    assert.equal(hiddenHtml, missingHtml)
+    assert.doesNotMatch(unauthorizedHtml, /919 Update Owner Street|update-owner-only/)
+    assert.equal((await app.database.find(posts, report.id))?.title, report.title)
+  })
+
+  it("lets an author complete and update a published legacy report", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let author = await seedReportUser(app)
+    let report = await seedLegacyPost(app, {
+      id: "legacy-editable",
+      authorId: author.id,
+    })
+    let cookie = await createAuthenticatedReportSession(app, author)
+    let form = await getReportCsrfForm(app, routes.post.edit.href({ id: report.id }), cookie)
+
+    assert.match(form.html, /name="address"[^>]*value=""/)
+    assert.match(form.html, /<option value="" selected(?:="")?>Choose a category<\/option>/)
+
+    let response = await app.router.fetch(
+      reportUpdateRequest(
+        report.id,
+        validReportValues({
+          _csrf: form.token,
+          title: "Legacy report now has structured details",
+        }),
+        form.cookie,
+      ),
+    )
+    let stored = await app.database.find(posts, report.id)
+
+    assert.equal(response.status, 303)
+    assert.equal(stored?.address, "123 Main Street")
+    assert.equal(stored?.category, "MAINTENANCE")
+    assert.equal(stored?.rating, 4)
+    assert.equal(stored?.title, "Legacy report now has structured details")
+    assert.ok(stored?.experienceConfirmedAt)
   })
 })
 

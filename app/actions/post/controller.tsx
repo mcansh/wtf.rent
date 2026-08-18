@@ -13,7 +13,7 @@ import { requireAuth } from "../../middleware/auth.ts"
 import { routes } from "../../routes.ts"
 import { getCurrentUser, getCurrentUserSafely } from "../../utils/context.ts"
 import { notFound } from "../not-found.tsx"
-import { getSafeCommentValue, parseCommentInput } from "./comment-input.ts"
+import { getSafeCommentValue, parseCommentCursor, parseCommentInput } from "./comment-input.ts"
 import { EditReportPage } from "./edit-report.tsx"
 import { NewReportPage } from "./new-report.tsx"
 import { ReportDetailPage } from "./report-detail.tsx"
@@ -23,35 +23,30 @@ import {
   parseUpdateReportInput,
 } from "./report-input.ts"
 
-const PRIVATE_FORM_HEADERS = {
-  "Cache-Control": "private, no-store",
-  Vary: "Cookie",
-}
-
 export const post = createController(routes.post, {
   actions: {
     comment: {
       middleware: [requireAuth()],
       async handler(context) {
-        let report = await findPublicReport(context.db, context.params.id)
+        let report = await findPublicReport(context.params.id)
         if (report == null) return notFound(context.render)
 
         let currentUser = getCurrentUser()
         let parsed = parseCommentInput(context.formData)
         if (!parsed.success) {
-          let publicComments = await listPublicComments(context.db, report.id)
+          let commentPage = await listPublicComments(context.db, report.id)
           return context.render(
             <ReportDetailPage
               canEdit={currentUser.username === report.username}
+              commentPage={commentPage}
               commentForm={{
                 csrfToken: getCsrfToken(context),
                 issues: parsed.issues,
                 value: getSafeCommentValue(context.formData),
               }}
-              comments={publicComments}
               report={report}
             />,
-            { status: 422 },
+            privateRenderInit(422),
           )
         }
 
@@ -77,7 +72,7 @@ export const post = createController(routes.post, {
               issues={parsed.issues}
               values={getSafeReportValues(context.formData)}
             />,
-            { status: 422, headers: PRIVATE_FORM_HEADERS },
+            privateRenderInit(422),
           )
         }
 
@@ -100,19 +95,23 @@ export const post = createController(routes.post, {
     edit: {
       middleware: [requireAuth()],
       async handler(context) {
-        let report = await findEditableReport(context.db, context.params.id, getCurrentUser().id)
+        let report = await findEditableReport(context.params.id, getCurrentUser().id)
         if (report == null) return notFound(context.render)
 
-        return context.render(<EditReportPage csrfToken={getCsrfToken(context)} report={report} />)
+        return context.render(
+          <EditReportPage csrfToken={getCsrfToken(context)} report={report} />,
+          privateRenderInit(),
+        )
       },
     },
 
     new: {
       middleware: [requireAuth()],
       handler(context) {
-        return context.render(<NewReportPage csrfToken={getCsrfToken(context)} />, {
-          headers: PRIVATE_FORM_HEADERS,
-        })
+        return context.render(
+          <NewReportPage csrfToken={getCsrfToken(context)} />,
+          privateRenderInit(),
+        )
       },
     },
 
@@ -120,7 +119,7 @@ export const post = createController(routes.post, {
       middleware: [requireAuth()],
       async handler(context) {
         let currentUser = getCurrentUser()
-        let report = await findEditableReport(context.db, context.params.id, currentUser.id)
+        let report = await findEditableReport(context.params.id, currentUser.id)
         if (report == null) return notFound(context.render)
 
         let parsed = parseUpdateReportInput(context.formData)
@@ -132,11 +131,11 @@ export const post = createController(routes.post, {
               report={report}
               values={getSafeReportValues(context.formData)}
             />,
-            { status: 422 },
+            privateRenderInit(422),
           )
         }
 
-        let updated = await updateReport(context.db, report.id, parsed.value, {
+        let updated = await updateReport(report.id, parsed.value, {
           authorId: currentUser.id,
           confirmedAt: new Date(),
         })
@@ -151,11 +150,16 @@ export const post = createController(routes.post, {
       if (report == null) return notFound(context.render)
 
       let currentUser = getCurrentUserSafely()
-      let publicComments = await listPublicComments(context.db, report.id)
+      let commentPage = await listPublicComments(
+        context.db,
+        report.id,
+        parseCommentCursor(context.url.searchParams),
+      )
 
       return context.render(
         <ReportDetailPage
           canEdit={currentUser?.username === report.username}
+          commentPage={commentPage}
           commentForm={
             currentUser == null
               ? null
@@ -163,10 +167,20 @@ export const post = createController(routes.post, {
                   csrfToken: getCsrfToken(context),
                 }
           }
-          comments={publicComments}
           report={report}
         />,
+        currentUser == null ? undefined : privateRenderInit(),
       )
     },
   },
 })
+
+function privateRenderInit(status?: number): ResponseInit {
+  return {
+    status,
+    headers: {
+      "Cache-Control": "private, no-store",
+      Vary: "Cookie",
+    },
+  }
+}

@@ -207,9 +207,7 @@ describe("report update input", () => {
   })
 
   it("rejects an incomplete update instead of weakening create requirements", () => {
-    let parsed = parseUpdateReportInput(
-      validReportForm({ address: " ", isFirsthand: undefined }),
-    )
+    let parsed = parseUpdateReportInput(validReportForm({ address: " ", isFirsthand: undefined }))
 
     assert.equal(parsed.success, false)
     if (parsed.success) assert.fail("Expected incomplete report update input to fail")

@@ -1,9 +1,10 @@
 import type { Issue } from "remix/data-schema"
 import type { Handle } from "remix/ui"
 
-import type { PublicComment } from "../../data/comments.ts"
+import type { PublicCommentCursor, PublicCommentPage } from "../../data/comments.ts"
 import type { Post } from "../../data/schema.ts"
 import { routes } from "../../routes.ts"
+import { COMMENT_CURSOR_AT_PARAM, COMMENT_CURSOR_ID_PARAM } from "./comment-input.ts"
 
 export interface CommentFormState {
   csrfToken: string
@@ -12,14 +13,15 @@ export interface CommentFormState {
 }
 
 interface ReportCommentsProps {
-  comments: PublicComment[]
+  commentPage: PublicCommentPage
   form: CommentFormState | null
   reportId: Post["id"]
 }
 
 export function ReportComments(handle: Handle<ReportCommentsProps>) {
   return () => {
-    let { comments, form, reportId } = handle.props
+    let { commentPage, form, reportId } = handle.props
+    let comments = commentPage.comments
 
     return (
       <section
@@ -40,7 +42,7 @@ export function ReportComments(handle: Handle<ReportCommentsProps>) {
                 Comments
               </h2>
               <p className="text-base/7 text-pretty sm:text-sm/6">
-                {comments.length === 1 ? "1 public comment" : `${comments.length} public comments`}
+                {getCommentPageLabel(commentPage)}
               </p>
             </header>
 
@@ -48,7 +50,9 @@ export function ReportComments(handle: Handle<ReportCommentsProps>) {
               <div className="border-ink-950 bg-paper-50 grid gap-2 border-[1.5px] p-5 sm:p-6">
                 <p className="font-semibold">No comments yet.</p>
                 <p className="text-base/7 text-pretty sm:text-sm/6">
-                  Add useful context or ask a focused question about this report.
+                  {commentPage.isLatest
+                    ? "Add useful context or ask a focused question about this report."
+                    : "There are no comments older than this point."}
                 </p>
               </div>
             ) : (
@@ -66,6 +70,32 @@ export function ReportComments(handle: Handle<ReportCommentsProps>) {
                 ))}
               </ol>
             )}
+
+            {commentPage.hasOlder || !commentPage.isLatest ? (
+              <nav
+                className="flex flex-wrap items-center justify-between gap-3"
+                aria-label="Comment pages"
+              >
+                {!commentPage.isLatest ? (
+                  <a
+                    className="focus-visible:outline-ink-950 text-base font-semibold underline decoration-2 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 sm:text-sm"
+                    href={`${routes.post.show.href({ id: reportId })}#comments`}
+                  >
+                    Back to latest comments
+                  </a>
+                ) : (
+                  <span />
+                )}
+                {commentPage.olderCursor == null ? null : (
+                  <a
+                    className="focus-visible:outline-ink-950 text-base font-semibold underline decoration-2 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 sm:text-sm"
+                    href={getOlderCommentsHref(reportId, commentPage.olderCursor)}
+                  >
+                    Older comments
+                  </a>
+                )}
+              </nav>
+            ) : null}
           </div>
 
           {form == null ? (
@@ -93,6 +123,26 @@ export function ReportComments(handle: Handle<ReportCommentsProps>) {
       </section>
     )
   }
+}
+
+function getCommentPageLabel(page: PublicCommentPage): string {
+  if (!page.isLatest) return "Showing older public comments"
+  if (page.hasOlder) return `Showing the latest ${page.comments.length} public comments`
+  return page.comments.length === 1 ? "1 public comment" : `${page.comments.length} public comments`
+}
+
+function getOlderCommentsHref(reportId: Post["id"], cursor: PublicCommentCursor): string {
+  let href = routes.post.show.href(
+    { id: reportId },
+    {
+      searchParams: {
+        [COMMENT_CURSOR_AT_PARAM]: cursor.createdAt.toISOString(),
+        [COMMENT_CURSOR_ID_PARAM]: cursor.id,
+      },
+    },
+  )
+
+  return `${href}#comments`
 }
 
 function CommentForm(handle: Handle<{ form: CommentFormState; reportId: Post["id"] }>) {

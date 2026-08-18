@@ -284,14 +284,14 @@ owned report without exposing its private address publicly.
 
 ### 11. Implement report comments in two vertical increments
 
-- First prove bounded input parsing, trusted creation, allowlisted public reads, stable ordering,
-  report isolation, and hidden-report exclusion.
+- First prove bounded input parsing, trusted creation, cursor-bounded allowlisted public reads,
+  stable ordering, report isolation, hidden-report exclusion, and an indexed access path.
 - Then add the nested comment route and render public comments, empty state, authenticated form,
   guest login prompt, linked `422` errors, and the `303` success path on report detail.
 - Preserve plain-text escaping and existing report visibility/privacy behavior.
 
-Checkpoint: comment-focused tests and all report tests pass; native comment submission works and
-public output contains no private account or report fields.
+Checkpoint: comment-focused tests and all report tests pass; native comment submission works,
+public output contains no private account or report fields, and each read/render is capped at 50.
 
 ### 12. Complete the extension quality gate
 
@@ -305,18 +305,21 @@ changes, new dependencies, or database migration.
 
 ### Extension risks and mitigations
 
-| Risk | Mitigation |
-| --- | --- |
-| An authenticated user edits another renter's report | Scope private reads and writes by report id plus immutable author id; use indistinguishable `404` responses |
-| The edit page becomes a new address leak | Return the private field only from the owner-scoped query and keep it out of public types, detail output, and comments |
-| Method override bypasses mutation controls | Parse the form once, override before session/CSRF middleware, and test native `POST` plus `_method=PUT` end to end |
-| Comment text enables stored XSS or oversized writes | Trim and cap plain text at 1,000 characters, then render only escaped JSX |
-| Hidden reports leak through comments | Join public comment reads through `Post.status = 'PUBLISHED'` and reject comment writes after a published-report lookup |
-| Duplicate submissions create extra comments | Document comment creation as unsafe to retry; keep each accepted submission as a distinct comment |
+| Risk                                                | Mitigation                                                                                                              |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| An authenticated user edits another renter's report | Scope private reads and writes by report id plus immutable author id; use indistinguishable `404` responses             |
+| The edit page becomes a new address leak            | Return the private field only from the owner-scoped query and keep it out of public types, detail output, and comments  |
+| Method override bypasses mutation controls          | Parse the form once, override before session/CSRF middleware, and test native `POST` plus `_method=PUT` end to end      |
+| Comment text enables stored XSS or oversized writes | Trim and cap plain text at 1,000 characters, then render only escaped JSX                                               |
+| Hidden reports leak through comments                | Join public comment reads through `Post.status = 'PUBLISHED'` and reject comment writes after a published-report lookup |
+| Duplicate submissions create extra comments         | Document comment creation as unsafe to retry; keep each accepted submission as a distinct comment                       |
+| Owner edit HTML is cached after logout              | Mark private report forms and authenticated detail variants `private, no-store` and `Vary: Cookie`                      |
+| Comment history makes detail responses unbounded    | Use 50-row keyset pages backed by a `(postId, createdAt, id)` index                                                     |
 
 ### Extension intentionally unchanged
 
 - Report/comment deletion, replies, reactions, saves, following, and notifications
 - Report visibility policy, moderation UI, flags, appeals, automated filtering, and rate limiting
 - Street-address privacy, public feed/search behavior, auth/session lifetime, and login throttling
-- Database schema, applied migrations, dependencies, CI, and deployment topology
+- Comment columns/relationships, dependencies, CI, and deployment topology; one additive feed
+  index migration is included

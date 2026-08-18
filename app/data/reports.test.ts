@@ -250,9 +250,7 @@ describe("updateReport", () => {
     assert.equal(updated.rating, 5)
     assert.equal(updated.title, "Repairs are now handled promptly")
 
-    let publicDetail = await runWithReportDatabase(app.database, () =>
-      findPublicReport(report.id),
-    )
+    let publicDetail = await runWithReportDatabase(app.database, () => findPublicReport(report.id))
     assert.ok(publicDetail)
     assert.equal("address" in publicDetail, false)
     assert.equal(JSON.stringify(publicDetail).includes("456 Woodward Avenue"), false)
@@ -299,23 +297,21 @@ describe("updateReport", () => {
       status: "HIDDEN",
     })
 
-    let [wrongOwner, hiddenResult, missing] = await runWithReportDatabase(
-      app.database,
-      () =>
-        Promise.all([
-          updateReport(published.id, editableReportValues(), {
-            authorId: other.id,
-            confirmedAt: TEST_REPORT_NOW,
-          }),
-          updateReport(hidden.id, editableReportValues(), {
-            authorId: author.id,
-            confirmedAt: TEST_REPORT_NOW,
-          }),
-          updateReport("missing-update", editableReportValues(), {
-            authorId: author.id,
-            confirmedAt: TEST_REPORT_NOW,
-          }),
-        ]),
+    let [wrongOwner, hiddenResult, missing] = await runWithReportDatabase(app.database, () =>
+      Promise.all([
+        updateReport(published.id, editableReportValues(), {
+          authorId: other.id,
+          confirmedAt: TEST_REPORT_NOW,
+        }),
+        updateReport(hidden.id, editableReportValues(), {
+          authorId: author.id,
+          confirmedAt: TEST_REPORT_NOW,
+        }),
+        updateReport("missing-update", editableReportValues(), {
+          authorId: author.id,
+          confirmedAt: TEST_REPORT_NOW,
+        }),
+      ]),
     )
 
     assert.equal(wrongOwner, null)

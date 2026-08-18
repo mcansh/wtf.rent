@@ -46,7 +46,13 @@ if (report == null) return notFound(context.render)
 
 let parsed = parseUpdateReportInput(context.formData)
 if (!parsed.success) {
-  return renderEditReport(context, report, parsed.issues, getSafeReportValues(context.formData), 422)
+  return renderEditReport(
+    context,
+    report,
+    parsed.issues,
+    getSafeReportValues(context.formData),
+    422,
+  )
 }
 
 await updateReport(context.db, report.id, currentUser.id, parsed.value)
@@ -65,6 +71,8 @@ return redirect(routes.post.show.href({ id: report.id }), 303)
 - Requires authentication.
 - Returns `200` only when the current user owns a `PUBLISHED` report.
 - Prefills every editable report field, including the private stored street address.
+- Marks the response `Cache-Control: private, no-store` and `Vary: Cookie` because it contains the
+  private address, owner-specific controls, and a CSRF token.
 - Requires the firsthand/privacy checkbox again before saving.
 - A legacy report may be edited, but the author must complete every structured field before save.
 - Returns the standard `404` for a missing, hidden, or other user's report.
@@ -76,6 +84,7 @@ return redirect(routes.post.show.href({ id: report.id }), 303)
 - Applies the same normalization, bounds, category/rating rules, address privacy checks, and
   firsthand attestation as report creation.
 - Returns an accessible `422` edit page with bounded safe values when validation fails.
+- Marks every rendered `422` edit response private and non-cacheable.
 - Updates only address, city, region, landlord name, category, rating, title, and content.
 - Preserves id, author id, status, creation time, and an existing firsthand confirmation time.
 - Sets a confirmation time when a legacy report without one is completed through the edit form.
@@ -88,9 +97,9 @@ return redirect(routes.post.show.href({ id: report.id }), 303)
 - Data tests prove owner-scoped reads include the private address without widening public
   projections, owner-scoped updates preserve protected fields, and non-owner/hidden/missing writes
   do nothing.
-- Controller tests cover guest redirects, owner form rendering, non-owner/hidden/missing `404`,
-  CSRF rejection, linked `422` errors, safe value preservation, protected-field forgery, and `303`
-  success.
+- Controller tests cover guest redirects, owner form/category prefill, private cache directives,
+  GET and PUT non-owner/hidden/missing `404`, legacy completion, CSRF rejection, linked `422`
+  errors, safe value preservation, protected-field forgery, and `303` success.
 - Browser verification covers keyboard order, a no-JavaScript native update, responsive layouts,
   no private address on the resulting public page, and a clean console/network log.
 
@@ -106,6 +115,7 @@ return redirect(routes.post.show.href({ id: report.id }), 303)
 ## Success Criteria
 
 - The author can open a prefilled edit page and save a valid correction through native HTML.
+- Owner-only GET and rendered validation responses cannot be stored by shared or browser caches.
 - Invalid updates return linked field errors and write nothing.
 - Guests cannot reach edit/update; non-owners, hidden reports, and missing reports share `404`.
 - Forged protected fields cannot change ownership, visibility, identity, or creation history.

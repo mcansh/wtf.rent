@@ -357,4 +357,7 @@ const reportTestSchema = `
     constraint "Comment_postId_fkey" foreign key ("postId") references "Post" ("id")
       on delete cascade on update cascade
   );
+
+  create index "Comment_postId_createdAt_id_idx"
+    on "Comment" ("postId", "createdAt", "id");
 `

@@ -109,10 +109,7 @@ export async function createReport(
   )
 }
 
-export function findEditableReport(
-  id: Post["id"],
-  authorId: User["id"],
-): Promise<Post | null> {
+export function findEditableReport(id: Post["id"], authorId: User["id"]): Promise<Post | null> {
   let context = getContext()
 
   return context.db.findOne(posts, {
