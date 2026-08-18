@@ -114,6 +114,65 @@ describe("profile and logout", () => {
 })
 
 describe("home report discovery", () => {
+  it("renders an accessible combobox while preserving the native GET search", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+
+    let response = await app.router.fetch(request(routes.home.href()))
+    let html = await response.text()
+
+    assert.equal(response.status, 200)
+    assert.match(html, /<form[^>]*method="get"[^>]*action="\/#feed"[^>]*role="search"/)
+    assert.match(html, /<input[^>]*name="q"[^>]*type="search"/)
+    assert.match(html, /role="combobox"/)
+    assert.match(html, /aria-autocomplete="list"/)
+    assert.match(html, /aria-expanded="false"/)
+    assert.match(html, /autocomplete="off"/)
+    assert.match(html, /aria-live="polite"/)
+  })
+
+  it("returns only published, allowlisted autocomplete values", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let author = await seedReportUser(app, {
+      email: "private-suggestion@example.test",
+      password: "private-suggestion-password",
+    })
+    await seedStructuredReport(app, {
+      id: "public-suggestion",
+      authorId: author.id,
+      address: "808 Private Suggestion Marker",
+      city: "Detroit",
+      region: "MI",
+    })
+    await seedStructuredReport(app, {
+      id: "hidden-suggestion",
+      authorId: author.id,
+      status: "HIDDEN",
+      city: "Detention",
+      region: "XX",
+    })
+
+    let href = routes.reportSuggestions.href(undefined, { searchParams: { q: "det" } })
+    let response = await app.router.fetch(request(href))
+    let payload = await response.json()
+    let shortResponse = await app.router.fetch(
+      request(routes.reportSuggestions.href(undefined, { searchParams: { q: "d" } })),
+    )
+
+    assert.equal(response.status, 200)
+    assert.match(response.headers.get("Content-Type") ?? "", /^application\/json/)
+    assert.equal(response.headers.get("Cache-Control"), "private, max-age=60")
+    assert.deepEqual(payload, {
+      suggestions: [{ kind: "city", label: "Detroit", description: "City · MI", value: "Detroit" }],
+    })
+    assert.deepEqual(await shortResponse.json(), { suggestions: [] })
+    assert.doesNotMatch(
+      JSON.stringify(payload),
+      /808 Private Suggestion Marker|private-suggestion@example\.test|private-suggestion-password|Detention/,
+    )
+  })
+
   it("renders the real default page with legacy rows and without hidden, private, or mock data", async (t) => {
     let app = createReportTestApp()
     t.after(() => app.close())
