@@ -1,6 +1,7 @@
 import * as s from "remix/data-schema"
-import type { Database, SqlStatement } from "remix/data-table"
+import type { SqlStatement } from "remix/data-table"
 import { rawSql, sql } from "remix/data-table"
+import { getContext } from "remix/middleware/async-context"
 
 import type {
   ReportSuggestion,
@@ -8,8 +9,7 @@ import type {
 } from "../actions/home-page/public/suggestion-contract.ts"
 import { REPORT_SUGGESTION_LIMIT } from "../actions/home-page/public/suggestion-contract.ts"
 import type { ReportSuggestionInput } from "../actions/home-page/suggestion-input.ts"
-import type { CreateReportInput } from "../actions/post/report-input.ts"
-import type { ReportFeedInput } from "../actions/post/report-input.ts"
+import type { CreateReportInput, ReportFeedInput } from "../actions/post/report-input.ts"
 import { REPORT_CATEGORY_LABELS } from "../actions/post/report-input.ts"
 import type { Post, User } from "./schema.ts"
 import { posts, REPORT_CATEGORIES } from "./schema.ts"
@@ -79,11 +79,12 @@ export interface CreateReportTrustedContext {
 }
 
 export async function createReport(
-  database: Database,
   values: CreateReportValues,
   trusted: CreateReportTrustedContext,
 ): Promise<Post> {
-  return database.create(
+  let context = getContext()
+
+  return context.db.create(
     posts,
     {
       address: values.address,
@@ -102,10 +103,8 @@ export async function createReport(
   )
 }
 
-export async function listPublicReports(
-  database: Database,
-  input: ReportFeedInput,
-): Promise<PublicReportPage> {
+export async function listPublicReports(input: ReportFeedInput): Promise<PublicReportPage> {
+  let context = getContext()
   let where = createPublicReportWhere(input.likePattern)
   let offset = getReportPageOffset(input.page)
   let reportsStatement = sql`
@@ -134,8 +133,8 @@ export async function listPublicReports(
     where ${where}
   `
   let [reportsResult, countResult] = await Promise.all([
-    database.exec(reportsStatement),
-    database.exec(countStatement),
+    context.db.exec(reportsStatement),
+    context.db.exec(countStatement),
   ])
   let reports = s.parse(s.array(publicReportSummarySchema), reportsResult.rows ?? [])
   let countRows = s.parse(s.array(reportCountRowSchema), countResult.rows ?? [])
@@ -156,10 +155,8 @@ export async function listPublicReports(
   }
 }
 
-export async function findPublicReport(
-  database: Database,
-  id: Post["id"],
-): Promise<PublicReportDetail | null> {
+export async function findPublicReport(id: Post["id"]): Promise<PublicReportDetail | null> {
+  let context = getContext()
   let publicWhere = createPublicReportWhere(null)
   let statement = sql`
     select
@@ -179,17 +176,18 @@ export async function findPublicReport(
     where ${publicWhere} and p."id" = ${id}
     limit 1
   `
-  let result = await database.exec(statement)
+  let result = await context.db.exec(statement)
   let rows = s.parse(s.array(publicReportDetailSchema), result.rows ?? [])
 
   return rows[0] ?? null
 }
 
 export async function listPublicReportSuggestions(
-  database: Database,
   input: ReportSuggestionInput,
 ): Promise<ReportSuggestion[]> {
   if (input.likePattern == null) return []
+
+  let context = getContext()
 
   let locationStatement = sql`
     select
@@ -229,9 +227,9 @@ export async function listPublicReportSuggestions(
     order by count(*) desc, p."category"
   `
   let [locationResult, landlordResult, categoryResult] = await Promise.all([
-    database.exec(locationStatement),
-    database.exec(landlordStatement),
-    database.exec(categoryStatement),
+    context.db.exec(locationStatement),
+    context.db.exec(landlordStatement),
+    context.db.exec(categoryStatement),
   ])
   let locationRows = s.parse(s.array(reportLocationSuggestionRowSchema), locationResult.rows ?? [])
   let landlordRows = s.parse(s.array(reportLandlordSuggestionRowSchema), landlordResult.rows ?? [])
@@ -290,7 +288,7 @@ export async function listPublicReportSuggestions(
   }
 
   return [...candidates.values()]
-    .sort((left, right) => compareSuggestions(left, right, normalizedQuery))
+    .toSorted((left, right) => compareSuggestions(left, right, normalizedQuery))
     .slice(0, REPORT_SUGGESTION_LIMIT)
     .map(({ total: _total, ...suggestion }) => suggestion)
 }
