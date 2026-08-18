@@ -29,7 +29,7 @@ export const controller = createController(routes, {
     home: {
       async handler(context) {
         let input = parseReportFeedInput(context.url.searchParams)
-        let reportPage = await listPublicReports(context.db, input)
+        let reportPage = await listPublicReports(input)
 
         return context.render(
           <DocumentWithShell>
@@ -42,7 +42,7 @@ export const controller = createController(routes, {
     reportSuggestions: {
       async handler(context) {
         let input = parseReportSuggestionInput(context.url.searchParams)
-        let suggestions = await listPublicReportSuggestions(context.db, input)
+        let suggestions = await listPublicReportSuggestions(input)
 
         return Response.json(
           { suggestions },
