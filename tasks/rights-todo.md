@@ -14,18 +14,24 @@ root-controller response.
 
 **Acceptance criteria:**
 
-- [ ] `GET /rights` returns `200`, uses the title `Renter rights | wtf.rent`, marks Rights as the
+- [x] `GET /rights` returns `200`, uses the title `Renter rights | wtf.rent`, marks Rights as the
       current navigation item, and renders the approved four-part guide.
-- [ ] Five typed, immutable resources expose their approved organization, title, purpose, scope,
+- [x] Five typed, immutable resources expose their approved organization, title, purpose, scope,
       display domain, exact HTTPS URL, and the page-level `Last reviewed August 18, 2026` note.
-- [ ] The route uses `DocumentWithShell` and static route-owned data without database access,
+- [x] The route uses `DocumentWithShell` and static route-owned data without database access,
       external requests, client entry, hydration, or changes to `app/routes.ts`.
 
 **Verification:**
 
-- [ ] Observe the focused test fail against the existing `404` placeholder before implementation.
-- [ ] `pnpm test -- app/actions/controller.test.tsx`
-- [ ] `pnpm typecheck && pnpm build && git diff --check`
+- [x] Observe the focused test fail against the existing `404` placeholder before implementation.
+- [x] `pnpm test -- app/actions/controller.test.tsx`
+- [x] `pnpm typecheck && pnpm build && git diff --check`
+
+**Evidence:** The new router test first failed with `404 !== 200`. The route now renders the typed,
+static guide through the shared shell with the approved title, navigation state, four sections,
+review date, and five exact source destinations. All 101 tests, typecheck, production build,
+targeted Oxlint, targeted Oxfmt, and patch checks pass; `app/routes.ts`, the database layer,
+dependencies, and browser entrypoints remain unchanged.
 
 **Dependencies:** None.
 
