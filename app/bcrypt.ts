@@ -1,15 +1,15 @@
-import { webcrypto } from "node:crypto"
+import { webcrypto } from "node:crypto";
 
-import { hash as bcryptHash, verify as bcryptVerify } from "@node-rs/bcrypt"
+import { hash, verify } from "@node-rs/bcrypt";
 
 export const DUMMY_PASSWORD_HASH = "$2b$12$vJ1orAwyHYmqneb.rktQl.6xY2LbXZbNmv2LU4PeO5hrg14wmey.2"
 
-export function hashPassword(password: string): Promise<string> {
-  return bcryptHash(password, 12)
+export function hashPassword(password: Uint8Array | string): Promise<string> {
+  return hash(password, 12)
 }
 
-export function verifyPassword(password: string, passwordHash: string): Promise<boolean> {
-  return bcryptVerify(password, passwordHash)
+export function verifyPassword(password: Uint8Array | string, passwordHash: Uint8Array | string): Promise<boolean> {
+  return verify(password, passwordHash)
 }
 
 export async function getResetToken(): Promise<string> {
@@ -17,5 +17,3 @@ export async function getResetToken(): Promise<string> {
   webcrypto.getRandomValues(resetTokenBuffer)
   return Buffer.from(resetTokenBuffer).toString("hex")
 }
-
-export { bcryptHash as hash, bcryptVerify as verify }
