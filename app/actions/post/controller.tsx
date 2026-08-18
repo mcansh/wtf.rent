@@ -2,14 +2,24 @@ import { getCsrfToken } from "remix/middleware/csrf"
 import { redirect } from "remix/response/redirect"
 import { createController } from "remix/router"
 
-import { createReport, findPublicReport } from "../../data/reports.ts"
+import {
+  createReport,
+  findEditableReport,
+  findPublicReport,
+  updateReport,
+} from "../../data/reports.ts"
 import { requireAuth } from "../../middleware/auth.ts"
 import { routes } from "../../routes.ts"
 import { getCurrentUser } from "../../utils/context.ts"
 import { notFound } from "../not-found.tsx"
+import { EditReportPage } from "./edit-report.tsx"
 import { NewReportPage } from "./new-report.tsx"
 import { ReportDetailPage } from "./report-detail.tsx"
-import { getSafeReportValues, parseCreateReportInput } from "./report-input.ts"
+import {
+  getSafeReportValues,
+  parseCreateReportInput,
+  parseUpdateReportInput,
+} from "./report-input.ts"
 
 const PRIVATE_FORM_HEADERS = {
   "Cache-Control": "private, no-store",
@@ -53,8 +63,11 @@ export const post = createController(routes.post, {
 
     edit: {
       middleware: [requireAuth()],
-      handler(context) {
-        return notFound(context.render)
+      async handler(context) {
+        let report = await findEditableReport(context.db, context.params.id, getCurrentUser().id)
+        if (report == null) return notFound(context.render)
+
+        return context.render(<EditReportPage csrfToken={getCsrfToken(context)} report={report} />)
       },
     },
 
@@ -69,8 +82,31 @@ export const post = createController(routes.post, {
 
     update: {
       middleware: [requireAuth()],
-      handler() {
-        return redirect(routes.home.href())
+      async handler(context) {
+        let currentUser = getCurrentUser()
+        let report = await findEditableReport(context.db, context.params.id, currentUser.id)
+        if (report == null) return notFound(context.render)
+
+        let parsed = parseUpdateReportInput(context.formData)
+        if (!parsed.success) {
+          return context.render(
+            <EditReportPage
+              csrfToken={getCsrfToken(context)}
+              issues={parsed.issues}
+              report={report}
+              values={getSafeReportValues(context.formData)}
+            />,
+            { status: 422 },
+          )
+        }
+
+        let updated = await updateReport(context.db, report.id, parsed.value, {
+          authorId: currentUser.id,
+          confirmedAt: new Date(),
+        })
+        if (updated == null) return notFound(context.render)
+
+        return redirect(routes.post.show.href({ id: updated.id }), 303)
       },
     },
 

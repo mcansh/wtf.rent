@@ -184,6 +184,176 @@ describe("new report form", () => {
   })
 })
 
+describe("edit report", () => {
+  it("renders a prefilled native form only to the published report author", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let author = await seedReportUser(app)
+    let other = await seedReportUser(app, {
+      id: "other-renter",
+      username: "other-renter",
+      email: "other-renter@example.test",
+    })
+    let report = await seedStructuredReport(app, {
+      id: "editable-report",
+      authorId: author.id,
+      address: "818 Owner Only Street",
+      title: "A title only the author can edit",
+    })
+    let hidden = await seedStructuredReport(app, {
+      id: "hidden-edit",
+      authorId: author.id,
+      status: "HIDDEN",
+    })
+    let authorCookie = await createAuthenticatedReportSession(app, author)
+    let otherCookie = await createAuthenticatedReportSession(app, other)
+
+    let response = await app.router.fetch(
+      request(routes.post.edit.href({ id: report.id }), "GET", authorCookie),
+    )
+    let html = await response.text()
+
+    assert.equal(response.status, 200)
+    assert.match(html, /<title>Edit your report · wtf\.rent<\/title>/)
+    assert.match(
+      html,
+      new RegExp(
+        `<form[^>]*method="post"[^>]*action="${routes.post.update.href({ id: report.id })}"[^>]*rmx-document`,
+      ),
+    )
+    assert.match(html, /name="_method" value="PUT"/)
+    assert.match(html, /name="_csrf" value="[A-Za-z0-9_-]+"/)
+    assert.match(html, /name="address"[^>]*value="818 Owner Only Street"/)
+    assert.match(html, /name="title"[^>]*value="A title only the author can edit"/)
+    assert.match(html, /Save changes/)
+    assert.doesNotMatch(html, /name="(?:authorId|status|createdAt|experienceConfirmedAt)"/)
+
+    let unauthorized = await app.router.fetch(
+      request(routes.post.edit.href({ id: report.id }), "GET", otherCookie),
+    )
+    let hiddenResponse = await app.router.fetch(
+      request(routes.post.edit.href({ id: hidden.id }), "GET", authorCookie),
+    )
+    let missing = await app.router.fetch(
+      request(routes.post.edit.href({ id: "missing-edit" }), "GET", authorCookie),
+    )
+    let unauthorizedHtml = await unauthorized.text()
+    let hiddenHtml = await hiddenResponse.text()
+    let missingHtml = await missing.text()
+
+    assert.equal(unauthorized.status, 404)
+    assert.equal(hiddenResponse.status, 404)
+    assert.equal(missing.status, 404)
+    assert.equal(unauthorizedHtml, hiddenHtml)
+    assert.equal(hiddenHtml, missingHtml)
+    assert.doesNotMatch(unauthorizedHtml, /818 Owner Only Street|editable-report/)
+  })
+
+  it("enforces CSRF and returns linked 422 errors without changing the report", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let author = await seedReportUser(app)
+    let report = await seedStructuredReport(app, {
+      id: "invalid-update",
+      authorId: author.id,
+      title: "Original report title",
+    })
+    let cookie = await createAuthenticatedReportSession(app, author)
+    let missingCsrf = await app.router.fetch(
+      reportUpdateRequest(report.id, validReportValues({ title: "Changed without CSRF" }), cookie),
+    )
+    let form = await getReportCsrfForm(app, routes.post.edit.href({ id: report.id }), cookie)
+    let invalid = await app.router.fetch(
+      reportUpdateRequest(
+        report.id,
+        validReportValues({
+          _csrf: form.token,
+          address: "123 Main Street Apt. 4",
+          title: "  A bounded <edit> value  ",
+        }),
+        form.cookie,
+      ),
+    )
+    let html = await invalid.text()
+    let stored = await app.database.find(posts, report.id)
+
+    assert.equal(missingCsrf.status, 403)
+    assert.equal(invalid.status, 422)
+    assert.match(html, /We couldn’t save these changes yet\./)
+    assert.match(html, /id="address-error"/)
+    assert.match(html, /aria-describedby="[^"]*address-error[^"]*"/)
+    assert.match(html, /aria-invalid="true"/)
+    assert.match(html, /value="A bounded &lt;edit&gt; value"/)
+    assert.equal(stored?.title, "Original report title")
+    assert.equal(stored?.address, report.address)
+  })
+
+  it("updates through native method override while preserving protected fields", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let author = await seedReportUser(app)
+    let other = await seedReportUser(app, {
+      id: "forged-author",
+      username: "forged-author",
+      email: "forged-author@example.test",
+    })
+    let createdAt = new Date("2026-01-02T03:04:05.000Z")
+    let confirmedAt = new Date("2026-01-03T03:04:05.000Z")
+    let report = await seedStructuredReport(app, {
+      id: "successful-update",
+      authorId: author.id,
+      createdAt,
+      updatedAt: createdAt,
+      experienceConfirmedAt: confirmedAt,
+    })
+    let cookie = await createAuthenticatedReportSession(app, author)
+    let form = await getReportCsrfForm(app, routes.post.edit.href({ id: report.id }), cookie)
+    let response = await app.router.fetch(
+      reportUpdateRequest(
+        report.id,
+        validReportValues({
+          _csrf: form.token,
+          address: "456 Woodward Avenue",
+          city: "Detroit",
+          region: "MI",
+          landlordName: "",
+          category: "GOOD_EXPERIENCE",
+          rating: "5",
+          title: "Repairs are now handled promptly",
+          content: "The maintenance team now responds promptly and communicates clearly.",
+          id: "forged-report-id",
+          authorId: other.id,
+          status: "HIDDEN",
+          createdAt: "2000-01-01T00:00:00.000Z",
+          experienceConfirmedAt: "2000-01-01T00:00:00.000Z",
+        }),
+        form.cookie,
+      ),
+    )
+    let stored = await app.database.find(posts, report.id)
+
+    assert.equal(response.status, 303)
+    assert.equal(response.headers.get("Location"), routes.post.show.href({ id: report.id }))
+    assert.ok(stored)
+    assert.equal(stored.id, report.id)
+    assert.equal(stored.authorId, author.id)
+    assert.equal(stored.status, "PUBLISHED")
+    assert.equal(stored.createdAt.toISOString(), createdAt.toISOString())
+    assert.equal(stored.experienceConfirmedAt?.toISOString(), confirmedAt.toISOString())
+    assert.equal(stored.address, "456 Woodward Avenue")
+    assert.equal(stored.landlordName, null)
+    assert.equal(stored.category, "GOOD_EXPERIENCE")
+    assert.equal(stored.rating, 5)
+    assert.equal(stored.title, "Repairs are now handled promptly")
+
+    let publicResponse = await app.router.fetch(request(routes.post.show.href({ id: report.id })))
+    let publicHtml = await publicResponse.text()
+    assert.equal(publicResponse.status, 200)
+    assert.match(publicHtml, /Repairs are now handled promptly/)
+    assert.doesNotMatch(publicHtml, /456 Woodward Avenue|forged-author@example\.test/)
+  })
+})
+
 describe("create report", () => {
   it("requires a valid CSRF token without writing a report", async (t) => {
     let app = createReportTestApp()
@@ -338,6 +508,24 @@ function reportCreateRequest(values: Record<string, string | undefined>, cookie:
   }
 
   return new Request(new URL(routes.post.create.href(), "http://localhost"), {
+    method: "POST",
+    headers: { Cookie: cookie },
+    body: formData,
+  })
+}
+
+function reportUpdateRequest(
+  id: string,
+  values: Record<string, string | undefined>,
+  cookie: string,
+): Request {
+  let formData = new FormData()
+  formData.set("_method", "PUT")
+  for (let [name, value] of Object.entries(values)) {
+    if (value !== undefined) formData.set(name, value)
+  }
+
+  return new Request(new URL(routes.post.update.href({ id }), "http://localhost"), {
     method: "POST",
     headers: { Cookie: cookie },
     body: formData,

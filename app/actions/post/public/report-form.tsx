@@ -48,9 +48,11 @@ export interface ReportCategoryOption extends SerializableObject {
 }
 
 interface ReportFormProps extends SerializableObject {
+  action?: string
   categoryOptions: ReportCategoryOption[]
   csrfToken: string
   errors: ReportFormErrors
+  mode?: "create" | "edit"
   values: ClientReportFormValues
 }
 
@@ -61,18 +63,22 @@ export const ReportForm = clientEntry(
 
     return () => {
       let { categoryOptions, csrfToken, errors, values } = handle.props
+      let mode = handle.props.mode ?? "create"
+      let action = handle.props.action ?? routes.post.create.href()
+      let editing = mode === "edit"
       let hasErrors = REPORT_FORM_FIELD_NAMES.some((fieldName) => errors[fieldName].length > 0)
 
       return (
         <form
           className="border-ink-950 shadow-ink-950 bg-paper-50 grid gap-8 border-2 p-5 shadow-[7px_7px_0_var(--color-ink-950)] sm:p-8 lg:p-10 lg:shadow-[10px_10px_0_var(--color-ink-950)]"
           method="post"
-          action={routes.post.create.href()}
+          action={action}
           rmx-document
           mix={on("submit", (event) => {
             if (!submission.begin()) event.preventDefault()
           })}
         >
+          {editing ? <input type="hidden" name="_method" value="PUT" /> : null}
           <input type="hidden" name="_csrf" value={csrfToken} />
 
           {hasErrors ? (
@@ -80,7 +86,11 @@ export const ReportForm = clientEntry(
               className="border-coral-700 bg-coral-50 grid gap-1 border-l-4 px-4 py-3"
               role="alert"
             >
-              <p className="font-semibold">We couldn’t publish this report yet.</p>
+              <p className="font-semibold">
+                {editing
+                  ? "We couldn’t save these changes yet."
+                  : "We couldn’t publish this report yet."}
+              </p>
               <p className="text-base/7 text-pretty sm:text-sm/6">
                 Review the highlighted fields and try again.
               </p>
@@ -261,7 +271,7 @@ export const ReportForm = clientEntry(
 
           <fieldset className="border-ink-950/20 grid gap-5 border-t pt-8">
             <legend className="font-serif text-2xl font-semibold tracking-tight text-balance">
-              Before you publish
+              {editing ? "Before you save" : "Before you publish"}
             </legend>
             <div className="bg-acid-50 border-ink-950 flex items-start gap-3 border-[1.5px] p-4">
               <span className="flex h-lh items-center text-base sm:text-sm">
@@ -310,7 +320,9 @@ export const ReportForm = clientEntry(
 
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="max-w-[56ch] text-base/7 text-pretty sm:text-sm/6">
-              Reports publish immediately after submission.
+              {editing
+                ? "Your saved changes appear on the public report immediately."
+                : "Reports publish immediately after submission."}
             </p>
             <button
               className="border-ink-950 bg-acid-100 hover:bg-acid-200 focus-visible:outline-ink-950 disabled:bg-ink-100 shrink-0 border-[1.5px] px-4 py-2.5 text-base font-semibold shadow-[3px_3px_0_var(--color-ink-950)] focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-wait disabled:shadow-none sm:px-3 sm:py-2 sm:text-sm"
@@ -318,7 +330,13 @@ export const ReportForm = clientEntry(
               disabled={submission.started}
             >
               <span aria-live="polite">
-                {submission.started ? "Publishing…" : "Publish report"}
+                {submission.started
+                  ? editing
+                    ? "Saving…"
+                    : "Publishing…"
+                  : editing
+                    ? "Save changes"
+                    : "Publish report"}
               </span>
             </button>
           </div>
