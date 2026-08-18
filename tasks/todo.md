@@ -261,7 +261,7 @@ typecheck`, task-scoped Oxlint, task-scoped Oxfmt check, and `git diff --check` 
   - Evidence: The approved modules remain independent and are ordered sequentially only because
     they share the post controller/detail surface.
 
-- [ ] Task 17: Prove report-editing validation and owner-scoped persistence
+- [x] Task 17: Prove report-editing validation and owner-scoped persistence
   - Acceptance: Edit input uses the complete report contract; an owner can load and update a
     published or legacy report; protected fields survive; non-owner, hidden, and missing targets
     cannot be read privately or updated; public projections remain address-free.
@@ -269,6 +269,11 @@ typecheck`, task-scoped Oxlint, task-scoped Oxfmt check, and `git diff --check` 
     `pnpm typecheck`; `git diff --check`.
   - Files: `app/actions/post/report-input.ts`, `app/actions/post/report-input.test.ts`,
     `app/data/reports.ts`, `app/data/reports.test.ts`.
+  - Evidence: The focused RED test failed on the missing update parser and owner-scoped data
+    operations. The GREEN implementation reuses the complete report schema, restricts private
+    reads and atomic updates by id/author/status, allowlists editable fields, preserves protected
+    state and existing confirmation, completes legacy confirmation, and leaves public projections
+    address-free. All 28 focused tests and `pnpm typecheck` passed; `git diff --check` is clean.
 
 - [ ] Task 18: Ship the authorized native report edit/update flow
   - Acceptance: An owner gets a prefilled accessible form and can submit native

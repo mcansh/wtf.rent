@@ -92,6 +92,7 @@ const reportFeedSchema = f.object({
 })
 
 export type CreateReportInput = s.InferOutput<typeof createReportSchema>
+export type UpdateReportInput = CreateReportInput
 
 export interface ReportFormValues {
   address: string
@@ -112,6 +113,10 @@ export interface ReportFeedInput {
 }
 
 export function parseCreateReportInput(formData: FormData) {
+  return s.parseSafe(createReportSchema, formData)
+}
+
+export function parseUpdateReportInput(formData: FormData) {
   return s.parseSafe(createReportSchema, formData)
 }
 
