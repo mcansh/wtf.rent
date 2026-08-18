@@ -48,6 +48,7 @@ export const controller = createController(routes, {
     health: {
       async handler(context) {
         let host = context.headers.get("X-Forwarded-Host") ?? context.headers.get("Host")
+        let timestamp = new Date().toISOString()
 
         try {
           let url = new URL("/", `http://${host}`)
@@ -59,10 +60,10 @@ export const controller = createController(routes, {
               if (!r.ok) return Promise.reject(r)
             }),
           ])
-          return new Response("OK")
+          return Response.json({ status: "OK", timestamp })
         } catch (error: unknown) {
-          console.log("healthcheck ❌", { error })
-          return new Response("ERROR", { status: 500 })
+          console.error("healthcheck ❌", { error })
+          return Response.json({ status: "ERROR", timestamp }, { status: 500 })
         }
       },
     },
