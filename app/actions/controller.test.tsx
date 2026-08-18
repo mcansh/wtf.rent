@@ -8,6 +8,7 @@ import {
   FakeUserDatabase,
   getResponseCookie,
   readSessionCookie,
+  TEST_USER_PASSWORD_HASH,
 } from "../../test/auth.ts"
 import {
   createAuthenticatedReportSession,
@@ -16,14 +17,13 @@ import {
   seedReportUser,
   seedStructuredReport,
 } from "../../test/reports.ts"
-import { DUMMY_PASSWORD_HASH } from "../bcrypt.ts"
 import { routes } from "../routes.ts"
 
 const user = {
   id: "user-profile",
   username: "profile-renter",
   email: "profile@example.com",
-  password: DUMMY_PASSWORD_HASH,
+  password: TEST_USER_PASSWORD_HASH,
   createdAt: new Date("2026-08-17T00:00:00.000Z"),
   updatedAt: new Date("2026-08-17T00:00:00.000Z"),
 }
