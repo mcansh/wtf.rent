@@ -18,6 +18,8 @@ import { parseReportSuggestionInput } from "./home-page/suggestion-input.ts"
 import { notFound } from "./not-found.tsx"
 import { parseReportFeedInput } from "./post/report-input.ts"
 import { ProfilePage } from "./profile/page.tsx"
+import { RightsPage } from "./rights/page.tsx"
+import { RIGHTS_GUIDE } from "./rights/resources.ts"
 
 export const controller = createController(routes, {
   actions: {
@@ -114,7 +116,11 @@ export const controller = createController(routes, {
 
     rights: {
       async handler(context) {
-        return notFound(context.render)
+        return context.render(
+          <DocumentWithShell title="Renter rights | wtf.rent">
+            <RightsPage guide={RIGHTS_GUIDE} />
+          </DocumentWithShell>,
+        )
       },
     },
   },

@@ -503,6 +503,44 @@ describe("public directory", () => {
   })
 })
 
+describe("public renter rights guide", () => {
+  it("renders the approved guide and reviewed source set", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+
+    let response = await app.router.fetch(request(routes.rights.href()))
+    let html = await response.text()
+
+    assert.equal(response.status, 200)
+    assert.match(html, /<title>Renter rights \| wtf\.rent<\/title>/)
+    assert.match(html, /href="\/rights" aria-current="page"/)
+    assert.match(html, /Start with the rules that apply where you live/)
+    assert.match(html, /Build a clear record/)
+    assert.match(html, /Match the problem to qualified help/)
+    assert.match(html, /Know what this guide cannot decide/)
+    assert.match(html, /Last reviewed <time datetime="2026-08-18">August 18, 2026<\/time>/)
+
+    let approvedSources = [
+      ["USAGov", "https://www.usa.gov/tenant-rights"],
+      [
+        "HUD: Fair Housing Rights and Obligations",
+        "https://www.hud.gov/stat/fheo/rights-obligations",
+      ],
+      ["HUD: Report Housing Discrimination", "https://www.hud.gov/reporthousingdiscrimination"],
+      ["HUD: Housing Counseling", "https://www.hud.gov/stat/sfh/housing-counseling"],
+      [
+        "Legal Services Corporation",
+        "https://www.lsc.gov/about-lsc/what-legal-aid/i-need-legal-help",
+      ],
+    ] as const
+
+    for (let [label, href] of approvedSources) {
+      assert.match(html, new RegExp(`href="${href.replaceAll(".", "\\.")}"`))
+      assert.match(html, new RegExp(label))
+    }
+  })
+})
+
 function request(pathname: string, cookie?: string, method = "GET"): Request {
   let headers = new Headers()
   if (cookie) headers.set("Cookie", cookie)
