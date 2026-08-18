@@ -1,172 +1,237 @@
-# Implementation Plan: Credentials Authentication
+# Implementation Plan: Renter Reports Vertical Slice
 
-Approved contract: [`SPEC-auth.md`](../SPEC-auth.md)
+Approved contract: [`SPEC-reports.md`](../SPEC-reports.md)
+
+Architecture decision: [`ADR-001`](../docs/decisions/001-preserve-post-storage-for-renter-reports.md)
+
+Location privacy decision:
+[`ADR-002`](../docs/decisions/002-withhold-street-addresses-from-public-report-output.md)
+
+Historical authentication plan and completion evidence remain in `tasks/auth-plan.md` and
+`tasks/auth-todo.md`.
 
 ## Current State
 
-The Remix 3 migration already contains the user table, bcrypt helpers, signed cookie-session
-configuration, an auth-resolution middleware, and route/controller placeholders. Login and logout
-are stubs; registration bypasses the injected database, has incomplete failure handling, and does
-not rotate the session; profile and post actions are not protected; and there are no auth tests.
+The Remix 3 migration has working credential authentication, session-backed CSRF protection, an
+injected `Database`, a public styled home page, and a typed `/posts` resource. The report behavior
+behind that presentation is unfinished:
 
-The worktree contains a broad user-owned framework migration. Auth changes must stay narrow and
-must not stage, revert, format, or commit unrelated files.
+- The home page filters three in-memory sample reviews and displays fabricated activity counts.
+- Post create and destroy redirect home; new, edit, and show return `404`; update has no persistence.
+- `Post` stores only title, content, timestamps, and author id.
+- The auth test database supports users only, so it cannot verify report joins, ordering, or search.
+- Request logging is development-only and has no correlation id or production-safe structured
+  format.
+
+The implementation must preserve the completed auth behavior and existing Post/Comment rows while
+making create, feed, and detail real.
 
 ## Architecture
 
-| Component                | Responsibility                                                                                                                                         | Depends on                             |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------- |
-| Router test seam         | Build production and isolated test routers from injected database/session dependencies while preserving response status through secure-header wrapping | Existing middleware                    |
-| Auth core                | Normalize credentials, verify passwords, validate safe return paths, resolve guest/auth guards, and throttle failed logins                             | Database and sessions                  |
-| Login slice              | Validate credentials, render safe errors, rotate auth state, and redirect                                                                              | Router test seam and auth core         |
-| Registration slice       | Validate/create users, translate uniqueness failures, rotate auth state, and redirect                                                                  | Router test seam and auth core         |
-| Session/profile slice    | Make logout POST-only, protect profile, and render the authenticated profile                                                                           | Auth core                              |
-| Post authorization slice | Protect every post mutation while retaining public reads                                                                                               | Auth core                              |
-| Request-integrity slice  | Add synchronizer-token CSRF enforcement and tokens to every auth mutation form                                                                         | Sessions and all auth forms            |
-| Shared auth UI           | Present accessible auth forms and guest/auth navigation in the existing visual system                                                                  | Login, registration, and session state |
+| Component                   | Responsibility                                                                                                    | Depends on                        |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| Request telemetry           | Correlate requests and emit privacy-safe structured method/path/status/duration outcomes                          | Existing router response wrapping |
+| Persisted report contract   | Add legacy-safe Post columns, constraints, visibility state, and public-feed index                                | Existing User/Post/Comment schema |
+| Report validation           | Normalize and bound form/query input, reject unit designators, map categories to labels                           | Approved report contract          |
+| Report test database        | Run real data-table queries against isolated in-memory SQLite with deterministic time                             | Persisted report contract         |
+| Report data access          | Create reports and query public summaries/details/counts with typed projections that omit stored street addresses | Schema, validation, test database |
+| Creation slice              | Render the protected form, enforce CSRF/attestation, persist, and redirect                                        | Data access and existing auth     |
+| Detail slice                | Render published and legacy reports; hide missing/hidden distinctions                                             | Data access                       |
+| Discovery slice             | Replace samples with server data, bounded search, counts, pagination, and empty states                            | Data access and detail URLs       |
+| Operations and verification | Prove migration compatibility, telemetry safety, accessibility, responsive behavior, and launch limitations       | All prior components              |
 
 Dependency order:
 
-1. Router test seam
-2. Auth core
-3. Login and registration vertical slices
-4. Logout and profile protection
-5. Post-mutation protection
-6. CSRF integration
-7. Shared navigation
-8. Full verification
+1. Request telemetry and persisted report contract
+2. Validation and isolated report test database
+3. Report data access
+4. Creation
+5. Detail
+6. Discovery
+7. Operations documentation and complete verification
 
-Login and registration could be implemented independently after the auth core, but both touch the
-same shared form UI and test harness. They will be done sequentially to avoid overlapping edits.
+Request telemetry and schema work do not overlap and are logically parallel. After data access is
+stable, creation, detail, and discovery are behaviorally separable, but they share
+`app/actions/post/controller.tsx`, the home report card, and test fixtures. Implement them
+sequentially to keep each diff reviewable. Independent verification commands may run in parallel.
 
 ## Implementation Steps
 
-### 1. Establish isolated router tests
+### 1. Add correlated, privacy-safe request outcomes
 
-- Export a router factory while retaining the production `router` export.
-- Inject database, session cookie, session storage, and throttle dependencies in tests.
-- Put shared fake-user storage and cookie round-trip helpers in `test/auth.ts`; keep behavior tests
-  beside their owning controllers.
-- Add test-only environment defaults so importing the router does not require a live database or
-  real secret; production continues to fail fast.
-- Preserve status, status text, and headers when secure headers wrap a response. This is required
-  for auth redirects and `422`/`429` responses to survive middleware.
-- Verify a fresh test router can render a page and preserve a redirect response without connecting
-  to PostgreSQL.
+- Add `app/middleware/request-telemetry.ts` with an injectable sink and clock for deterministic
+  tests.
+- Accept `X-Request-ID` only when it matches a bounded safe character set; otherwise generate a
+  UUID.
+- Wrap the downstream response once, preserve body/status/status text/headers, and add the request
+  id header.
+- Emit JSON records for completed and unexpectedly failed requests containing only event,
+  requestId, method, pathname, status class, and duration.
+- Exclude query strings, bodies, cookies, user/report fields, and raw exception messages.
+- Install the middleware for non-test production behavior while allowing tests to inject a
+  collector; retain readable development logging only if it does not duplicate records.
 
-Checkpoint: focused router tests, `pnpm typecheck`, and the existing schema tests pass.
+Checkpoint: focused router tests prove response preservation, request-id validation/generation,
+correlated failures, and absence of sensitive request values; existing auth tests and typecheck
+pass.
 
-### 2. Complete reusable auth primitives
+### 2. Extend Post storage without invalidating legacy rows
 
-- Bound and normalize email input consistently.
-- Harden safe `returnTo` handling against external, protocol-relative, backslash-normalized, and
-  control-character redirects.
-- Add a guest-only guard for login/join.
-- Add a bounded fixed-window failed-login throttle with deterministic clock injection, cleanup,
-  reset-on-success, and `Retry-After` calculation.
-- Keep credential failure timing closer by verifying against a fixed dummy bcrypt hash when no
-  account exists.
+- Export the report category and status values from `app/data/schema.ts` and add nullable report
+  metadata columns plus non-null `PUBLISHED` status.
+- Preserve id/timestamp hooks and all existing Post/Comment relations.
+- Add a transactional SQL migration with nullable address/city/region/landlord/category/rating/
+  confirmation columns, status default/backfill, category/rating/status checks, and a public-feed
+  `(status, createdAt desc, id desc)` index.
+- Do not add fabricated defaults for metadata missing from old rows.
+- Extend schema tests to prove types, allowed enum values, automatic ids/timestamps, and legacy
+  writes.
 
-Checkpoint: focused helper/throttle tests and typecheck pass.
+Checkpoint: schema tests, migration dry-run/status inspection, and typecheck pass; the migration
+diff contains no rename, drop, or relation rewrite.
 
-### 3. Implement login as a server-first vertical slice
+### 3. Build report input contracts and an isolated database harness
 
-- Add boundary validation for email/password.
-- Check throttle state before password work and record only failed attempts.
-- Use `verifyCredentials()` and `completeAuth()` so successful login rotates the session.
-- Render the same generic message for unknown email and wrong password.
-- Preserve only the submitted email after an error; never preserve or log the password.
-- Redirect to a validated `returnTo` or `/profile` with `303`.
-- Render an accessible, responsive login page consistent with the existing paper/ink/acid design.
+- Put route-owned create/query parsing in focused modules under `app/actions/post/`.
+- Define one category-label map used by form options and public metadata.
+- Trim and bound all fields, normalize optional landlord blanks to null, coerce rating safely, and
+  require the firsthand checkbox.
+- Reject common unit designators in the dedicated address field and preserve only bounded safe
+  values on `422`.
+- Normalize feed `q` to at most 100 characters and invalid/missing `page` to 1; escape SQL `LIKE`
+  metacharacters so search remains literal substring matching.
+- Add `test/reports.ts` backed by Node's in-memory SQLite and the Remix SQLite adapter, with helpers
+  for schema creation, deterministic users/reports, auth cookies, and CSRF round trips.
+- Keep the existing auth-only fake database unchanged unless shared behavior genuinely needs it.
 
-Checkpoint: login GET, validation failure, bad credentials, throttling, success, guest-only, and
-safe-redirect tests pass.
+Checkpoint: pure validation tests and report-fixture smoke tests pass without PostgreSQL, real
+secrets, network access, or cross-test state.
 
-### 4. Implement registration as a server-first vertical slice
+### 4. Implement typed report persistence and public queries
 
-- Normalize username/email and enforce all approved bounds.
-- Read the injected database from request context instead of the production singleton.
-- Hash the password and create the user with the existing schema.
-- Translate known PostgreSQL email/username uniqueness constraints into safe field errors while
-  rethrowing unknown failures.
-- Use `completeAuth()` to rotate the session before writing auth state.
-- Preserve only non-sensitive submitted values after validation/conflict responses.
-- Reuse the accessible auth-page presentation without adding browser-only behavior.
+- Add `app/data/reports.ts` with explicit input/output types for create, list, and detail.
+- Create through `Database.create(..., { returnRow: true })`; accept author id and confirmation time
+  only from trusted controller inputs.
+- Build a reusable public predicate that always includes `status = PUBLISHED` and conditionally ORs
+  parameterized case-insensitive matches across approved public fields, never the stored street
+  address.
+- Query Post joined to User with allowlisted projections containing username but never street
+  address, email, or password.
+- Return newest-first summaries with an id tie-breaker, fixed limit/offset, matching total, and
+  page metadata; query detail by id through the same visibility predicate.
+- Keep legacy nullable metadata in output types rather than manufacturing values.
+- Verify SQLite and PostgreSQL compile equivalent `ilike`, join, count, order, and pagination
+  intent; use the typed raw-SQL escape hatch only if the normal query builder cannot meet the
+  approved substring semantics.
 
-Checkpoint: registration GET, validation, password mismatch, duplicate email/username, success,
-guest-only, and safe-redirect tests pass.
+Checkpoint: data tests cover create, author attribution inputs, search fields and literal wildcard
+characters, newest-first ties, pagination, hidden exclusion, legacy rows, and allowlisted output.
 
-### 5. Implement logout and profile authorization
+### 5. Implement the authenticated creation slice
 
-- Change logout to a top-level POST leaf and handle it in the root controller, matching repository
-  route ownership.
-- Remove the now-obsolete nested logout controller mapping/file.
-- Clear auth state and regenerate the session before a `303` home redirect.
-- Protect `/profile`; render the authenticated user's own username/email without client
-  serialization.
-- Test guest redirects, authenticated access, and logout rotation.
+- Keep the existing typed resource contract and implement only `new` and `create`; retain the
+  protected deferred edit/update/destroy placeholders.
+- Render a route-owned, paper/ink/acid report form with semantic fieldsets, visible labels, helper
+  text, category/rating controls, privacy notice, linked errors, and active CSRF token.
+- State plainly that the street address is stored but not shown publicly and that city/region is
+  the only public structured location.
+- Make the native GET/POST flow complete without JavaScript.
+- Add a small progressive enhancement that disables the submit controls after a valid submission;
+  do not claim server idempotency.
+- On invalid input return the same form with `422`; on success derive the authenticated user,
+  persist `PUBLISHED` plus server confirmation time, and redirect to show with `303`.
+- Ignore any client-supplied author, status, id, or timestamp fields.
 
-Checkpoint: focused authorization tests, route listing, and typecheck pass.
+Checkpoint: controller tests cover guest redirects, valid GET/CSRF, each validation class, unit
+rejection, forged server-owned fields, no-write failures, successful persistence, and exact `303`
+location; keyboard and no-JavaScript smoke checks pass.
 
-### 6. Protect post mutations
+### 6. Implement the public report detail slice
 
-- Add action-level authentication to post create/new/edit/update/destroy actions.
-- Leave the public post show action unchanged.
-- Verify each protected verb retains its original safe `returnTo` destination.
+- Resolve the typed id through report data access and return the standard `404` for absent or hidden
+  rows.
+- Render title, rating, category, city/region location, optional landlord, username, dates, and
+  whitespace-preserving escaped content; never return or display the stored street address.
+- Render legacy rows without empty badges or fabricated metadata.
+- Use the existing document shell and route-generated navigation links.
+- Do not expose edit, delete, comments, cheers, saves, email, or client-serialized user records.
 
-Checkpoint: focused post-controller tests and typecheck pass.
+Checkpoint: controller tests cover published, legacy, hidden, missing, malicious-text escaping, and
+absence of private account fields; responsive page smoke checks pass.
 
-### 7. Integrate CSRF protection
+### 7. Replace the mock home feed with real discovery
 
-- Add `csrf()` after form-data and session middleware.
-- Put the session-backed `_csrf` token in login and registration forms.
-- Test missing/invalid token rejection and valid token acceptance through the router.
-- Verify header wrapping still preserves CSRF/auth response status and cookies.
+- Parse `q` and `page` in the root home action, query the injected database, and pass plain
+  serializable/server-renderable report results to the home presentation.
+- Remove in-memory reviews, fake weekly/report counts, fake city state, tabs, social controls, and
+  toast behavior for deferred features.
+- Preserve the established visual language while making cards link to report detail and show only
+  real public metadata, with city/region as the only location.
+- Keep search as a normal GET form with shareable URLs and its submitted value visible.
+- Add total/result copy, truthful legacy fallbacks, a create-report empty state, and route-generated
+  previous/next pagination that preserves `q`.
+- Ensure page 1 never emits a redundant page parameter and pages beyond the result set remain a
+  valid empty state rather than leaking database behavior.
 
-Checkpoint: full auth tests and typecheck pass.
+Checkpoint: root controller tests cover default/search/no-result/legacy/hidden/paginated feeds,
+real counts, URL preservation, and no sample copy; browser checks cover search and pagination.
 
-### 8. Add session-aware navigation
+### 8. Prove migration, operations, and launch readiness
 
-- Add Join/Sign in controls for guests.
-- Add Profile and a POST Sign out form with the session-backed `_csrf` token for authenticated
-  users.
-- Keep the header keyboard-usable and readable at the approved responsive widths.
-- Verify guest and authenticated HTML states without serializing the user into client props.
+- Add an operator runbook for locating, hiding, exporting, and deleting a report by id or author id
+  with transaction-safe SQL, including dependent comments and verification queries.
+- Apply the migration to a representative PostgreSQL database containing a user, legacy post, and
+  comment; verify ids, relations, legacy rendering, and rollback expectations without modifying an
+  applied migration.
+- Exercise join → create report → detail → feed search/pagination → logout in a real browser and
+  verify the no-JavaScript create path separately.
+- Inspect actual structured success/error log records by request id and confirm no query/body/PII
+  values appear.
+- Run build, all tests, typecheck, Oxlint, Oxfmt check, route diagnostics, Remix Doctor, dependency
+  audit, `git diff --check`, and a secret/scope review.
+- Test keyboard flow and layouts at 320/768/1024/1440 px with no horizontal overflow, console
+  errors, or failed network requests.
+- Record evidence or a precise external blocker beside each checklist item; broad public launch
+  remains blocked on the moderation/legal follow-up named in the spec.
 
-Checkpoint: focused shell/root-controller tests and typecheck pass.
+Checkpoint: every success criterion in `SPEC-reports.md` has evidence or a documented external
+blocker, and the final diff contains no unrelated change or generated dependency cache.
 
-### 9. Verify the finished feature
+## Verification Cadence
 
-- Run format only on auth-owned files, then lint without auto-fixing unrelated files.
-- Run build, full tests, typecheck, route diagnostics, and the package-manager audit.
-- Start the app against the configured development database and exercise join, logout, login,
-  protected profile, unsafe `returnTo`, duplicate registration, and throttle behavior.
-- Inspect cookie flags, CSRF rejection, security headers, keyboard flow, focus/error semantics, and
-  responsive layouts at 320/768/1024/1440 px.
-- Review the final diff for secrets and unrelated worktree changes.
+After every implementation step:
 
-Checkpoint: every success criterion in `SPEC-auth.md` has evidence or a clearly reported external
-environment blocker.
+1. Run the narrowest new or changed tests.
+2. Run `pnpm typecheck`.
+3. Run `git diff --check` and inspect the path-scoped diff.
+4. Update the task checklist with evidence before starting the next step.
+
+Run the complete verification matrix only after focused loops are green. Do not auto-fix the whole
+repository or format unrelated files.
 
 ## Risks and Mitigations
 
-| Risk                                                           | Mitigation                                                                                              |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Secure-header middleware currently rebuilds responses as `200` | Preserve the original status/status text and cover redirects/errors with tests before auth work         |
-| Router imports production environment/database during tests    | Add explicit test defaults and dependency injection; never query the production singleton in auth tests |
-| Cookie/CSRF tests become stateful                              | Construct a fresh router, storage, cookie, fake database, and throttle for each test                    |
-| PostgreSQL adapter error shape leaks or changes                | Match only the stable SQLSTATE and the two known constraint names; rethrow everything else              |
-| User enumeration through timing or copy                        | Use one generic message and a dummy bcrypt verification for missing users                               |
-| Process-local throttling is bypassed across replicas           | Keep the limitation documented and replace it with edge/shared-store limiting before horizontal scale   |
-| CSRF middleware blocks existing form tests                     | Add tokens through a real GET/session-cookie round trip and test rejection explicitly                   |
-| Shared dirty worktree hides scope creep                        | Use path-scoped diffs and never stage/commit/revert unrelated migration files                           |
+| Risk                                                            | Mitigation                                                                                                                                                                                                |
+| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Additive columns weaken new-row invariants                      | Enforce complete writes in form validation/data access and mirror every feasible constraint in SQL; nullable fields exist only for legacy compatibility                                                   |
+| `%term%` search scans as data grows                             | Bound query/page size, add the public-order index, inspect query plans with representative data, and defer trigram/full-text infrastructure until measured                                                |
+| LIKE wildcard characters broaden user searches                  | Escape `%`, `_`, and the escape character; cover literal wildcard searches in data tests                                                                                                                  |
+| Stored street addresses leak through a public code path         | Omit the field at the SQL projection and search boundary, omit it from public types/serializers, and assert unique private markers never reach results or HTML                                            |
+| SQLite tests differ from PostgreSQL                             | Use SQLite for deterministic router/query coverage and a representative PostgreSQL migration/search smoke test before completion                                                                          |
+| Home UI currently depends on client-only sample state           | Make feed/search/pagination server-first; hydrate only the submit-lock enhancement                                                                                                                        |
+| Duplicate form retries create duplicate rows                    | State the non-idempotent contract, disable repeat submission when hydrated, and avoid claiming retry safety                                                                                               |
+| Public reports enable privacy, harassment, and defamation abuse | Keep street addresses out of public output/search, reject unit data, require attestation, escape content, provide HIDDEN state/operator removal, and keep broad launch blocked on moderation/legal policy |
+| Global request logs accidentally capture report data            | Log only an allowlisted pathname/method/status/duration/requestId shape and assert excluded values in tests                                                                                               |
+| Existing auth fixtures become fragile                           | Add an isolated report database fixture rather than widening the auth-only fake unless required                                                                                                           |
+| Dependency installation cannot reach configured registries      | Use the committed pnpm lock and existing approved store where possible; report or request network approval only when a required verification cannot run                                                   |
 
 ## Intentionally Unchanged
 
-- OAuth, magic links, email verification, password reset, roles, and account deletion
-- User/Post/Comment database schema and migrations
-- Public post-read behavior and unfinished post CRUD responses
-- Security-header policy beyond removing the ineffective fixed CSP nonce
-- Distributed/edge rate-limit infrastructure
-- Deployment topology beyond migration-command and environment-name consistency fixes
-- CI structure beyond pnpm, supported-Node, workflow-reference, and default-branch consistency fixes
+- Login, registration, logout, session lifetime, CSRF semantics, and login throttling
+- Post edit/update/destroy behavior beyond retaining existing authentication protection
+- Comment persistence and the unfinished comment UI
+- Canonical Property/Landlord entities, geocoding, maps, nearby discovery, and category filters
+- Images/evidence, cheers, saves, following, notifications, and personalized feeds
+- Immediate-publication policy and the absence of moderation UI
+- Account export/deletion implementation and automated retention enforcement
+- CI, deployment topology, package versions, and dependency set
