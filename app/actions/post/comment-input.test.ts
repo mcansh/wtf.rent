@@ -2,7 +2,7 @@ import { describe, it } from "node:test"
 
 import * as assert from "remix/assert"
 
-import { getSafeCommentValue, parseCommentInput } from "./comment-input.ts"
+import { getSafeCommentValue, parseCommentCursor, parseCommentInput } from "./comment-input.ts"
 
 describe("comment input", () => {
   it("trims valid plain-text content and ignores protected fields", () => {
@@ -53,6 +53,30 @@ describe("comment input", () => {
     let fileData = new FormData()
     fileData.set("content", new Blob(["not text"]), "comment.txt")
     assert.equal(getSafeCommentValue(fileData), "")
+  })
+
+  it("accepts only complete canonical comment cursors", () => {
+    let valid = new URLSearchParams({
+      commentsBeforeAt: "2026-08-18T12:34:56.000Z",
+      commentsBeforeId: "comment-id",
+    })
+
+    assert.deepEqual(parseCommentCursor(valid), {
+      createdAt: new Date("2026-08-18T12:34:56.000Z"),
+      id: "comment-id",
+    })
+
+    let invalidValues: Array<Record<string, string>> = [
+      {},
+      { commentsBeforeAt: "not-a-date", commentsBeforeId: "comment-id" },
+      { commentsBeforeAt: "2026-08-18T12:34:56Z", commentsBeforeId: "comment-id" },
+      { commentsBeforeAt: "2026-08-18T12:34:56.000Z", commentsBeforeId: "" },
+      { commentsBeforeAt: "2026-08-18T12:34:56.000Z", commentsBeforeId: "x".repeat(101) },
+    ]
+
+    for (let values of invalidValues) {
+      assert.equal(parseCommentCursor(new URLSearchParams(values)), null)
+    }
   })
 })
 

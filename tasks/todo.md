@@ -322,12 +322,26 @@ typecheck`, task-scoped Oxlint, task-scoped Oxfmt check, and `git diff --check` 
     tests, `pnpm typecheck`, `pnpm build`, `pnpm exec remix routes`, task-scoped Oxlint/Oxfmt
     checks, and `git diff --check` passed.
 
-- [ ] Task 21: Run the report-interactions quality and browser gate
+- [x] Task 21: Run the report-interactions quality and browser gate
   - Acceptance: Both module success criteria have evidence; editing/comments work without
     JavaScript and by keyboard at 320/768/1024/1440 px; console/network are clean; the final diff
-    contains no secret, private-field leak, dependency/migration change, unrelated edit, or
-    deferred feature.
+    contains no secret, private-field leak, dependency change, unrelated edit, or deferred feature;
+    the only schema artifact is the reviewed additive comment-feed index.
   - Verify: `pnpm build`; `pnpm test`; `pnpm typecheck`; `pnpm exec oxlint .`;
     `pnpm exec oxfmt --check .`; `pnpm exec remix routes`; `pnpm exec remix doctor`;
     `pnpm audit`; `git diff --check`; browser journey and complete diff review.
   - Files: `tasks/todo.md` (evidence only; split discovered defects before changing product files).
+  - Evidence: The complete gate passes `pnpm build`, all 104 tests in 29 suites, `pnpm
+typecheck`, repository-wide Oxlint/Oxfmt, `pnpm exec remix routes`, `pnpm exec remix doctor`,
+    and `git diff --check`. Independent review found and the implementation now covers private
+    `no-store`/`Vary: Cookie` edit responses, 50-row keyset comment pages backed by
+    `Comment(postId, createdAt, id)`, PUT authorization denial, and legacy editing. A real isolated
+    Playwright journey covered registration, authenticated edit, category changes with untouched
+    fields, escaped comment creation, logout/back-cache behavior, guest login return, and native
+    edit plus comment submissions with browser JavaScript disabled. Edit/detail/comment layouts
+    had exact viewport-width documents at 320/768/1024/1440 px; inspected mobile/desktop screenshots
+    were readable; normal-mode console reported 0 errors and 0 warnings; application requests
+    completed successfully. Generated browser artifacts were moved outside the worktree. Dependency
+    audit is the sole external blocker: the configured registry proxy returned HTTP 405 because it
+    is read-only, and npm's official advisory endpoint repeatedly reset the approved network
+    connection. No dependency changed.

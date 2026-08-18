@@ -1,6 +1,6 @@
 import * as s from "remix/data-schema"
 import type { Database } from "remix/data-table"
-import { sql } from "remix/data-table"
+import { rawSql, sql } from "remix/data-table"
 
 import type { Comment, Post, User } from "./schema.ts"
 import { comments, posts } from "./schema.ts"
@@ -13,6 +13,20 @@ const publicCommentSchema = s.object({
 })
 
 export type PublicComment = s.InferOutput<typeof publicCommentSchema>
+
+export const PUBLIC_COMMENT_PAGE_SIZE = 50
+
+export interface PublicCommentCursor {
+  createdAt: Date
+  id: string
+}
+
+export interface PublicCommentPage {
+  comments: PublicComment[]
+  hasOlder: boolean
+  isLatest: boolean
+  olderCursor: PublicCommentCursor | null
+}
 
 export interface CreateCommentTrustedContext {
   authorId: User["id"]
@@ -45,7 +59,20 @@ export function createComment(
 export async function listPublicComments(
   database: Database,
   reportId: Post["id"],
-): Promise<PublicComment[]> {
+  cursor: PublicCommentCursor | null = null,
+): Promise<PublicCommentPage> {
+  let cursorWhere =
+    cursor == null
+      ? rawSql("", [])
+      : rawSql(
+          `
+            and (
+              c."createdAt" < ?
+              or (c."createdAt" = ? and c."id" < ?)
+            )
+          `,
+          [cursor.createdAt, cursor.createdAt, cursor.id],
+        )
   let statement = sql`
     select
       c."id" as "id",
@@ -56,8 +83,23 @@ export async function listPublicComments(
     inner join "User" u on u."id" = c."authorId"
     inner join "Post" p on p."id" = c."postId"
     where p."id" = ${reportId} and p."status" = ${"PUBLISHED"}
-    order by c."createdAt" asc, c."id" asc
+    ${cursorWhere}
+    order by c."createdAt" desc, c."id" desc
+    limit ${PUBLIC_COMMENT_PAGE_SIZE + 1}
   `
   let result = await database.exec(statement)
-  return s.parse(s.array(publicCommentSchema), result.rows ?? [])
+  let descending = s.parse(s.array(publicCommentSchema), result.rows ?? [])
+  let hasOlder = descending.length > PUBLIC_COMMENT_PAGE_SIZE
+  let visibleDescending = descending.slice(0, PUBLIC_COMMENT_PAGE_SIZE)
+  let oldestVisible = visibleDescending.at(-1)
+
+  return {
+    comments: visibleDescending.toReversed(),
+    hasOlder,
+    isLatest: cursor == null,
+    olderCursor:
+      hasOlder && oldestVisible != null
+        ? { createdAt: oldestVisible.createdAt, id: oldestVisible.id }
+        : null,
+  }
 }

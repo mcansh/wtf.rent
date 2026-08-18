@@ -8,7 +8,7 @@ import {
   seedReportUser,
   seedStructuredReport,
 } from "../../test/reports.ts"
-import { createComment, listPublicComments } from "./comments.ts"
+import { createComment, listPublicComments, PUBLIC_COMMENT_PAGE_SIZE } from "./comments.ts"
 import { comments } from "./schema.ts"
 
 describe("createComment", () => {
@@ -130,18 +130,21 @@ describe("listPublicComments", () => {
     let result = await listPublicComments(app.database, report.id)
 
     assert.deepEqual(
-      result.map((comment) => comment.id),
+      result.comments.map((comment) => comment.id),
       ["oldest", "tie-a", "tie-b"],
     )
-    assert.deepEqual(Object.keys(result[0] ?? {}).sort(), [
+    assert.deepEqual(Object.keys(result.comments[0] ?? {}).sort(), [
       "content",
       "createdAt",
       "id",
       "username",
     ])
-    assert.equal(result[0]?.username, "public-<commenter>")
-    assert.equal(result[0]?.createdAt.toISOString(), oldestAt.toISOString())
-    let serialized = JSON.stringify(result)
+    assert.equal(result.comments[0]?.username, "public-<commenter>")
+    assert.equal(result.comments[0]?.createdAt.toISOString(), oldestAt.toISOString())
+    assert.equal(result.hasOlder, false)
+    assert.equal(result.isLatest, true)
+    assert.equal(result.olderCursor, null)
+    let serialized = JSON.stringify(result.comments)
     assert.equal(serialized.includes("private-commenter@example.test"), false)
     assert.equal(serialized.includes("private-commenter-password"), false)
     assert.equal(serialized.includes("515 Private Comment Report Marker"), false)
@@ -166,8 +169,50 @@ describe("listPublicComments", () => {
       postId: hidden.id,
     })
 
-    assert.deepEqual(await listPublicComments(app.database, hidden.id), [])
-    assert.deepEqual(await listPublicComments(app.database, "missing-list-target"), [])
-    assert.deepEqual(await listPublicComments(app.database, "' or 1 = 1 --"), [])
+    assert.deepEqual((await listPublicComments(app.database, hidden.id)).comments, [])
+    assert.deepEqual((await listPublicComments(app.database, "missing-list-target")).comments, [])
+    assert.deepEqual((await listPublicComments(app.database, "' or 1 = 1 --")).comments, [])
+  })
+
+  it("returns bounded latest and older cursor pages", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let author = await seedReportUser(app)
+    let report = await seedStructuredReport(app, {
+      id: "paginated-comment-report",
+      authorId: author.id,
+    })
+
+    for (let index = 0; index < PUBLIC_COMMENT_PAGE_SIZE + 2; index++) {
+      let createdAt = new Date(Date.UTC(2026, 7, 1, 0, index))
+      await seedComment(app, {
+        id: `page-comment-${String(index).padStart(3, "0")}`,
+        authorId: author.id,
+        postId: report.id,
+        content: `Page comment ${index}`,
+        createdAt,
+        updatedAt: createdAt,
+      })
+    }
+
+    let latest = await listPublicComments(app.database, report.id)
+    assert.equal(latest.comments.length, PUBLIC_COMMENT_PAGE_SIZE)
+    assert.equal(latest.comments[0]?.id, "page-comment-002")
+    assert.equal(latest.comments.at(-1)?.id, "page-comment-051")
+    assert.equal(latest.hasOlder, true)
+    assert.equal(latest.isLatest, true)
+    assert.deepEqual(latest.olderCursor, {
+      createdAt: new Date(Date.UTC(2026, 7, 1, 0, 2)),
+      id: "page-comment-002",
+    })
+
+    let older = await listPublicComments(app.database, report.id, latest.olderCursor)
+    assert.deepEqual(
+      older.comments.map((comment) => comment.id),
+      ["page-comment-000", "page-comment-001"],
+    )
+    assert.equal(older.hasOlder, false)
+    assert.equal(older.isLatest, false)
+    assert.equal(older.olderCursor, null)
   })
 })

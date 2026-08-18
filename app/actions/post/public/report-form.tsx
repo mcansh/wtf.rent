@@ -59,7 +59,7 @@ interface ReportFormProps extends SerializableObject {
 export const ReportForm = clientEntry(
   import.meta.url,
   function ReportForm(handle: Handle<ReportFormProps>) {
-    let submission = createReportSubmissionState(() => handle.update())
+    let submission = createReportSubmissionState()
 
     return () => {
       let { categoryOptions, csrfToken, errors, values } = handle.props
@@ -75,7 +75,14 @@ export const ReportForm = clientEntry(
           action={action}
           rmx-document
           mix={on("submit", (event) => {
-            if (!submission.begin()) event.preventDefault()
+            if (!submission.begin()) {
+              event.preventDefault()
+              return
+            }
+
+            if (!(event.currentTarget instanceof HTMLFormElement)) return
+            let submitButton = event.currentTarget.querySelector('button[type="submit"]')
+            if (submitButton instanceof HTMLButtonElement) submitButton.disabled = true
           })}
         >
           {editing ? <input type="hidden" name="_method" value="PUT" /> : null}
@@ -171,14 +178,19 @@ export const ReportForm = clientEntry(
                   id="category"
                   className={`${FIELD_CLASS} col-span-full row-start-1 appearance-none pr-8`}
                   name="category"
-                  defaultValue={values.category}
                   aria-describedby={getDescribedBy("category-help", errors.category, "category")}
                   aria-invalid={hasFieldErrors(errors.category) ? "true" : undefined}
                   required
                 >
-                  <option value="">Choose a category</option>
+                  <option value="" selected={values.category === ""}>
+                    Choose a category
+                  </option>
                   {categoryOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
+                    <option
+                      key={option.value}
+                      value={option.value}
+                      selected={values.category === option.value}
+                    >
                       {option.label}
                     </option>
                   ))}
@@ -327,17 +339,8 @@ export const ReportForm = clientEntry(
             <button
               className="border-ink-950 bg-acid-100 hover:bg-acid-200 focus-visible:outline-ink-950 disabled:bg-ink-100 shrink-0 border-[1.5px] px-4 py-2.5 text-base font-semibold shadow-[3px_3px_0_var(--color-ink-950)] focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-wait disabled:shadow-none sm:px-3 sm:py-2 sm:text-sm"
               type="submit"
-              disabled={submission.started}
             >
-              <span aria-live="polite">
-                {submission.started
-                  ? editing
-                    ? "Saving…"
-                    : "Publishing…"
-                  : editing
-                    ? "Save changes"
-                    : "Publish report"}
-              </span>
+              {editing ? "Save changes" : "Publish report"}
             </button>
           </div>
         </form>
@@ -346,7 +349,7 @@ export const ReportForm = clientEntry(
   },
 )
 
-export function createReportSubmissionState(onStart: () => void) {
+export function createReportSubmissionState() {
   let started = false
 
   return {
@@ -356,7 +359,6 @@ export function createReportSubmissionState(onStart: () => void) {
     begin() {
       if (started) return false
       started = true
-      onStart()
       return true
     },
   }

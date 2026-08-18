@@ -1,6 +1,6 @@
 import type { Handle, RemixNode } from "remix/ui"
 
-import type { PublicComment } from "../../data/comments.ts"
+import type { PublicCommentPage } from "../../data/comments.ts"
 import type { PublicReportDetail } from "../../data/reports.ts"
 import { routes } from "../../routes.ts"
 import { ShellPage } from "../../ui/shell.tsx"
@@ -11,7 +11,7 @@ import { REPORT_CATEGORY_LABELS } from "./report-input.ts"
 interface ReportDetailPageProps {
   canEdit: boolean
   commentForm: CommentFormState | null
-  comments: PublicComment[]
+  commentPage: PublicCommentPage
   report: PublicReportDetail
 }
 
@@ -133,7 +133,7 @@ export function ReportDetailPage(handle: Handle<ReportDetailPageProps>) {
             </aside>
           </div>
           <ReportComments
-            comments={handle.props.comments}
+            commentPage={handle.props.commentPage}
             form={handle.props.commentForm}
             reportId={report.id}
           />
