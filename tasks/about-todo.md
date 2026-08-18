@@ -13,20 +13,24 @@ with a failing router test and ending with the approved static page and root-con
 
 **Acceptance criteria:**
 
-- [ ] `GET /about` returns `200`, uses `About | wtf.rent`, marks About as the current navigation
+- [x] `GET /about` returns `200`, uses `About | wtf.rent`, marks About as the current navigation
       item, and renders the mission, record process, privacy comparison, publishing standards, and
       read-with-context sections.
-- [ ] Native links lead to Feed, Directory, Rights, and the authenticated report form; the page uses
+- [x] Native links lead to Feed, Directory, Rights, and the authenticated report form; the page uses
       one `<main>`, one `<h1>`, ordered headings, and semantic list/description markup.
-- [ ] The route uses `DocumentWithShell` and route-owned static content without database access,
+- [x] The route uses `DocumentWithShell` and route-owned static content without database access,
       external requests, forms, client entry, hydration, or changes to `app/routes.ts`.
 
 **Verification:**
 
-- [ ] Observe the focused controller test fail against the existing `404` placeholder before
+- [x] Observe the focused controller test fail against the existing `404` placeholder before
       implementation.
-- [ ] `pnpm test -- app/actions/controller.test.tsx`
-- [ ] `pnpm typecheck && pnpm build && git diff --check`
+- [x] `pnpm test -- app/actions/controller.test.tsx`
+- [x] `pnpm typecheck && pnpm build && git diff --check`
+
+**Evidence (2026-08-18):** The focused test first failed only because `/about` returned `404`. After
+implementation, the controller suite passed 103/103 tests. Typecheck, Tailwind build, targeted
+Oxlint, targeted Oxfmt, and `git diff --check` also passed.
 
 **Dependencies:** None.
 

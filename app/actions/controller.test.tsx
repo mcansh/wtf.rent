@@ -733,6 +733,32 @@ describe("public renter rights guide", () => {
   })
 })
 
+describe("public About page", () => {
+  it("renders the approved mission, record process, and next steps", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+
+    let response = await app.router.fetch(request(routes.about.href()))
+    let html = await response.text()
+
+    assert.equal(response.status, 200)
+    assert.match(html, /<title>About \| wtf\.rent<\/title>/)
+    assert.match(html, /href="\/about" aria-current="page"/)
+    assert.match(html, /A public record renters can use/)
+    assert.match(html, /How the record works/)
+    assert.match(html, /What’s public—and what isn’t/)
+    assert.match(html, /Standards for sharing/)
+    assert.match(html, /Read every report with context/)
+    assert.match(html, /href="\/#feed"[^>]*>\s*Read renter reports/)
+    assert.match(html, /href="\/directory"[^>]*>\s*Browse the Directory/)
+    assert.match(html, /href="\/rights"[^>]*>\s*Open the Rights guide/)
+    assert.match(html, /href="\/posts\/new"[^>]*>\s*Share your experience/)
+    assert.equal((html.match(/<main\b/g) ?? []).length, 1)
+    assert.equal((html.match(/<h1\b/g) ?? []).length, 1)
+    assert.match(html, /<dl\b/)
+  })
+})
+
 function request(pathname: string, cookie?: string, method = "GET"): Request {
   let headers = new Headers()
   if (cookie) headers.set("Cookie", cookie)
