@@ -756,6 +756,7 @@ describe("public About page", () => {
     assert.equal((html.match(/<main\b/g) ?? []).length, 1)
     assert.equal((html.match(/<h1\b/g) ?? []).length, 1)
     assert.match(html, /<dl\b/)
+    assert.match(html, /<dl\b[^>]*>\s*<div[^>]*>\s*<dt\b/)
   })
 
   it("keeps publishing, privacy, and legal boundaries explicit", async (t) => {
@@ -783,7 +784,7 @@ describe("public About page", () => {
     assert.match(main, /does not (?:prove|establish) a legal violation/i)
     assert.doesNotMatch(
       main,
-      /we (?:verify|review) every report|reports? (?:is|are) reviewed before publication|automatically redact|anonymous(?:ly|ity)?|edit your report|flag a report|delete your report/i,
+      /we (?:verify|review) every report|reports? (?:is|are) reviewed before publication|automatically redact|anonym(?:ous(?:ly)?|ity)|comprehensive moderation|end-to-end encrypt(?:ed|ion)|regulatory compliance|dispute resolution|evidence storage|we provide legal advice|edit your report|flag a report|delete your report/i,
     )
     assert.doesNotMatch(main, /<form\b|<input\b|<select\b|<textarea\b|<button\b/)
     assert.doesNotMatch(main, /href="https?:\/\//)
