@@ -14,7 +14,7 @@ import type { Middleware } from "remix/router"
 import type { Route } from "remix/routes"
 import type { Session } from "remix/session"
 
-import { DUMMY_PASSWORD_HASH, verifyPassword } from "../bcrypt.ts"
+import { verifyPassword } from "../bcrypt.ts"
 import type { User } from "../data/schema.ts"
 import { users } from "../data/schema.ts"
 import { routes } from "../routes.ts"
@@ -175,10 +175,11 @@ export const passwordProvider = createCredentialsAuthProvider({
     }
 
     let user = await db.findOne(users, { where: { email } })
+    if (user == null) return null
 
-    let valid = await verifyPassword(password, user?.password ?? DUMMY_PASSWORD_HASH)
+    let valid = await verifyPassword(password, user.password)
 
-    if (!user || !valid) {
+    if (!valid) {
       return null
     }
 
