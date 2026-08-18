@@ -92,7 +92,7 @@ export const RIGHTS_GUIDE: RightsGuide = {
   },
   disclaimer: {
     title: "General information, not legal advice.",
-    body: "This guide cannot decide your rights, deadlines, or best next move. Rental rules and remedies depend on your location, housing program, lease, and facts. Verify current rules with an official local source or qualified legal provider before acting.",
+    body: "This guide does not create an attorney-client relationship and cannot decide your rights, deadlines, or best next move. Rental rules and remedies depend on your location, housing program, lease, and facts. Verify current rules with an official local source or qualified legal provider before acting.",
   },
   steps: [
     {
@@ -105,6 +105,7 @@ export const RIGHTS_GUIDE: RightsGuide = {
         "Note your city or locality, state, province or territory, housing type, and any housing program involved.",
         "Read your current lease alongside official guidance; one does not replace the other.",
         "Use a government housing, consumer-protection, or tenant-rights office as your starting point.",
+        "Outside the United States, look for your local housing authority, consumer-protection office, or legal-aid provider.",
       ],
       link: {
         label: "Find U.S. state tenant-rights help through USAGov",

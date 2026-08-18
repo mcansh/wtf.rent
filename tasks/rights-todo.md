@@ -51,21 +51,29 @@ copy or presentation until the approved scope remains explicit under test.
 
 **Acceptance criteria:**
 
-- [ ] The page puts immediate-danger and time-sensitive local-help direction ahead of the longer
+- [x] The page puts immediate-danger and time-sensitive local-help direction ahead of the longer
       resource list and prominently identifies itself as general educational information.
-- [ ] The guide distinguishes jurisdiction-neutral process from U.S.-specific resources and does
+- [x] The guide distinguishes jurisdiction-neutral process from U.S.-specific resources and does
       not state a jurisdiction-specific deadline, guaranteed outcome, or prohibited self-help
       instruction.
-- [ ] HTML contains no form, location or address field, geolocation behavior, individualized
+- [x] HTML contains no form, location or address field, geolocation behavior, individualized
       outcome, street address, account data, or database-derived content.
 
 **Verification:**
 
-- [ ] Add each boundary assertion first, confirm it fails when the required safeguard is absent,
+- [x] Add each boundary assertion first, confirm it fails when the required safeguard is absent,
       then make the smallest content or presentation change needed.
-- [ ] `pnpm test -- app/actions/controller.test.tsx`
-- [ ] Inspect the rendered source allowlist and prohibited-content assertions; run
+- [x] `pnpm test -- app/actions/controller.test.tsx`
+- [x] Inspect the rendered source allowlist and prohibited-content assertions; run
       `pnpm typecheck && git diff --check`.
+
+**Evidence:** The adversarial test first failed because the guide did not explicitly disclaim an
+attorney-client relationship. The copy now adds that boundary and directs readers outside the
+United States to local housing, consumer-protection, or legal-aid help. The test scopes inspection
+to `<main>`, proves urgent guidance precedes the U.S. resource list, allows only the five reviewed
+destinations, and rejects forms, location fields, geolocation, fixed-day deadlines, unsafe
+self-help directives, and new-tab links. All 102 tests, typecheck, build, targeted lint, formatting,
+and patch checks pass.
 
 **Dependencies:** Task 1.
 
@@ -79,10 +87,10 @@ copy or presentation until the approved scope remains explicit under test.
 
 ## Checkpoint: Complete server contract
 
-- [ ] The focused controller suite passes.
-- [ ] Typecheck and build pass.
-- [ ] The route is useful without JavaScript and has no database or personal-data path.
-- [ ] Review the rendered copy against the approved spec before responsive polish.
+- [x] The focused controller suite passes.
+- [x] Typecheck and build pass.
+- [x] The route is useful without JavaScript and has no database or personal-data path.
+- [x] Review the rendered copy against the approved spec before responsive polish.
 
 ## Task 3: Verify responsiveness and publish the stacked PR
 
