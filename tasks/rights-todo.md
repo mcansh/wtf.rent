@@ -104,7 +104,7 @@ issues, record evidence, create a signed-off Conventional Commit, and publish th
       console.
 - [x] Full tests, typecheck, build, lint, format, Remix routes, Remix Doctor, and patch hygiene all
       pass; every remaining diff belongs to the approved Rights capability.
-- [ ] A focused signed-off commit is published from `logan/codex-rights-page`, and its draft PR is
+- [x] Focused signed-off commits are published from `logan/codex-rights-page`, and its draft PR is
       based on `logan/codex-directory-page` with the expected base/head relationship.
 
 **Verification:**
@@ -113,7 +113,7 @@ issues, record evidence, create a signed-off Conventional Commit, and publish th
 - [x] `pnpm exec oxlint . && pnpm exec oxfmt --check .`
 - [x] `pnpm exec remix routes && pnpm exec remix doctor && git diff --check`
 - [x] Real-browser keyboard, console, network, semantic, and overflow inspection at all four widths.
-- [ ] Inspect the staged diff and secret scan, then verify the remote PR diff and stack metadata.
+- [x] Inspect the staged diff and secret scan, then verify the remote PR diff and stack metadata.
 
 **Evidence:** All 102 tests, typecheck, production build, repository-wide Oxlint, repository-wide
 Oxfmt, Remix routes, Remix Doctor, and patch checks pass. Isolated Chromium review at 320, 768,
@@ -121,6 +121,9 @@ Oxfmt, Remix routes, Remix Doctor, and patch checks pass. Isolated Chromium revi
 working mobile-menu keyboard navigation with visible focus, successful static requests, no
 horizontal overflow, and zero console errors or warnings. Full-page review at 1440 pixels found no
 visual defects. The five-axis code review found no blocking issues.
+The staged verification diff passed patch and secret-pattern scans. Draft PR #27 is mergeable and
+targets `logan/codex-directory-page`; its merge base is the exact Directory head, it is four commits
+ahead and zero behind, and its seven-file diff contains only the approved Rights capability.
 
 **Dependencies:** Tasks 1 and 2 plus the complete-server-contract checkpoint.
 
@@ -133,7 +136,7 @@ visual defects. The five-axis code review found no blocking issues.
 
 ## Checkpoint: Ready for review
 
-- [ ] Every approved spec success criterion has evidence.
-- [ ] Every task and verification item above is checked with recorded evidence.
-- [ ] No dependency, schema, environment, external-service, or personal-data change exists.
-- [ ] The draft stacked PR is open and ready for human review.
+- [x] Every approved spec success criterion has evidence.
+- [x] Every task and verification item above is checked with recorded evidence.
+- [x] No dependency, schema, environment, external-service, or personal-data change exists.
+- [x] The draft stacked PR is open and ready for human review.
