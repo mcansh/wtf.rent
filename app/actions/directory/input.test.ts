@@ -6,7 +6,7 @@ import { parseDirectoryInput } from "./input.ts"
 
 describe("directory input", () => {
   it("normalizes display text and treats LIKE metacharacters as literal input", () => {
-    let input = parseDirectoryInput(
+    let input = validDirectoryInput(
       new URLSearchParams({ q: "  50%_off! management  ", page: "3" }),
     )
 
@@ -18,7 +18,7 @@ describe("directory input", () => {
   })
 
   it("caps the query and normalizes invalid pages to one", () => {
-    let capped = parseDirectoryInput(
+    let capped = validDirectoryInput(
       new URLSearchParams({ q: `  ${"q".repeat(150)}  `, page: "24" }),
     )
 
@@ -30,15 +30,22 @@ describe("directory input", () => {
       let params = new URLSearchParams()
       if (page !== undefined) params.set("page", page)
 
-      assert.equal(parseDirectoryInput(params).page, 1, String(page))
+      assert.equal(validDirectoryInput(params).page, 1, String(page))
     }
   })
 
   it("returns no search pattern for an empty query", () => {
-    assert.deepEqual(parseDirectoryInput(new URLSearchParams()), {
+    assert.deepEqual(validDirectoryInput(new URLSearchParams()), {
       q: "",
       page: 1,
       likePattern: null,
     })
   })
 })
+
+function validDirectoryInput(searchParams: URLSearchParams) {
+  let parsed = parseDirectoryInput(searchParams)
+  assert.equal(parsed.success, true)
+  if (!parsed.success) assert.fail("Expected valid directory input")
+  return parsed.value
+}

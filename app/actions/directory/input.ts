@@ -3,6 +3,6 @@ import { parseReportFeedInput } from "../post/report-input.ts"
 
 export type DirectoryInput = ReportFeedInput
 
-export function parseDirectoryInput(searchParams: URLSearchParams): DirectoryInput {
+export function parseDirectoryInput(searchParams: URLSearchParams) {
   return parseReportFeedInput(searchParams)
 }

@@ -68,7 +68,7 @@ describe("listPublicDirectoryEntries", () => {
     })
 
     let page = await runWithReportDatabase(app.database, () =>
-      listPublicDirectoryEntries(parseDirectoryInput(new URLSearchParams())),
+      listPublicDirectoryEntries(validDirectoryInput(new URLSearchParams())),
     )
 
     assert.deepEqual(page, {
@@ -133,9 +133,9 @@ describe("listPublicDirectoryEntries", () => {
 
     let [literal, city, region] = await runWithReportDatabase(app.database, () =>
       Promise.all([
-        listPublicDirectoryEntries(parseDirectoryInput(new URLSearchParams({ q: "50%_off!" }))),
-        listPublicDirectoryEntries(parseDirectoryInput(new URLSearchParams({ q: "dEtRoIt" }))),
-        listPublicDirectoryEntries(parseDirectoryInput(new URLSearchParams({ q: "oh" }))),
+        listPublicDirectoryEntries(validDirectoryInput(new URLSearchParams({ q: "50%_off!" }))),
+        listPublicDirectoryEntries(validDirectoryInput(new URLSearchParams({ q: "dEtRoIt" }))),
+        listPublicDirectoryEntries(validDirectoryInput(new URLSearchParams({ q: "oh" }))),
       ]),
     )
 
@@ -171,8 +171,8 @@ describe("listPublicDirectoryEntries", () => {
 
     let [first, second] = await runWithReportDatabase(app.database, () =>
       Promise.all([
-        listPublicDirectoryEntries(parseDirectoryInput(new URLSearchParams({ page: "1" }))),
-        listPublicDirectoryEntries(parseDirectoryInput(new URLSearchParams({ page: "2" }))),
+        listPublicDirectoryEntries(validDirectoryInput(new URLSearchParams({ page: "1" }))),
+        listPublicDirectoryEntries(validDirectoryInput(new URLSearchParams({ page: "2" }))),
       ]),
     )
 
@@ -196,7 +196,7 @@ describe("listPublicDirectoryEntries", () => {
     let recorder = new DirectoryPostgresQueryRecorder()
     // SAFETY: The recorder implements the query surface exercised by the PostgreSQL adapter.
     let database = createPostgresDatabase(recorder as PostgresDatabaseInput)
-    let input = parseDirectoryInput(new URLSearchParams({ q: "50%_OFF!", page: "3" }))
+    let input = validDirectoryInput(new URLSearchParams({ q: "50%_OFF!", page: "3" }))
 
     let page = await runWithReportDatabase(database, () => listPublicDirectoryEntries(input))
 
@@ -234,6 +234,13 @@ describe("listPublicDirectoryEntries", () => {
     ])
   })
 })
+
+function validDirectoryInput(searchParams: URLSearchParams) {
+  let parsed = parseDirectoryInput(searchParams)
+  assert.equal(parsed.success, true)
+  if (!parsed.success) assert.fail("Expected valid directory input")
+  return parsed.value
+}
 
 interface CapturedDirectoryQuery {
   text: string

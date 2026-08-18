@@ -1,6 +1,7 @@
 import { redirect } from "remix/response/redirect"
 import { createController } from "remix/router"
 
+import { listPublicDirectoryEntries } from "../data/directory.ts"
 import { listPublicReports } from "../data/reports.ts"
 import { users } from "../data/schema.ts"
 import { db } from "../db.ts"
@@ -10,6 +11,8 @@ import { routes } from "../routes.ts"
 import { DocumentWithShell } from "../ui/shell.tsx"
 import { assetServer } from "../utils/assets.ts"
 import { getCurrentUser } from "../utils/context.ts"
+import { parseDirectoryInput } from "./directory/input.ts"
+import { DirectoryPage } from "./directory/page.tsx"
 import { HomePage } from "./home-page/public/page.tsx"
 import { serializeReportPage } from "./home-page/report.ts"
 import { parseReportSuggestionInput } from "./home-page/suggestion-input.ts"
@@ -114,7 +117,17 @@ export const controller = createController(routes, {
 
     directory: {
       async handler(context) {
-        return notFound(context.render)
+        let parsed = parseDirectoryInput(context.url.searchParams)
+        if (!parsed.success) return new Response("Invalid search query", { status: 400 })
+
+        let input = parsed.value
+        let directoryPage = await listPublicDirectoryEntries(input)
+
+        return context.render(
+          <DocumentWithShell title="Directory | wtf.rent">
+            <DirectoryPage input={input} directoryPage={directoryPage} />
+          </DocumentWithShell>,
+        )
       },
     },
 
