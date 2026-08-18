@@ -76,7 +76,7 @@ function AboutHero() {
               Read renter reports <span aria-hidden="true">→</span>
             </a>
             <a
-              className="font-semibold underline decoration-2 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600"
+              className="inline-flex min-h-11 items-center font-semibold underline decoration-2 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600"
               href={routes.directory.href()}
             >
               Browse the Directory
@@ -125,14 +125,16 @@ function RecordProcess() {
               key={step.number}
               className={`grid content-start gap-4 py-7 lg:px-6 lg:py-8 ${index > 0 ? "border-ink-950/15 border-t lg:border-t-0 lg:border-l" : "lg:pl-0"} ${index === RECORD_STEPS.length - 1 ? "lg:pr-0" : ""}`}
             >
-              <span
-                className="font-mono text-base font-medium tabular-nums sm:text-sm"
-                aria-hidden="true"
-              >
-                {step.number}
-              </span>
-              <dt className="max-w-[40ch] font-serif text-2xl font-semibold tracking-tight text-balance">
-                {step.title}
+              <dt className="grid max-w-[40ch] gap-4">
+                <span
+                  className="font-mono text-base font-medium tabular-nums sm:text-sm"
+                  aria-hidden="true"
+                >
+                  {step.number}
+                </span>
+                <span className="font-serif text-2xl font-semibold tracking-tight text-balance">
+                  {step.title}
+                </span>
               </dt>
               <dd className="text-ink-700 max-w-[56ch] text-base/7 text-pretty sm:text-sm/6">
                 {step.body}
@@ -253,7 +255,7 @@ function PublishingStandards() {
           {SHARING_STANDARDS.map((standard, index) => (
             <li
               key={standard}
-              className="border-ink-950/15 grid grid-cols-[auto_minmax(0,1fr)] gap-4 border-b py-5 last:border-b-0"
+              className="border-ink-950/15 grid grid-cols-[auto_minmax(0,1fr)] gap-4 border-b py-5"
             >
               <span
                 className="font-mono text-base font-medium tabular-nums sm:text-sm"
@@ -264,7 +266,7 @@ function PublishingStandards() {
               <p className="max-w-[64ch] text-base/7 text-pretty sm:text-sm/6">{standard}</p>
             </li>
           ))}
-          <li className="border-ink-950/15 grid grid-cols-[auto_minmax(0,1fr)] gap-4 border-t py-5">
+          <li className="grid grid-cols-[auto_minmax(0,1fr)] gap-4 py-5">
             <span
               className="font-mono text-base font-medium tabular-nums sm:text-sm"
               aria-hidden="true"
@@ -317,7 +319,7 @@ function ReadingContext() {
         </div>
         <div className="flex flex-wrap items-center gap-4">
           <a
-            className="text-acid-100 font-semibold underline decoration-2 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-300"
+            className="text-acid-100 inline-flex min-h-11 items-center font-semibold underline decoration-2 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-300"
             href={routes.rights.href()}
           >
             Open the Rights guide

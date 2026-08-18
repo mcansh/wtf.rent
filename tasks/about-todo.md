@@ -101,20 +101,20 @@ record evidence, create signed-off Conventional Commits, and publish the final d
 
 **Acceptance criteria:**
 
-- [ ] At 320, 768, 1024, and 1440 CSS pixels the page has correct landmarks and heading order,
+- [x] At 320, 768, 1024, and 1440 CSS pixels the page has correct landmarks and heading order,
       readable measure, visible keyboard focus, usable links, no horizontal overflow, successful
       document/assets, and a clean console.
-- [ ] Full tests, typecheck, build, lint, format, Remix routes, Remix Doctor, and patch hygiene pass;
+- [x] Full tests, typecheck, build, lint, format, Remix routes, Remix Doctor, and patch hygiene pass;
       every remaining diff belongs to the approved About capability.
 - [ ] Focused signed-off commits are published from `logan/codex-about-page`, and its draft PR is
       based on `logan/codex-rights-page` with the exact Rights head as its merge base.
 
 **Verification:**
 
-- [ ] `pnpm test && pnpm typecheck && pnpm build`
-- [ ] `pnpm exec oxlint . && pnpm exec oxfmt --check .`
-- [ ] `pnpm exec remix routes && pnpm exec remix doctor && git diff --check`
-- [ ] Real-browser keyboard, console, network, semantic, and overflow inspection at all four widths.
+- [x] `pnpm test && pnpm typecheck && pnpm build`
+- [x] `pnpm exec oxlint . && pnpm exec oxfmt --check .`
+- [x] `pnpm exec remix routes && pnpm exec remix doctor && git diff --check`
+- [x] Real-browser keyboard, console, network, semantic, and overflow inspection at all four widths.
 - [ ] Inspect the staged diff and secret scan, then verify the remote PR diff and stack metadata.
 
 **Dependencies:** Tasks 1 and 2 plus the complete-server-contract checkpoint.
@@ -126,9 +126,18 @@ record evidence, create signed-off Conventional Commits, and publish the final d
 
 **Estimated scope:** Small to medium — 1 to 5 files.
 
+**Local verification evidence (2026-08-18):** The full suite passed 104/104 tests; typecheck,
+Tailwind build, repository-wide Oxlint, Oxfmt across 102 files, Remix routes, `git diff --check`, and
+Remix Doctor all passed, with Doctor reporting zero warnings and zero advice. Isolated Playwright
+checks at 320, 768, 1024, and 1440 CSS pixels found exact viewport/scroll-width matches, one main,
+one h1, five sections, ordered h1/h2 headings, logical desktop and mobile-menu focus order, visible
+focus outlines, successful document/assets, and zero console errors or warnings. Final review moved
+the decorative step numbers inside their terms, confirmed each process group contains only `DT` and
+`DD`, normalized the last checklist divider, and raised both standalone text-link targets to 44px.
+
 ## Checkpoint: Ready for review
 
 - [ ] Every approved spec success criterion has evidence.
 - [ ] Every task and verification item above is checked with recorded evidence.
-- [ ] No dependency, schema, environment, external-service, or personal-data change exists.
+- [x] No dependency, schema, environment, external-service, or personal-data change exists.
 - [ ] The final draft stacked PR is open and ready for human review.
