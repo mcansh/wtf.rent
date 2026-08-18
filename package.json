@@ -12,6 +12,7 @@
     "hmr:server": "NODE_ENV=development node --env-file-if-exists .env hmr.ts",
     "hmr": "pnpm run --parallel /^hmr:.*/",
     "start": "NODE_ENV=production node --import remix/node-tsx server.ts",
+    "pretest": "node --run build",
     "test": "NODE_ENV=test node --import remix/node-tsx --test 'app/**/*.test.{ts,tsx}'",
     "typecheck": "tsc --noEmit",
     "format": "oxfmt",
