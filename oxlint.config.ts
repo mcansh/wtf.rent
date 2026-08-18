@@ -37,9 +37,7 @@ export default defineConfig({
     builtin: true,
   },
   ignorePatterns: IGNORE_PATTERNS,
-  jsPlugins: [
-    { name: "anti-slop", specifier: "./tools/oxlint/anti-slop/index.ts" },
-  ],
+  jsPlugins: [{ name: "anti-slop", specifier: "./tools/oxlint/anti-slop/index.ts" }],
   options: {
     typeAware: true,
   },
