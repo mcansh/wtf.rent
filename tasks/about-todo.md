@@ -106,7 +106,7 @@ record evidence, create signed-off Conventional Commits, and publish the final d
       document/assets, and a clean console.
 - [x] Full tests, typecheck, build, lint, format, Remix routes, Remix Doctor, and patch hygiene pass;
       every remaining diff belongs to the approved About capability.
-- [ ] Focused signed-off commits are published from `logan/codex-about-page`, and its draft PR is
+- [x] Focused signed-off commits are published from `logan/codex-about-page`, and its draft PR is
       based on `logan/codex-rights-page` with the exact Rights head as its merge base.
 
 **Verification:**
@@ -115,7 +115,7 @@ record evidence, create signed-off Conventional Commits, and publish the final d
 - [x] `pnpm exec oxlint . && pnpm exec oxfmt --check .`
 - [x] `pnpm exec remix routes && pnpm exec remix doctor && git diff --check`
 - [x] Real-browser keyboard, console, network, semantic, and overflow inspection at all four widths.
-- [ ] Inspect the staged diff and secret scan, then verify the remote PR diff and stack metadata.
+- [x] Inspect the staged diff and secret scan, then verify the remote PR diff and stack metadata.
 
 **Dependencies:** Tasks 1 and 2 plus the complete-server-contract checkpoint.
 
@@ -135,9 +135,16 @@ focus outlines, successful document/assets, and zero console errors or warnings.
 the decorative step numbers inside their terms, confirmed each process group contains only `DT` and
 `DD`, normalized the last checklist divider, and raised both standalone text-link targets to 44px.
 
+**Publication evidence (2026-08-18):** Draft PR
+[#31](https://github.com/mcansh/wtf.rent/pull/31) is open and mergeable from
+`logan/codex-about-page` into `logan/codex-rights-page`. GitHub's remote comparison reports the exact
+Rights head `cfc5d21b0b82766e25cb987760d6078ca7cf043a` as the merge base, zero commits behind, and an
+About-only six-file diff. Every published feature commit carries a DCO signoff. Staged patch checks
+and candidate-secret scans passed; CodeRabbit was pending at the publication checkpoint.
+
 ## Checkpoint: Ready for review
 
-- [ ] Every approved spec success criterion has evidence.
-- [ ] Every task and verification item above is checked with recorded evidence.
+- [x] Every approved spec success criterion has evidence.
+- [x] Every task and verification item above is checked with recorded evidence.
 - [x] No dependency, schema, environment, external-service, or personal-data change exists.
-- [ ] The final draft stacked PR is open and ready for human review.
+- [x] The final draft stacked PR is open and ready for human review.
