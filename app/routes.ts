@@ -1,4 +1,4 @@
-import { form, get, post, resource, route } from "remix/routes"
+import { form, get, post, resources, route } from "remix/routes"
 
 export const assetPrefix = "/assets"
 
@@ -9,7 +9,7 @@ export const routes = route({
   join: form("/join"),
   logout: post("/logout"),
   health: "/health",
-  post: resource("/posts", {}),
+  post: resources("/posts", { exclude: ["index"] }),
   profile: "/profile",
 
   directory: "/directory",

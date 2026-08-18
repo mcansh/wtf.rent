@@ -1,6 +1,18 @@
 import { belongsTo, column as c, hasMany, table } from "remix/data-table"
 import type { ColumnBuilder, TableRow } from "remix/data-table"
 
+export const REPORT_CATEGORIES = [
+  "MAINTENANCE",
+  "RENT_INCREASE",
+  "FEES_OR_DEPOSIT",
+  "SAFETY",
+  "COMMUNICATION",
+  "GOOD_EXPERIENCE",
+  "OTHER",
+] as const
+
+export const REPORT_STATUSES = ["PUBLISHED", "HIDDEN"] as const
+
 function timestamp() {
   // SAFETY: The PostgreSQL driver returns timestamp columns as Date objects.
   return c.timestamp({ precision: 3 }) as ColumnBuilder<Date>
@@ -32,6 +44,14 @@ export const posts = table({
     id: c.text().notNull().primaryKey(),
     title: c.text().notNull(),
     content: c.text().notNull(),
+    address: c.text().nullable(),
+    city: c.text().nullable(),
+    region: c.text().nullable(),
+    landlordName: c.text().nullable(),
+    category: c.enum(REPORT_CATEGORIES).nullable(),
+    rating: c.integer().nullable().check('"rating" between 1 and 5', "Post_rating_check"),
+    experienceConfirmedAt: timestamp().nullable(),
+    status: c.enum(REPORT_STATUSES).notNull().default("PUBLISHED"),
     createdAt: timestamp().notNull().defaultNow(),
     updatedAt: timestamp().notNull(),
     authorId: c
