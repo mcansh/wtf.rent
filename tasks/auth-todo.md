@@ -10,7 +10,7 @@
 - [x] Task 2: Harden auth helpers and add failed-login throttling
   - Acceptance: Email and return paths normalize safely; guest protection works; the bounded
     throttle records, expires, reports retry time, and resets deterministically; missing users
-    receive dummy bcrypt work.
+    return without a runtime fallback password hash.
   - Verify: `pnpm test -- app/middleware/auth.test.ts`; `pnpm typecheck`.
   - Files: `app/bcrypt.ts`, `app/middleware/auth.ts`, `app/middleware/auth.test.ts`,
     `app/router.ts`, `test/auth.ts`.
