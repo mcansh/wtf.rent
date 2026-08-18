@@ -122,8 +122,8 @@ working mobile-menu keyboard navigation with visible focus, successful static re
 horizontal overflow, and zero console errors or warnings. Full-page review at 1440 pixels found no
 visual defects. The five-axis code review found no blocking issues.
 The staged verification diff passed patch and secret-pattern scans. Draft PR #27 is mergeable and
-targets `logan/codex-directory-page`; its merge base is the exact Directory head, it is four commits
-ahead and zero behind, and its seven-file diff contains only the approved Rights capability.
+targets `logan/codex-directory-page`; its merge base is the exact Directory head, its history is a
+direct descendant of that head, and its seven-file diff contains only the approved Rights capability.
 
 **Dependencies:** Tasks 1 and 2 plus the complete-server-contract checkpoint.
 
