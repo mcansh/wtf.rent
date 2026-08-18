@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto"
 
 import { createCredentialsAuthProvider } from "remix/auth"
+import * as s from "remix/data-schema"
 import { Database } from "remix/data-table"
-import type { AuthState } from "remix/middleware/auth"
 import {
   Auth,
   auth,
@@ -12,6 +12,7 @@ import {
 import { redirect } from "remix/response/redirect"
 import type { Middleware } from "remix/router"
 import type { Route } from "remix/routes"
+import type { Session } from "remix/session"
 
 import { DUMMY_PASSWORD_HASH, verifyPassword } from "../bcrypt.ts"
 import type { User } from "../data/schema.ts"
@@ -21,6 +22,10 @@ import { routes } from "../routes.ts"
 interface AuthSession {
   userId: string
 }
+
+const authSessionSchema = s.object({
+  userId: s.string(),
+})
 
 export interface LoginThrottleOptions {
   maxAttempts?: number
@@ -131,7 +136,7 @@ export function loadAuth() {
     schemes: [
       createSessionAuthScheme<User, AuthSession>({
         read(session) {
-          return parseAuthSession(session.get("auth"))
+          return parseAuthSession(session)
         },
         async verify(value, context) {
           let db = context.get(Database)
@@ -211,8 +216,8 @@ export function requireGuest(options?: RequireGuestOptions): Middleware {
   let redirectTo = options?.redirectTo ?? routes.home
 
   return (context, next) => {
-    let currentAuth = context.get(Auth) as AuthState<User>
-    if (currentAuth.ok) {
+    let currentAuth = context.get(Auth)
+    if (currentAuth?.ok) {
       return redirect(redirectTo.href(), 303)
     }
 
@@ -232,16 +237,9 @@ export function getLoginRedirectURL(url: URL, route: Route<any, any> = routes.lo
   })
 }
 
-export function parseAuthSession(value: unknown): AuthSession | null {
-  if (typeof value !== "object" || value == null) {
-    return null
-  }
-
-  if (!("userId" in value) || typeof value.userId !== "string") {
-    return null
-  }
-
-  return { userId: value.userId }
+export function parseAuthSession(session: Session): AuthSession | null {
+  let parsed = s.parseSafe(authSessionSchema, session.get("auth"))
+  return parsed.success ? parsed.value : null
 }
 
 export function normalizeEmail(email: string): string {

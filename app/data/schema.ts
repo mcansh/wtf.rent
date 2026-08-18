@@ -2,7 +2,7 @@ import { belongsTo, column as c, hasMany, table } from "remix/data-table"
 import type { ColumnBuilder, TableRow } from "remix/data-table"
 
 function timestamp() {
-  // The PostgreSQL driver returns timestamp columns as Date objects.
+  // SAFETY: The PostgreSQL driver returns timestamp columns as Date objects.
   return c.timestamp({ precision: 3 }) as ColumnBuilder<Date>
 }
 

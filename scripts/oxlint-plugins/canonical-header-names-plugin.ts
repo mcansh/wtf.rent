@@ -1,15 +1,15 @@
 import { definePlugin, defineRule } from "@oxlint/plugins"
 import type { Context, ESTree, Fixer } from "@oxlint/plugins"
 
-const HeaderWordCasingExceptions: Record<string, string> = {
-  ct: "CT",
-  dpop: "DPoP",
-  etag: "ETag",
-  te: "TE",
-  www: "WWW",
-  x: "X",
-  xss: "XSS",
-}
+const headerWordCasingExceptions = new Map([
+  ["ct", "CT"],
+  ["dpop", "DPoP"],
+  ["etag", "ETag"],
+  ["te", "TE"],
+  ["www", "WWW"],
+  ["x", "X"],
+  ["xss", "XSS"],
+])
 
 const headerNamePattern = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/
 const headerMethods = new Set(["append", "delete", "get", "has", "set"])
@@ -18,12 +18,16 @@ function canonicalHeaderName(name: string): string {
   return name
     .toLowerCase()
     .split("-")
-    .map((word) => HeaderWordCasingExceptions[word] || word.charAt(0).toUpperCase() + word.slice(1))
+    .map(
+      (word) =>
+        headerWordCasingExceptions.get(word) ?? word.charAt(0).toUpperCase() + word.slice(1),
+    )
     .join("-")
 }
 
-function isStringLiteral(node: ESTree.Argument): node is ESTree.StringLiteral {
-  return node.type === "Literal" && typeof node.value === "string"
+function isStringLiteral(node: ESTree.Node): node is ESTree.StringLiteral {
+  if (node.type !== "Literal" || node.raw == null) return false
+  return node.raw.startsWith('"') || node.raw.startsWith("'")
 }
 
 function isStaticMemberExpression(node: ESTree.Expression): node is ESTree.StaticMemberExpression {
@@ -74,7 +78,7 @@ function getStaticPropertyName(node: ESTree.ObjectProperty): string | null {
     return node.key.name
   }
 
-  if (node.key.type === "Literal" && typeof node.key.value === "string") {
+  if (isStringLiteral(node.key)) {
     return node.key.value
   }
 
@@ -95,7 +99,7 @@ function getHeaderPropertyKeyFixText(
 function isHeaderPropertyKey(
   node: ESTree.PropertyKey,
 ): node is ESTree.IdentifierName | ESTree.StringLiteral {
-  return node.type === "Identifier" || (node.type === "Literal" && typeof node.value === "string")
+  return node.type === "Identifier" || isStringLiteral(node)
 }
 
 function reportHeaderName(

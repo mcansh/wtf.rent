@@ -31,6 +31,11 @@ const joinSchema = f.object({
   confirm_password: f.field(s.string().pipe(minLength(8), maxLength(128))),
 })
 
+const duplicateUserErrorSchema = s.object({
+  code: s.literal("23505"),
+  constraint: s.enum_(["User_email_key", "User_username_key"]),
+})
+
 export const join = createController(routes.join, {
   middleware: [requireGuest()],
   actions: {
@@ -184,23 +189,12 @@ function JoinPage(handle: Handle<JoinPageProps>) {
   }
 }
 
-function getDuplicateUserField(error: unknown): "email" | "username" | null {
-  let databaseError = error instanceof DataTableDatabaseError ? error.cause : error
+function getDuplicateUserField(cause: unknown): "email" | "username" | null {
+  let databaseCause = cause instanceof DataTableDatabaseError ? cause.cause : cause
+  let parsed = s.parseSafe(duplicateUserErrorSchema, databaseCause)
+  if (!parsed.success) return null
 
-  if (
-    typeof databaseError !== "object" ||
-    databaseError == null ||
-    !("code" in databaseError) ||
-    !("constraint" in databaseError)
-  ) {
-    return null
-  }
-
-  if (databaseError.code !== "23505") return null
-  if (databaseError.constraint === "User_email_key") return "email"
-  if (databaseError.constraint === "User_username_key") return "username"
-
-  return null
+  return parsed.value.constraint === "User_email_key" ? "email" : "username"
 }
 
 function getIssueMessages(issues: ReadonlyArray<s.Issue> | undefined, fieldName: string): string[] {

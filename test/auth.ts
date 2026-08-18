@@ -1,13 +1,45 @@
 import { createCookie } from "remix/cookie"
 import type { Cookie } from "remix/cookie"
-import { DataTableDatabaseError } from "remix/data-table"
-import type { Database } from "remix/data-table"
+import * as s from "remix/data-schema"
+import { Database, getTableName } from "remix/data-table"
+import type {
+  DataManipulationOperation,
+  DataManipulationRequest,
+  DataManipulationResult,
+  DatabaseCapabilities,
+  DatabaseDriver,
+  Predicate,
+  TableRef,
+  TransactionToken,
+} from "remix/data-table"
 import type { Session, SessionStorage } from "remix/session"
 import { createMemorySessionStorage } from "remix/session-storage/memory"
 
 import type { User } from "../app/data/schema.ts"
 import type { LoginThrottle } from "../app/middleware/auth.ts"
 import { createAppRouter } from "../app/router.ts"
+
+const fakeDatabaseCapabilities = {
+  migrationLock: false,
+  returning: true,
+  savepoints: false,
+  transactionalDdl: false,
+  upsert: false,
+} as const satisfies DatabaseCapabilities
+
+const fakeUserRowSchema = s.object({
+  id: s.string(),
+  username: s.string(),
+  email: s.string(),
+  password: s.string(),
+  createdAt: s.instanceof_(Date),
+  updatedAt: s.instanceof_(Date),
+})
+
+const userColumns = new Set(["id", "username", "email", "password", "createdAt", "updatedAt"])
+
+type FakeInsertOperation = Extract<DataManipulationOperation, { kind: "insert" }>
+type FakeSelectOperation = Extract<DataManipulationOperation, { kind: "select" }>
 
 export interface AuthTestRouterOptions {
   database?: Database
@@ -28,68 +60,161 @@ export interface CsrfFormRequest {
   token: string
 }
 
-export class FakeUserDatabase {
+class FakeUniqueConstraintError extends Error {
+  readonly code = "23505"
+
+  constructor(readonly constraint: string) {
+    super("duplicate key value violates unique constraint")
+  }
+}
+
+class FakeUserDatabaseDriver implements DatabaseDriver<"test"> {
+  readonly capabilities = fakeDatabaseCapabilities
+  readonly dialect = "test"
   readonly users: User[]
 
   constructor(users: User[] = []) {
     this.users = [...users]
   }
 
-  asDatabase(): Database {
-    return this as unknown as Database
+  async execute(request: DataManipulationRequest): Promise<DataManipulationResult> {
+    switch (request.operation.kind) {
+      case "insert":
+        return this.#insert(request.operation)
+      case "select":
+        return this.#select(request.operation)
+      default:
+        throw new Error(`Unsupported fake database operation: ${request.operation.kind}`)
+    }
   }
 
-  async find(_table: unknown, id: string): Promise<User | null> {
-    return this.users.find((user) => user.id === id) ?? null
+  async executeScript(_sql: string, _transaction?: TransactionToken): Promise<void> {
+    throw new Error("Fake user database does not execute SQL scripts")
   }
 
-  async findOne(_table: unknown, options: { where: { email?: string } }): Promise<User | null> {
-    let email = options.where.email
-    let username = (options.where as { username?: string }).username
-    return (
-      this.users.find(
-        (user) =>
-          (email !== undefined && user.email === email) ||
-          (username !== undefined && user.username === username),
-      ) ?? null
-    )
+  async beginTransaction(): Promise<TransactionToken> {
+    throw new Error("Fake user database does not support transactions")
   }
 
-  async create(
-    _table: unknown,
-    values: Partial<User>,
-    _options: { returnRow: true },
-  ): Promise<User> {
-    if (this.users.some((user) => user.email === values.email)) {
-      throw new DataTableDatabaseError("Database execution failed", {
-        cause: new FakeUniqueConstraintError("User_email_key"),
-      })
+  async commitTransaction(_token: TransactionToken): Promise<void> {
+    throw new Error("Fake user database does not support transactions")
+  }
+
+  async rollbackTransaction(_token: TransactionToken): Promise<void> {
+    throw new Error("Fake user database does not support transactions")
+  }
+
+  async hasTable(table: TableRef): Promise<boolean> {
+    return table.name === "User"
+  }
+
+  async hasColumn(table: TableRef, column: string): Promise<boolean> {
+    return table.name === "User" && userColumns.has(column)
+  }
+
+  async createSavepoint(_token: TransactionToken, _name: string): Promise<void> {
+    throw new Error("Fake user database does not support savepoints")
+  }
+
+  async rollbackToSavepoint(_token: TransactionToken, _name: string): Promise<void> {
+    throw new Error("Fake user database does not support savepoints")
+  }
+
+  async releaseSavepoint(_token: TransactionToken, _name: string): Promise<void> {
+    throw new Error("Fake user database does not support savepoints")
+  }
+
+  async wipe(): Promise<void> {
+    this.users.length = 0
+  }
+
+  close(): void {}
+
+  #insert(operation: FakeInsertOperation): DataManipulationResult {
+    this.#assertUsersTable(operation)
+    let user = s.parse(fakeUserRowSchema, operation.values)
+
+    if (this.users.some((existingUser) => existingUser.email === user.email)) {
+      throw new FakeUniqueConstraintError("User_email_key")
     }
-    if (this.users.some((user) => user.username === values.username)) {
-      throw new DataTableDatabaseError("Database execution failed", {
-        cause: new FakeUniqueConstraintError("User_username_key"),
-      })
+    if (this.users.some((existingUser) => existingUser.username === user.username)) {
+      throw new FakeUniqueConstraintError("User_username_key")
     }
 
-    let now = new Date("2026-08-17T00:00:00.000Z")
-    let user: User = {
-      id: values.id ?? `user-${this.users.length + 1}`,
-      username: String(values.username),
-      email: String(values.email),
-      password: String(values.password),
-      createdAt: values.createdAt ?? now,
-      updatedAt: values.updatedAt ?? now,
-    }
     this.users.push(user)
-    return user
+    if (operation.returning == null) return { affectedRows: 1 }
+
+    return { affectedRows: 1, rows: [{ ...user }] }
+  }
+
+  #select(operation: FakeSelectOperation): DataManipulationResult {
+    this.#assertUsersTable(operation)
+    if (operation.select !== "*") {
+      throw new Error("Fake user database only supports full-row selections")
+    }
+
+    let offset = operation.offset ?? 0
+    let end = operation.limit == null ? undefined : offset + operation.limit
+    let rows = this.users
+      .filter((user) => operation.where.every((predicate) => matchesUser(user, predicate)))
+      .slice(offset, end)
+      .map((user) => ({ ...user }))
+
+    return { rows }
+  }
+
+  #assertUsersTable(operation: FakeInsertOperation | FakeSelectOperation): void {
+    if (getTableName(operation.table) !== "User") {
+      throw new Error(`Fake user database cannot access table ${getTableName(operation.table)}`)
+    }
   }
 }
 
-class FakeUniqueConstraintError extends Error {
-  readonly code = "23505"
+export class FakeUserDatabase extends Database<"test"> {
+  readonly #testDriver: FakeUserDatabaseDriver
 
-  constructor(readonly constraint: string) {
-    super("duplicate key value violates unique constraint")
+  constructor(users: User[] = []) {
+    let driver = new FakeUserDatabaseDriver(users)
+    super(driver, { now: () => new Date("2026-08-17T00:00:00.000Z") })
+    this.#testDriver = driver
+  }
+
+  get users(): User[] {
+    return this.#testDriver.users
+  }
+}
+
+function matchesUser(user: User, predicate: Predicate): boolean {
+  if (predicate.type === "logical") {
+    return predicate.operator === "and"
+      ? predicate.predicates.every((child) => matchesUser(user, child))
+      : predicate.predicates.some((child) => matchesUser(user, child))
+  }
+
+  if (
+    predicate.type !== "comparison" ||
+    predicate.operator !== "eq" ||
+    predicate.valueType !== "value"
+  ) {
+    throw new Error("Fake user database only supports equality predicates")
+  }
+
+  return getUserColumnValue(user, predicate.column) === predicate.value
+}
+
+function getUserColumnValue(user: User, column: string): string {
+  switch (column) {
+    case "id":
+    case "User.id":
+      return user.id
+    case "email":
+    case "User.email":
+      return user.email
+    case "username":
+    case "User.username":
+      return user.username
+    default:
+      throw new Error(`Fake user database cannot filter by column ${column}`)
   }
 }
 
@@ -105,7 +230,7 @@ export function createAuthTestApp(options: AuthTestRouterOptions = {}): AuthTest
   let database =
     options.database instanceof FakeUserDatabase ? options.database : new FakeUserDatabase()
   let router = createAppRouter({
-    database: options.database ?? database.asDatabase(),
+    database: options.database ?? database,
     loginThrottle: options.loginThrottle,
     sessionCookie: cookie,
     sessionStorage: storage,
@@ -189,5 +314,7 @@ export async function readSessionCookie(
 }
 
 function getRequestCookie(setCookie: string): string {
-  return setCookie.split(";", 1)[0]!
+  let cookie = setCookie.split(";", 1)[0]
+  if (cookie == null) throw new Error("Expected a cookie header value")
+  return cookie
 }
