@@ -54,7 +54,7 @@ export interface AppRouterOptions {
 }
 
 export function createAppRouter(options: AppRouterOptions = {}) {
-  let middleware = []
+  let middleware: Middleware<any>[] = []
 
   if (process.env.NODE_ENV === "development") {
     middleware.push(logger())
@@ -72,11 +72,11 @@ export function createAppRouter(options: AppRouterOptions = {}) {
         "img-src": [SELF],
         "manifest-src": [SELF],
       },
-      // "Cross-Origin-Embedder-Policy": "require-corp",
-      // "Cross-Origin-Opener-Policy": "same-origin",
-      // "Cross-Origin-Resource-Policy": "same-origin",
-      // "Referrer-Policy": "origin-when-cross-origin",
-      // "Strict-Transport-Security": true,
+      "Cross-Origin-Embedder-Policy": "require-corp",
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Resource-Policy": "same-origin",
+      "Referrer-Policy": "origin-when-cross-origin",
+      "Strict-Transport-Security": true,
       "X-Content-Type-Options": "nosniff",
       "X-DNS-Prefetch-Control": "on",
       "X-Frame-Options": "DENY",
@@ -95,7 +95,6 @@ export function createAppRouter(options: AppRouterOptions = {}) {
   middleware.push(loadLoginThrottle(options.loginThrottle))
   middleware.push(loadAssetEntry())
 
-  // @ts-expect-error middleware types on staticFiles
   let appRouter = createRouter<AppContext>({ middleware })
 
   appRouter.map(routes, controller)

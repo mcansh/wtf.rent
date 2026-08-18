@@ -7,7 +7,7 @@ minimumReleaseAgeExclude:
   - "@remix-run/async-context-middleware@0.3.5"
   - "@remix-run/auth-middleware@0.2.5"
   - "@remix-run/auth@0.2.7"
-  - "@remix-run/cli@0.4.0"
+  - "@remix-run/cli@0.4.0 || 0.5.0"
   - "@remix-run/compression-middleware@0.1.13"
   - "@remix-run/cookie@0.6.0"
   - "@remix-run/cop-middleware@0.1.8"
@@ -32,8 +32,9 @@ minimumReleaseAgeExclude:
   - "@remix-run/session-middleware@0.4.0"
   - "@remix-run/test@0.6.0"
   - "@remix-run/ui-hmr@0.1.0"
-  - "@remix-run/ui@0.5.0"
-  - remix@3.0.0-beta.6
+  - "@remix-run/ui@0.5.0 || 0.7.0"
+  - remix@3.0.0-beta.6 || 3.0.0-beta.10
+  - "@remix-run/static-middleware@0.4.14"
 namedRegistries:
   npmjs: https://npm-proxy.mcansh.workers.dev/
 registry: https://npm-proxy.mcansh.workers.dev/
