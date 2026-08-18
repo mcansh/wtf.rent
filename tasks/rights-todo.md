@@ -99,21 +99,28 @@ issues, record evidence, create a signed-off Conventional Commit, and publish th
 
 **Acceptance criteria:**
 
-- [ ] At 320, 768, 1024, and 1440 CSS pixels the page has correct landmark and heading order,
+- [x] At 320, 768, 1024, and 1440 CSS pixels the page has correct landmark and heading order,
       readable measure, visible keyboard focus, usable links, no horizontal overflow, and a clean
       console.
-- [ ] Full tests, typecheck, build, lint, format, Remix routes, Remix Doctor, and patch hygiene all
+- [x] Full tests, typecheck, build, lint, format, Remix routes, Remix Doctor, and patch hygiene all
       pass; every remaining diff belongs to the approved Rights capability.
 - [ ] A focused signed-off commit is published from `logan/codex-rights-page`, and its draft PR is
       based on `logan/codex-directory-page` with the expected base/head relationship.
 
 **Verification:**
 
-- [ ] `pnpm test && pnpm typecheck && pnpm build`
-- [ ] `pnpm exec oxlint . && pnpm exec oxfmt --check .`
-- [ ] `pnpm exec remix routes && pnpm exec remix doctor && git diff --check`
-- [ ] Real-browser keyboard, console, network, semantic, and overflow inspection at all four widths.
+- [x] `pnpm test && pnpm typecheck && pnpm build`
+- [x] `pnpm exec oxlint . && pnpm exec oxfmt --check .`
+- [x] `pnpm exec remix routes && pnpm exec remix doctor && git diff --check`
+- [x] Real-browser keyboard, console, network, semantic, and overflow inspection at all four widths.
 - [ ] Inspect the staged diff and secret scan, then verify the remote PR diff and stack metadata.
+
+**Evidence:** All 102 tests, typecheck, production build, repository-wide Oxlint, repository-wide
+Oxfmt, Remix routes, Remix Doctor, and patch checks pass. Isolated Chromium review at 320, 768,
+1024, and 1440 CSS pixels confirmed semantic headings and landmarks, readable responsive layouts,
+working mobile-menu keyboard navigation with visible focus, successful static requests, no
+horizontal overflow, and zero console errors or warnings. Full-page review at 1440 pixels found no
+visual defects. The five-axis code review found no blocking issues.
 
 **Dependencies:** Tasks 1 and 2 plus the complete-server-contract checkpoint.
 
