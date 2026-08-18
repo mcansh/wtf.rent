@@ -275,7 +275,7 @@ typecheck`, task-scoped Oxlint, task-scoped Oxfmt check, and `git diff --check` 
     state and existing confirmation, completes legacy confirmation, and leaves public projections
     address-free. All 28 focused tests and `pnpm typecheck` passed; `git diff --check` is clean.
 
-- [ ] Task 18: Ship the authorized native report edit/update flow
+- [x] Task 18: Ship the authorized native report edit/update flow
   - Acceptance: An owner gets a prefilled accessible form and can submit native
     `POST + _method=PUT`; guests redirect; non-owner/hidden/missing targets return the standard
     `404`; CSRF and validation failures write nothing; success redirects `303` to public detail.
@@ -284,6 +284,12 @@ typecheck`, task-scoped Oxlint, task-scoped Oxfmt check, and `git diff --check` 
   - Files: `app/router.ts`, `app/actions/post/controller.tsx`,
     `app/actions/post/edit-report.tsx`, `app/actions/post/public/report-form.tsx`,
     `app/actions/post/controller.test.tsx`.
+  - Evidence: Three RED controller tests first observed the edit placeholder `404` and missing CSRF
+    form. The GREEN flow adds form-data method override before CSRF, an owner-only prefilled edit
+    page, shared create/edit form states, standard `404` responses for non-owner/hidden/missing
+    targets, linked `422` validation, protected-field allowlisting, and a `303` detail redirect.
+    All 13 controller tests, `pnpm typecheck`, `pnpm build`, task-scoped Oxlint/Oxfmt checks, and
+    `git diff --check` passed.
 
 - [ ] Task 19: Prove comment validation and public/trusted persistence
   - Acceptance: Comment content trims to 1–1,000 characters; writes derive protected fields;

@@ -5,6 +5,7 @@ import type { Database } from "remix/data-table"
 import { asyncContext } from "remix/middleware/async-context"
 import { csrf } from "remix/middleware/csrf"
 import { formData } from "remix/middleware/form-data"
+import { methodOverride } from "remix/middleware/method-override"
 import { session } from "remix/middleware/session"
 import { staticFiles } from "remix/middleware/static"
 import type { Middleware, MiddlewareContext, RequestContext } from "remix/router"
@@ -30,6 +31,7 @@ export type AppContext = MiddlewareContext<
   [
     ReturnType<typeof asyncContext>,
     ReturnType<typeof formData>,
+    ReturnType<typeof methodOverride>,
     ReturnType<typeof session>,
     ReturnType<typeof csrf>,
     // ReturnType<typeof staticFiles>,
@@ -84,6 +86,7 @@ export function createAppRouter(options: AppRouterOptions = {}) {
   )
   middleware.push(staticFiles("./public", { index: false }))
   middleware.push(formData())
+  middleware.push(methodOverride())
   middleware.push(
     session(options.sessionCookie ?? sessionCookie, options.sessionStorage ?? sessionStorage),
   )
