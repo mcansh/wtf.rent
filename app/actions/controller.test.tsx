@@ -356,6 +356,153 @@ describe("home report discovery", () => {
   })
 })
 
+describe("public directory", () => {
+  it("renders grouped public entries and links them to the report feed without private data", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let author = await seedReportUser(app, {
+      email: "directory-private@example.test",
+      password: "directory-private-password",
+    })
+    await seedStructuredReport(app, {
+      id: "directory-public-one",
+      authorId: author.id,
+      landlordName: "Maple & Co",
+      address: "919 Private Directory Marker",
+      city: "Detroit",
+      region: "MI",
+    })
+    await seedStructuredReport(app, {
+      id: "directory-public-two",
+      authorId: author.id,
+      landlordName: "Maple & Co",
+      city: "Detroit",
+      region: "MI",
+    })
+    await seedStructuredReport(app, {
+      id: "directory-hidden",
+      authorId: author.id,
+      landlordName: "Hidden Homes",
+      status: "HIDDEN",
+    })
+    await seedLegacyPost(app, { id: "directory-legacy", authorId: author.id })
+
+    let response = await app.router.fetch(request(routes.directory.href()))
+    let html = await response.text()
+
+    assert.equal(response.status, 200)
+    assert.match(html, /href="\/directory" aria-current="page"/)
+    assert.match(html, /<summary[^>]*>\s*Menu\s*<\/summary>/)
+    assert.match(html, /<form[^>]*method="get"[^>]*action="\/directory"[^>]*role="search"/)
+    assert.match(html, /<input[^>]*name="q"[^>]*type="search"/)
+    assert.match(html, /Browse the public record/)
+    assert.match(html, /Maple &amp; Co/)
+    assert.match(html, /Detroit, MI/)
+    assert.match(html, /2 public reports/)
+    assert.match(html, /href="\/\?q=Maple\+%26\+Co#feed"/)
+    assert.doesNotMatch(
+      html,
+      /919 Private Directory Marker|directory-private@example\.test|directory-private-password|Hidden Homes|directory-legacy/,
+    )
+  })
+
+  it("searches public directory fields through bounded native URL state", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let author = await seedReportUser(app)
+    await seedStructuredReport(app, {
+      id: "directory-detroit",
+      authorId: author.id,
+      landlordName: "Detroit Doorways",
+      city: "Detroit",
+      region: "MI",
+    })
+    await seedStructuredReport(app, {
+      id: "directory-grand-rapids",
+      authorId: author.id,
+      landlordName: "River Homes",
+      city: "Grand Rapids",
+      region: "MI",
+    })
+
+    let response = await app.router.fetch(
+      request(routes.directory.href(undefined, { searchParams: { q: "  DETROIT  " } })),
+    )
+    let html = await response.text()
+
+    assert.equal(response.status, 200)
+    assert.match(html, /name="q"[^>]*value="DETROIT"/)
+    assert.match(html, /Detroit Doorways/)
+    assert.doesNotMatch(html, /River Homes/)
+    assert.match(html, /Showing 1–1 of 1 directory entry matching “DETROIT”\./)
+    assert.match(html, /href="\/directory"[^>]*>\s*Clear search\s*<\/a>/)
+  })
+
+  it("renders distinct all-empty, no-match, and out-of-range states", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+
+    let emptyResponse = await app.router.fetch(request(routes.directory.href()))
+    let emptyHtml = await emptyResponse.text()
+    assert.equal(emptyResponse.status, 200)
+    assert.match(emptyHtml, /No directory entries have been published yet\./)
+
+    let author = await seedReportUser(app)
+    await seedStructuredReport(app, {
+      id: "directory-empty-state-source",
+      authorId: author.id,
+      landlordName: "Known Homes",
+    })
+
+    let noMatchResponse = await app.router.fetch(
+      request(routes.directory.href(undefined, { searchParams: { q: "Unknown" } })),
+    )
+    let noMatchHtml = await noMatchResponse.text()
+    assert.match(noMatchHtml, /No directory entries match “Unknown”\./)
+    assert.match(noMatchHtml, /href="\/directory"[^>]*>\s*Clear search\s*<\/a>/)
+
+    let outOfRangeResponse = await app.router.fetch(
+      request(routes.directory.href(undefined, { searchParams: { page: "999" } })),
+    )
+    let outOfRangeHtml = await outOfRangeResponse.text()
+    assert.match(outOfRangeHtml, /Page 999 is beyond the available directory\./)
+    assert.match(outOfRangeHtml, /There is 1 directory entry on the record\./)
+    assert.match(outOfRangeHtml, /href="\/directory"[^>]*>\s*Back to the first page\s*<\/a>/)
+    assert.doesNotMatch(outOfRangeHtml, /rel="prev"|rel="next"/)
+  })
+
+  it("renders 24-entry pages with search-preserving native pagination", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let author = await seedReportUser(app)
+    for (let index = 1; index <= 25; index++) {
+      await seedStructuredReport(app, {
+        id: `directory-pagination-${String(index).padStart(2, "0")}`,
+        authorId: author.id,
+        landlordName: `Directory Homes ${String(index).padStart(2, "0")}`,
+      })
+    }
+
+    let firstResponse = await app.router.fetch(
+      request(routes.directory.href(undefined, { searchParams: { q: "Homes" } })),
+    )
+    let firstHtml = await firstResponse.text()
+    let secondResponse = await app.router.fetch(
+      request(routes.directory.href(undefined, { searchParams: { q: "Homes", page: "2" } })),
+    )
+    let secondHtml = await secondResponse.text()
+
+    assert.match(firstHtml, /Showing 1–24 of 25 directory entries matching “Homes”\./)
+    assert.match(firstHtml, /href="\/directory\?q=Homes&amp;page=2"[^>]*rel="next"/)
+    assert.doesNotMatch(firstHtml, /rel="prev"/)
+
+    assert.match(secondHtml, /Showing 25–25 of 25 directory entries matching “Homes”\./)
+    assert.match(secondHtml, /href="\/directory\?q=Homes"[^>]*rel="prev"/)
+    assert.doesNotMatch(secondHtml, /page=1|rel="next"/)
+    assert.match(secondHtml, /Page 2 of 2/)
+  })
+})
+
 function request(pathname: string, cookie?: string, method = "GET"): Request {
   let headers = new Headers()
   if (cookie) headers.set("Cookie", cookie)

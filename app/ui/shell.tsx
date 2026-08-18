@@ -23,24 +23,45 @@ function Shell(handle: Handle<{ children: RemixNode }>) {
   let csrfToken = user ? getCsrfToken(context) : null
 
   return () => (
-    <div className="bg-paper-50 text-ink-950 flex min-h-screen flex-col">
+    <div className="bg-paper-50 text-ink-950 isolate flex min-h-dvh flex-col">
       <header className="border-line-950 flex h-17.5 items-center justify-between gap-3 border-b-2 px-4 min-[541px]:px-5 min-[901px]:h-20.5 min-[901px]:px-[5.2vw]">
         <a href={routes.home.href()} aria-label="wtf.rent home">
           <Brand />
         </a>
         <nav
           aria-label="Primary"
-          className="flex items-center gap-3 text-[11px] font-bold min-[541px]:gap-5 min-[541px]:text-sm min-[901px]:gap-7"
+          className="flex min-w-0 items-center gap-2 text-sm font-bold min-[541px]:gap-4 min-[901px]:gap-7"
         >
-          <div className="hidden items-center gap-5 min-[541px]:flex min-[901px]:gap-7">
-            {NAV_ITEMS.map(([label, path], index) => {
+          <details className="group relative shrink-0 min-[901px]:hidden">
+            <summary className="border-ink-950 bg-paper-50 flex min-h-12 cursor-pointer list-none items-center border-[1.5px] px-3 hover:bg-blue-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 [&::-webkit-details-marker]:hidden">
+              Menu
+            </summary>
+            <div className="border-ink-950 bg-paper-50 absolute top-full right-0 z-30 mt-2 grid min-w-44 gap-1 border-[1.5px] p-2 shadow-[4px_4px_0_var(--color-ink-950)]">
+              {NAV_ITEMS.map(([label, path]) => {
+                let isActive = context.url.pathname === path
+                return (
+                  <a
+                    key={path}
+                    href={path}
+                    aria-current={isActive ? "page" : undefined}
+                    className="aria-[current=page]:bg-acid-100 px-3 py-2.5 hover:bg-blue-100 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-600"
+                  >
+                    {label}
+                  </a>
+                )
+              })}
+            </div>
+          </details>
+
+          <div className="hidden items-center gap-7 min-[901px]:flex">
+            {NAV_ITEMS.map(([label, path]) => {
               let isActive = context.url.pathname === path
               return (
                 <a
                   key={path}
                   href={path}
                   aria-current={isActive ? "page" : undefined}
-                  className={`${index === 0 ? "" : "hidden min-[901px]:inline"} decoration-2 underline-offset-4 hover:underline aria-[current=page]:underline`}
+                  className="decoration-2 underline-offset-4 hover:underline aria-[current=page]:underline"
                 >
                   {label}
                 </a>
@@ -49,11 +70,11 @@ function Shell(handle: Handle<{ children: RemixNode }>) {
           </div>
 
           {user && csrfToken ? (
-            <div className="flex items-center gap-3 min-[541px]:gap-4">
+            <div className="flex items-center gap-2 min-[541px]:gap-4">
               <a
                 href={routes.profile.href()}
                 aria-current={context.url.pathname === routes.profile.href() ? "page" : undefined}
-                className="decoration-2 underline-offset-4 hover:underline aria-[current=page]:underline"
+                className="inline-flex min-h-12 items-center decoration-2 underline-offset-4 hover:underline aria-[current=page]:underline"
               >
                 Profile
               </a>
@@ -68,16 +89,16 @@ function Shell(handle: Handle<{ children: RemixNode }>) {
               </form>
             </div>
           ) : (
-            <div className="flex items-center gap-3 min-[541px]:gap-4">
+            <div className="flex items-center gap-2 min-[541px]:gap-4">
               <a
                 href={routes.join.index.href()}
-                className="border-ink-950 bg-acid-100 hover:bg-acid-200 focus:ring-ink-950 border-[1.5px] px-2.5 py-1.5 focus:ring-2 focus:ring-offset-2 focus:outline-none min-[541px]:px-3"
+                className="border-ink-950 bg-acid-100 hover:bg-acid-200 inline-flex min-h-12 items-center border-[1.5px] px-2.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 min-[541px]:px-3"
               >
                 Join
               </a>
               <a
                 href={routes.login.index.href()}
-                className="decoration-2 underline-offset-4 hover:underline"
+                className="inline-flex min-h-12 items-center decoration-2 underline-offset-4 hover:underline"
               >
                 Sign in
               </a>
@@ -89,19 +110,19 @@ function Shell(handle: Handle<{ children: RemixNode }>) {
       <footer className="bg-ink-950 text-paper-50 flex flex-col gap-5 px-5 py-7 min-[541px]:flex-row min-[541px]:items-center min-[541px]:justify-between min-[901px]:px-[8vw]">
         <div>
           <Brand footer />
-          <p className="my-5 max-w-87.5 text-xs min-[901px]:my-0">
+          <p className="my-5 max-w-87.5 text-base/7 min-[901px]:my-0 sm:text-sm/6">
             Built by renters, for renters. Share responsibly and stick to what you know.
           </p>
-          <a className="text-acid-100 text-sm font-bold" href="/about">
+          <a className="text-acid-100 text-base font-bold sm:text-sm" href="/about">
             About wtf.rent →
           </a>
         </div>
-        <div className="text-sm font-bold">
+        <div className="text-base/7 font-bold sm:text-sm/6">
           Renting is local. Knowing your rights should be too.
         </div>
         <a
           href={routes.home.href()}
-          className="text-acid-100 flex items-center gap-1 text-sm font-bold"
+          className="text-acid-100 flex items-center gap-1 text-base font-bold sm:text-sm"
         >
           Back to the feed{" "}
           <svg
