@@ -1,6 +1,7 @@
 import type { Handle, SerializableObject } from "remix/ui"
 
 import { routes } from "../../../routes.ts"
+import { ReportSearch } from "./report-search.tsx"
 import type { ClientReportSummary } from "./review.tsx"
 import { ReportCard } from "./review.tsx"
 
@@ -44,30 +45,7 @@ export function HomePage(handle: Handle<HomePageProps>) {
               Firsthand reports from renters. The good, the bad, and the landlord specials.
             </p>
 
-            <form
-              className="border-ink-950 bg-paper-50 shadow-ink-950 flex h-13 max-w-140 items-center border-[1.5px] shadow-[4px_4px_0_var(--color-ink-950)] min-[901px]:h-13.5 min-[901px]:shadow-[5px_5px_0_var(--color-ink-950)]"
-              method="get"
-              action={`${routes.home.href()}#feed`}
-              role="search"
-            >
-              <span className="grid h-full place-items-center px-3 text-2xl" aria-hidden="true">
-                ⌕
-              </span>
-              <input
-                className="placeholder:text-ink-600 min-w-0 flex-1 border-0 bg-transparent text-base outline-none focus-visible:outline-none sm:text-sm"
-                name="q"
-                defaultValue={query}
-                maxLength={100}
-                placeholder="Search a landlord, city, region, or experience"
-                aria-label="Search renter reports"
-              />
-              <button
-                className="border-ink-950 bg-acid-100 hover:bg-acid-200 focus-visible:outline-ink-950 h-full border-0 border-l-[1.5px] px-3 font-bold focus-visible:outline-2 focus-visible:-outline-offset-3 min-[901px]:px-5"
-                type="submit"
-              >
-                Search
-              </button>
-            </form>
+            <ReportSearch query={query} />
 
             <div className="mt-6 flex flex-wrap items-center gap-4 text-sm">
               <a

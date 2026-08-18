@@ -10,6 +10,7 @@ export const routes = route({
   logout: post("/logout"),
   health: "/health",
   post: resources("/posts", { exclude: ["index"] }),
+  reportSuggestions: get("/reports/suggestions"),
   profile: "/profile",
 
   directory: "/directory",
