@@ -5,7 +5,6 @@ import type { Database } from "remix/data-table"
 import { asyncContext } from "remix/middleware/async-context"
 import { csrf } from "remix/middleware/csrf"
 import { formData } from "remix/middleware/form-data"
-import { logger } from "remix/middleware/logger"
 import { session } from "remix/middleware/session"
 import { staticFiles } from "remix/middleware/static"
 import type { Middleware, MiddlewareContext, RequestContext } from "remix/router"
@@ -22,6 +21,8 @@ import type { LoginThrottle } from "./middleware/auth.ts"
 import { loadAuth, loadLoginThrottle } from "./middleware/auth.ts"
 import { loadDatabase } from "./middleware/database.ts"
 import { render } from "./middleware/render.tsx"
+import type { RequestTelemetryOptions } from "./middleware/request-telemetry.ts"
+import { requestTelemetry } from "./middleware/request-telemetry.ts"
 import { sessionCookie, sessionStorage } from "./middleware/session.ts"
 import { routes } from "./routes.ts"
 
@@ -49,6 +50,7 @@ declare module "remix/router" {
 export interface AppRouterOptions {
   database?: Database
   loginThrottle?: LoginThrottle
+  requestTelemetry?: RequestTelemetryOptions
   sessionCookie?: Cookie
   sessionStorage?: SessionStorage
 }
@@ -56,10 +58,7 @@ export interface AppRouterOptions {
 export function createAppRouter(options: AppRouterOptions = {}) {
   let middleware: Middleware<any>[] = []
 
-  if (process.env.NODE_ENV === "development") {
-    middleware.push(logger())
-  }
-
+  middleware.push(requestTelemetry(options.requestTelemetry))
   middleware.push(asyncContext())
   middleware.push(
     secureHeaderMiddleware({
