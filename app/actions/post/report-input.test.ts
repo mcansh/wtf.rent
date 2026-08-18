@@ -7,6 +7,7 @@ import {
   getSafeReportValues,
   parseCreateReportInput,
   parseReportFeedInput,
+  parseUpdateReportInput,
   REPORT_CATEGORY_LABELS,
 } from "./report-input.ts"
 
@@ -170,6 +171,50 @@ describe("report create input", () => {
     assert.equal(values.title.length, 120)
     assert.equal(values.content.length, 5_000)
     assert.equal("authorId" in values, false)
+  })
+})
+
+describe("report update input", () => {
+  it("uses the complete normalized report contract", () => {
+    let formData = validReportForm({
+      address: "  456 Woodward Avenue  ",
+      city: "  Detroit ",
+      region: " MI  ",
+      landlordName: "  Example Homes  ",
+      title: "  Repairs improved after follow-up  ",
+      content: "  The maintenance team completed the repair after I followed up.  ",
+      authorId: "forged-author",
+      status: "HIDDEN",
+    })
+
+    let parsed = parseUpdateReportInput(formData)
+
+    assert.equal(parsed.success, true)
+    if (!parsed.success) assert.fail("Expected valid report update input")
+    assert.deepEqual(parsed.value, {
+      address: "456 Woodward Avenue",
+      city: "Detroit",
+      region: "MI",
+      landlordName: "Example Homes",
+      category: "MAINTENANCE",
+      rating: 4,
+      title: "Repairs improved after follow-up",
+      content: "The maintenance team completed the repair after I followed up.",
+      isFirsthand: true,
+    })
+    assert.equal("authorId" in parsed.value, false)
+    assert.equal("status" in parsed.value, false)
+  })
+
+  it("rejects an incomplete update instead of weakening create requirements", () => {
+    let parsed = parseUpdateReportInput(
+      validReportForm({ address: " ", isFirsthand: undefined }),
+    )
+
+    assert.equal(parsed.success, false)
+    if (parsed.success) assert.fail("Expected incomplete report update input to fail")
+    assert.ok(parsed.issues.some((issue) => issue.path?.[0] === "address"))
+    assert.ok(parsed.issues.some((issue) => issue.path?.[0] === "isFirsthand"))
   })
 })
 
