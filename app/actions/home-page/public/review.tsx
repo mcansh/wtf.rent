@@ -1,110 +1,117 @@
-import type { Handle } from "remix/ui"
-import { clientEntry, on } from "remix/ui"
+import type { Handle, SerializableObject } from "remix/ui"
 
-export type Review = {
-  initials: string
-  name: string
-  location: string
-  time: string
-  tag: string
+import { routes } from "../../../routes.ts"
+
+const REPORT_EXCERPT_LENGTH = 280
+const REPORT_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  dateStyle: "medium",
+  timeZone: "UTC",
+})
+
+export interface ClientReportSummary extends SerializableObject {
+  categoryLabel: string | null
+  city: string | null
+  content: string
+  createdAt: string
+  id: string
+  landlordName: string | null
+  rating: number | null
+  region: string | null
   title: string
-  body: string
-  score: 0 | 1 | 2 | 3 | 4 | 5
-  replies: number
-  cheers: number
-  saved?: boolean
+  username: string
 }
 
-const BADGE_TONES = {
-  0: "bg-[#ff9988]",
-  1: "bg-[#ff9988]",
-  2: "bg-[#f8d36d]",
-  3: "bg-[#f8d36d]",
-  4: "bg-acid-100",
-  5: "bg-acid-100",
-} as const
+export function ReportCard(handle: Handle<{ report: ClientReportSummary }>) {
+  return () => {
+    let report = handle.props.report
+    let place =
+      report.city != null && report.region != null
+        ? `${report.city}, ${report.region}`
+        : (report.city ?? report.region)
+    let detailHref = routes.post.show.href({ id: report.id })
 
-export const ReviewCard = clientEntry(
-  import.meta.url,
-  function ReviewCard(handle: Handle<{ review: Review }>) {
-    let cheers = handle.props.review.cheers
-    let saved = Boolean(handle.props.review.saved)
-
-    let tagTone = BADGE_TONES[handle.props.review.score]
-
-    return () => (
-      <article className="grid grid-cols-[35px_1fr] gap-2.5 border-b border-[#a6aaa3] py-5.5 min-[901px]:grid-cols-[42px_1fr] min-[901px]:gap-3.25">
-        <div className="bg-acid-100 grid h-8 w-8 place-items-center border border-[#172331] font-mono text-[10px] min-[901px]:h-9.5 min-[901px]:w-9.5 min-[901px]:text-xs">
-          {handle.props.review.initials}
+    return (
+      <article className="border-ink-950/35 grid grid-cols-[36px_minmax(0,1fr)] gap-3 border-b py-6 min-[541px]:grid-cols-[42px_minmax(0,1fr)] min-[541px]:gap-4">
+        <div
+          className="border-ink-950 bg-acid-100 grid size-9 place-items-center border font-mono text-[10px] font-medium uppercase min-[541px]:size-10.5 min-[541px]:text-xs"
+          aria-hidden="true"
+        >
+          {report.username.slice(0, 2)}
         </div>
-        <div>
-          <div className="flex flex-wrap gap-1.25 text-[11px] text-[#68726e]">
-            <span className="font-bold text-[#172331]">{handle.props.review.name}</span>
-            <span>·</span>
-            <span>{handle.props.review.location}</span>
-            <span>·</span>
-            <span>{handle.props.review.time}</span>
+
+        <div className="grid min-w-0 gap-3">
+          <div className="text-ink-700 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+            <strong className="text-ink-950 break-words">@{report.username}</strong>
+            <span aria-hidden="true">·</span>
+            <time dateTime={report.createdAt}>{formatReportDate(report.createdAt)}</time>
           </div>
-          <div className="mt-2 flex items-center gap-2.5">
-            <span
-              className={`border border-[#172331] px-1.25 py-0.75 font-mono text-[9px] tracking-[.4px] ${tagTone}`}
-            >
-              {handle.props.review.tag}
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="border-ink-950 bg-coral-100 border px-2 py-1 font-mono text-[9px] font-medium tracking-wide uppercase">
+              {report.categoryLabel ?? "Legacy report"}
             </span>
-            <Score value={handle.props.review.score} />
+            {report.rating == null ? null : <ReportRating value={report.rating} />}
           </div>
-          <h3
-            className={`my-2 font-serif text-[21px] leading-[1.05] font-bold tracking-[-.5px] min-[901px]:text-[23px]`}
-          >
-            {handle.props.review.title}
-          </h3>
-          <p className="max-w-147.5 text-[13px] leading-[1.36] min-[901px]:text-sm">
-            {handle.props.review.body}
-          </p>
-          <div className={`mt-3.25 flex gap-3.5 font-mono text-[11px] min-[901px]:gap-5`}>
-            <button
-              className="hover:text-[#607d18]"
-              aria-label="Give a cheer"
-              mix={on("click", () => {
-                cheers = cheers + 1
-                handle.update()
-              })}
+
+          <div className="grid gap-2">
+            <h3 className="font-serif text-[23px] leading-[1.05] font-bold tracking-[-.5px] break-words min-[901px]:text-[25px]">
+              <a
+                className="decoration-2 underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none"
+                href={detailHref}
+              >
+                {report.title}
+              </a>
+            </h3>
+            <p className="font-mono text-[10px] font-medium tracking-wide uppercase">
+              {place || "Location unavailable"}
+            </p>
+            <p className="max-w-[65ch] text-sm/6 text-pretty break-words">
+              {getReportExcerpt(report.content)}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs">
+            {report.landlordName == null ? null : (
+              <p>
+                Managed by <strong>{report.landlordName}</strong>
+              </p>
+            )}
+            <a
+              className="font-bold underline decoration-2 underline-offset-4"
+              href={detailHref}
+              aria-label={`Read full report: ${report.title}`}
             >
-              ⌃ <span>{cheers}</span>
-            </button>
-            <button className="hover:text-[#607d18]" aria-label="Reply to review">
-              ▢ <span>{handle.props.review.replies}</span>
-            </button>
-            <button
-              className={saved ? "text-[#607d18]" : "hover:text-[#607d18]"}
-              mix={on("click", () => {
-                saved = !saved
-                handle.update()
-              })}
-              aria-label="Save review"
-            >
-              {saved ? "★ Saved" : "☆ Save"}
-            </button>
+              Read full report <span aria-hidden="true">→</span>
+            </a>
           </div>
         </div>
       </article>
     )
-  },
-)
+  }
+}
 
-function Score(handle: Handle<{ value: number }>) {
-  let stars = Array.from({ length: 5 }).map((_, index) => index)
-
+function ReportRating(handle: Handle<{ value: number }>) {
   return () => (
-    <span
-      className="text-xs tracking-[-1px] text-[#a8aca5]"
-      aria-label={`${handle.props.value} out of 5 rating`}
-    >
-      {stars.map((item) => (
-        <span key={item} className={item < handle.props.value ? "text-[#172331]" : ""}>
-          ★
+    <span className="flex items-center gap-1.5">
+      <span aria-label={`${handle.props.value} out of 5 rating`}>
+        <span className="text-xs tracking-[-1px]" aria-hidden="true">
+          {Array.from({ length: 5 }, (_, index) => (index < handle.props.value ? "★" : "☆")).join(
+            "",
+          )}
         </span>
-      ))}
+      </span>
+      <span className="font-mono text-[10px] font-medium">{handle.props.value} / 5</span>
     </span>
   )
+}
+
+function getReportExcerpt(content: string): string {
+  let normalized = content.replaceAll(/\s+/g, " ").trim()
+  if (normalized.length <= REPORT_EXCERPT_LENGTH) return normalized
+
+  return `${normalized.slice(0, REPORT_EXCERPT_LENGTH - 1).trimEnd()}…`
+}
+
+function formatReportDate(value: string): string {
+  return REPORT_DATE_FORMATTER.format(new Date(value))
 }

@@ -2,6 +2,8 @@ import { redirect } from "remix/response/redirect"
 import { createController } from "remix/router"
 import type { Handle } from "remix/ui"
 
+import type { PublicReportPage } from "../data/reports.ts"
+import { listPublicReports } from "../data/reports.ts"
 import { users } from "../data/schema.ts"
 import { db } from "../db.ts"
 import { requireAuth } from "../middleware/auth.ts"
@@ -9,8 +11,10 @@ import { routes } from "../routes.ts"
 import { DocumentWithShell } from "../ui/shell.tsx"
 import { assetServer } from "../utils/assets.ts"
 import { getCurrentUser } from "../utils/context.ts"
+import type { ClientReportPage } from "./home-page/public/page.tsx"
 import { HomePage } from "./home-page/public/page.tsx"
 import { notFound } from "./not-found.tsx"
+import { parseReportFeedInput, REPORT_CATEGORY_LABELS } from "./post/report-input.ts"
 
 export const controller = createController(routes, {
   actions: {
@@ -24,11 +28,12 @@ export const controller = createController(routes, {
 
     home: {
       async handler(context) {
-        let initialQuery = context.url.searchParams.get("q") ?? ""
+        let input = parseReportFeedInput(context.url.searchParams)
+        let reportPage = await listPublicReports(context.db, input)
 
         return context.render(
           <DocumentWithShell>
-            <HomePage initialQuery={initialQuery} />
+            <HomePage query={input.q} reportPage={serializeReportPage(reportPage)} />
           </DocumentWithShell>,
         )
       },
@@ -91,6 +96,24 @@ export const controller = createController(routes, {
     },
   },
 })
+
+function serializeReportPage(reportPage: PublicReportPage): ClientReportPage {
+  return {
+    ...reportPage,
+    reports: reportPage.reports.map((report) => ({
+      id: report.id,
+      title: report.title,
+      content: report.content,
+      city: report.city,
+      region: report.region,
+      landlordName: report.landlordName,
+      categoryLabel: report.category == null ? null : REPORT_CATEGORY_LABELS[report.category],
+      rating: report.rating,
+      createdAt: report.createdAt.toISOString(),
+      username: report.username,
+    })),
+  }
+}
 
 function ProfilePage(handle: Handle<{ email: string; username: string }>) {
   return () => (
