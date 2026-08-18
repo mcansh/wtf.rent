@@ -6,11 +6,12 @@ import {
   createAuthenticatedReportSession,
   createReportTestApp,
   getReportCsrfForm,
+  seedComment,
   seedLegacyPost,
   seedStructuredReport,
   seedReportUser,
 } from "../../../test/reports.ts"
-import { posts } from "../../data/schema.ts"
+import { comments, posts } from "../../data/schema.ts"
 import { routes } from "../../routes.ts"
 import { REPORT_CATEGORY_LABELS } from "./report-input.ts"
 
@@ -25,6 +26,7 @@ describe("post authorization", () => {
       [routes.post.edit.href({ id: "report-id" }), "GET"],
       [routes.post.update.href({ id: "report-id" }), "PUT"],
       [routes.post.destroy.href({ id: "report-id" }), "DELETE"],
+      [routes.post.comment.href({ id: "report-id" }), "POST"],
     ] as const
 
     for (let [pathname, method] of protectedRequests) {
@@ -86,7 +88,7 @@ describe("report detail", () => {
     assert.match(html, /datetime="2026-08-16T18:30:00\.000Z"[^>]*>August 16, 2026/)
     assert.match(html, /datetime="2026-08-17T12:00:00\.000Z"[^>]*>August 17, 2026/)
     assert.doesNotMatch(html, /private-detail@example\.test|private-password-hash/)
-    assert.doesNotMatch(html, />\s*(?:Edit|Delete|Comment|Cheer|Save)\s*</i)
+    assert.doesNotMatch(html, />\s*(?:Edit|Delete|Cheer|Save)\s*</i)
   })
 
   it("renders a legacy report without inventing unavailable metadata", async (t) => {
@@ -134,6 +136,226 @@ describe("report detail", () => {
     assert.equal(hiddenHtml, missingHtml)
     assert.match(hiddenHtml, /<title>404 Not Found \| wtf\.rent<\/title>/)
     assert.doesNotMatch(hiddenHtml, /hidden-report|Repairs took repeated follow-up/)
+  })
+})
+
+describe("report comments", () => {
+  it("renders escaped public comments in stable order with a guest login path", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let reportAuthor = await seedReportUser(app)
+    let commenter = await seedReportUser(app, {
+      id: "public-commenter",
+      username: "public-<commenter>",
+      email: "private-commenter@example.test",
+      password: "private-commenter-password",
+    })
+    let report = await seedStructuredReport(app, {
+      id: "commented-detail",
+      authorId: reportAuthor.id,
+      address: "515 Private Comment Detail Marker",
+    })
+    await seedComment(app, {
+      id: "later-comment",
+      authorId: commenter.id,
+      postId: report.id,
+      content: 'Later <script>alert("comment")</script> context.',
+      createdAt: new Date("2026-08-18T12:00:00.000Z"),
+      updatedAt: new Date("2026-08-18T12:00:00.000Z"),
+    })
+    await seedComment(app, {
+      id: "earlier-comment",
+      authorId: commenter.id,
+      postId: report.id,
+      content: "Earlier context from another renter.",
+      createdAt: new Date("2026-08-17T12:00:00.000Z"),
+      updatedAt: new Date("2026-08-17T12:00:00.000Z"),
+    })
+
+    let response = await app.router.fetch(request(routes.post.show.href({ id: report.id })))
+    let html = await response.text()
+
+    assert.equal(response.status, 200)
+    assert.match(html, /id="comments"/)
+    assert.match(html, /<h2[^>]*>Comments<\/h2>/)
+    assert.ok(html.indexOf("Earlier context") < html.indexOf("Later &lt;script&gt;"))
+    assert.match(html, /Later &lt;script&gt;alert\("comment"\)&lt;\/script&gt; context\./)
+    assert.doesNotMatch(html, /<script>alert\("comment"\)<\/script>/)
+    assert.match(html, /@public-&lt;commenter&gt;/)
+    assert.match(html, /datetime="2026-08-17T12:00:00\.000Z"/)
+    assert.match(html, /Sign in to comment/)
+    assert.match(html, /href="\/login\?returnTo=%2Fposts%2Fcommented-detail"/)
+    assert.doesNotMatch(html, new RegExp(`action="${routes.post.comment.href({ id: report.id })}"`))
+    assert.doesNotMatch(html, /515 Private Comment Detail Marker/)
+    assert.doesNotMatch(
+      html,
+      /private-commenter@example\.test|private-commenter-password|public-commenter/,
+    )
+  })
+
+  it("shows an empty state and CSRF form to authenticated users plus edit to the author", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let author = await seedReportUser(app)
+    let other = await seedReportUser(app, {
+      id: "other-commenter",
+      username: "other-commenter",
+      email: "other-commenter@example.test",
+    })
+    let report = await seedStructuredReport(app, { id: "empty-comments", authorId: author.id })
+    let authorCookie = await createAuthenticatedReportSession(app, author)
+    let otherCookie = await createAuthenticatedReportSession(app, other)
+
+    let authorResponse = await app.router.fetch(
+      request(routes.post.show.href({ id: report.id }), "GET", authorCookie),
+    )
+    let authorHtml = await authorResponse.text()
+    let otherResponse = await app.router.fetch(
+      request(routes.post.show.href({ id: report.id }), "GET", otherCookie),
+    )
+    let otherHtml = await otherResponse.text()
+
+    assert.equal(authorResponse.status, 200)
+    assert.match(authorHtml, /No comments yet\./)
+    assert.match(
+      authorHtml,
+      new RegExp(
+        `<form[^>]*method="post"[^>]*action="${routes.post.comment.href({ id: report.id })}"[^>]*rmx-document`,
+      ),
+    )
+    assert.match(authorHtml, /name="_csrf" value="[A-Za-z0-9_-]+"/)
+    assert.match(authorHtml, /<label[^>]*for="comment-content"[^>]*>Add a comment<\/label>/)
+    assert.match(authorHtml, /<textarea[^>]*id="comment-content"[^>]*name="content"/)
+    assert.match(authorHtml, /maxlength="1000"/)
+    assert.match(authorHtml, /Post comment/)
+    assert.match(
+      authorHtml,
+      new RegExp(`href="${routes.post.edit.href({ id: report.id })}"[^>]*>Edit report`),
+    )
+    assert.equal(otherResponse.status, 200)
+    assert.match(otherHtml, /Add a comment/)
+    assert.doesNotMatch(otherHtml, />Edit report</)
+  })
+
+  it("enforces CSRF and returns linked 422 errors without writing", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let author = await seedReportUser(app)
+    let commenter = await seedReportUser(app, {
+      id: "validation-commenter",
+      username: "validation-commenter",
+      email: "validation-commenter@example.test",
+    })
+    let report = await seedStructuredReport(app, {
+      id: "comment-validation",
+      authorId: author.id,
+    })
+    let cookie = await createAuthenticatedReportSession(app, commenter)
+    let missingCsrf = await app.router.fetch(
+      commentCreateRequest(report.id, { content: "Missing CSRF" }, cookie),
+    )
+    let form = await getReportCsrfForm(app, routes.post.show.href({ id: report.id }), cookie)
+    let submitted = `<script>alert("unsafe")</script>${"x".repeat(1_000)}`
+    let invalid = await app.router.fetch(
+      commentCreateRequest(
+        report.id,
+        {
+          _csrf: form.token,
+          content: submitted,
+        },
+        form.cookie,
+      ),
+    )
+    let html = await invalid.text()
+
+    assert.equal(missingCsrf.status, 403)
+    assert.equal(invalid.status, 422)
+    assert.match(html, /We couldn’t post this comment yet\./)
+    assert.match(html, /id="comment-content-error"/)
+    assert.match(html, /aria-describedby="[^"]*comment-content-error[^"]*"/)
+    assert.match(html, /aria-invalid="true"/)
+    assert.match(html, /&lt;script&gt;alert\("unsafe"\)&lt;\/script&gt;/)
+    assert.doesNotMatch(html, /<script>alert\("unsafe"\)<\/script>/)
+    assert.equal(html.includes("x".repeat(1_001)), false)
+    assert.deepEqual(await app.database.findMany(comments), [])
+  })
+
+  it("returns the same 404 and writes nothing for hidden or missing reports", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let author = await seedReportUser(app)
+    let hidden = await seedStructuredReport(app, {
+      id: "hidden-comment-action",
+      authorId: author.id,
+      status: "HIDDEN",
+    })
+    let cookie = await createAuthenticatedReportSession(app, author)
+    let form = await getReportCsrfForm(app, routes.home.href(), cookie)
+    let values = { _csrf: form.token, content: "This must not be stored." }
+
+    let hiddenResponse = await app.router.fetch(
+      commentCreateRequest(hidden.id, values, form.cookie),
+    )
+    let missingResponse = await app.router.fetch(
+      commentCreateRequest("missing-comment-action", values, form.cookie),
+    )
+    let hiddenHtml = await hiddenResponse.text()
+    let missingHtml = await missingResponse.text()
+
+    assert.equal(hiddenResponse.status, 404)
+    assert.equal(missingResponse.status, 404)
+    assert.equal(hiddenHtml, missingHtml)
+    assert.doesNotMatch(hiddenHtml, /hidden-comment-action|This must not be stored/)
+    assert.deepEqual(await app.database.findMany(comments), [])
+  })
+
+  it("creates with trusted fields, redirects 303, and renders escaped content", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let reportAuthor = await seedReportUser(app)
+    let commenter = await seedReportUser(app, {
+      id: "trusted-commenter",
+      username: "trusted-commenter",
+      email: "trusted-commenter@example.test",
+    })
+    let report = await seedStructuredReport(app, {
+      id: "successful-comment",
+      authorId: reportAuthor.id,
+    })
+    let cookie = await createAuthenticatedReportSession(app, commenter)
+    let form = await getReportCsrfForm(app, routes.post.show.href({ id: report.id }), cookie)
+    let response = await app.router.fetch(
+      commentCreateRequest(
+        report.id,
+        {
+          _csrf: form.token,
+          content: '  Useful <img src=x onerror="alert(1)"> context.  ',
+          id: "forged-comment",
+          authorId: reportAuthor.id,
+          postId: "forged-report",
+          createdAt: "2000-01-01T00:00:00.000Z",
+        },
+        form.cookie,
+      ),
+    )
+    let stored = await app.database.findMany(comments)
+
+    assert.equal(response.status, 303)
+    assert.equal(response.headers.get("Location"), routes.post.show.href({ id: report.id }))
+    assert.equal(stored.length, 1)
+    assert.notEqual(stored[0]?.id, "forged-comment")
+    assert.equal(stored[0]?.authorId, commenter.id)
+    assert.equal(stored[0]?.postId, report.id)
+    assert.equal(stored[0]?.content, 'Useful <img src=x onerror="alert(1)"> context.')
+    assert.notEqual(stored[0]?.createdAt.toISOString(), "2000-01-01T00:00:00.000Z")
+
+    let detail = await app.router.fetch(request(routes.post.show.href({ id: report.id })))
+    let html = await detail.text()
+    assert.equal(detail.status, 200)
+    assert.match(html, /Useful &lt;img src=x onerror="alert\(1\)"&gt; context\./)
+    assert.doesNotMatch(html, /<img src=x/)
+    assert.match(html, /@trusted-commenter/)
+    assert.doesNotMatch(html, /trusted-commenter@example\.test/)
   })
 })
 
@@ -526,6 +748,23 @@ function reportUpdateRequest(
   }
 
   return new Request(new URL(routes.post.update.href({ id }), "http://localhost"), {
+    method: "POST",
+    headers: { Cookie: cookie },
+    body: formData,
+  })
+}
+
+function commentCreateRequest(
+  id: string,
+  values: Record<string, string | undefined>,
+  cookie: string,
+): Request {
+  let formData = new FormData()
+  for (let [name, value] of Object.entries(values)) {
+    if (value !== undefined) formData.set(name, value)
+  }
+
+  return new Request(new URL(routes.post.comment.href({ id }), "http://localhost"), {
     method: "POST",
     headers: { Cookie: cookie },
     body: formData,

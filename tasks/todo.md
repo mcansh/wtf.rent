@@ -306,14 +306,21 @@ typecheck`, task-scoped Oxlint, task-scoped Oxfmt check, and `git diff --check` 
     password cases expose nothing. All 8 focused tests, `pnpm typecheck`, task-scoped
     Oxlint/Oxfmt checks, and `git diff --check` passed.
 
-- [ ] Task 20: Ship public report comments and authenticated native creation
+- [x] Task 20: Ship public report comments and authenticated native creation
   - Acceptance: Detail renders an escaped ordered list or meaningful empty state; guests receive a
     safe login prompt; authenticated users receive a CSRF form; invalid input re-renders linked
     `422` errors; valid input redirects `303`; hidden/missing reports share `404`.
   - Verify: `pnpm test -- app/actions/post/controller.test.tsx`; `pnpm typecheck`; `pnpm build`;
     `pnpm exec remix routes`; `git diff --check`.
   - Files: `app/routes.ts`, `app/actions/post/controller.tsx`,
-    `app/actions/post/report-detail.tsx`, `app/actions/post/controller.test.tsx`.
+    `app/actions/post/report-detail.tsx`, `app/actions/post/report-comments.tsx`,
+    `app/actions/post/controller.test.tsx`.
+  - Evidence: Six RED outcomes first showed the missing nested route and absent detail UI/action.
+    GREEN adds `POST /posts/:id/comments`, public escaped lists and empty state, a safe guest login
+    path, authenticated CSRF form, author-only edit discovery, linked bounded `422` responses,
+    indistinguishable hidden/missing `404`, trusted creation, and `303` redirect. All 18 controller
+    tests, `pnpm typecheck`, `pnpm build`, `pnpm exec remix routes`, task-scoped Oxlint/Oxfmt
+    checks, and `git diff --check` passed.
 
 - [ ] Task 21: Run the report-interactions quality and browser gate
   - Acceptance: Both module success criteria have evidence; editing/comments work without

@@ -2,6 +2,7 @@ import { getCsrfToken } from "remix/middleware/csrf"
 import { redirect } from "remix/response/redirect"
 import { createController } from "remix/router"
 
+import { createComment, listPublicComments } from "../../data/comments.ts"
 import {
   createReport,
   findEditableReport,
@@ -10,8 +11,9 @@ import {
 } from "../../data/reports.ts"
 import { requireAuth } from "../../middleware/auth.ts"
 import { routes } from "../../routes.ts"
-import { getCurrentUser } from "../../utils/context.ts"
+import { getCurrentUser, getCurrentUserSafely } from "../../utils/context.ts"
 import { notFound } from "../not-found.tsx"
+import { getSafeCommentValue, parseCommentInput } from "./comment-input.ts"
 import { EditReportPage } from "./edit-report.tsx"
 import { NewReportPage } from "./new-report.tsx"
 import { ReportDetailPage } from "./report-detail.tsx"
@@ -28,6 +30,40 @@ const PRIVATE_FORM_HEADERS = {
 
 export const post = createController(routes.post, {
   actions: {
+    comment: {
+      middleware: [requireAuth()],
+      async handler(context) {
+        let report = await findPublicReport(context.db, context.params.id)
+        if (report == null) return notFound(context.render)
+
+        let currentUser = getCurrentUser()
+        let parsed = parseCommentInput(context.formData)
+        if (!parsed.success) {
+          let publicComments = await listPublicComments(context.db, report.id)
+          return context.render(
+            <ReportDetailPage
+              canEdit={currentUser.username === report.username}
+              commentForm={{
+                csrfToken: getCsrfToken(context),
+                issues: parsed.issues,
+                value: getSafeCommentValue(context.formData),
+              }}
+              comments={publicComments}
+              report={report}
+            />,
+            { status: 422 },
+          )
+        }
+
+        let comment = await createComment(context.db, report.id, parsed.value.content, {
+          authorId: currentUser.id,
+        })
+        if (comment == null) return notFound(context.render)
+
+        return redirect(routes.post.show.href({ id: report.id }), 303)
+      },
+    },
+
     create: {
       middleware: [requireAuth()],
       async handler(context) {
@@ -114,7 +150,23 @@ export const post = createController(routes.post, {
       let report = await findPublicReport(context.params.id)
       if (report == null) return notFound(context.render)
 
-      return context.render(<ReportDetailPage report={report} />)
+      let currentUser = getCurrentUserSafely()
+      let publicComments = await listPublicComments(context.db, report.id)
+
+      return context.render(
+        <ReportDetailPage
+          canEdit={currentUser?.username === report.username}
+          commentForm={
+            currentUser == null
+              ? null
+              : {
+                  csrfToken: getCsrfToken(context),
+                }
+          }
+          comments={publicComments}
+          report={report}
+        />,
+      )
     },
   },
 })
