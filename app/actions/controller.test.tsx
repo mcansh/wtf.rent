@@ -638,6 +638,44 @@ describe("public renter rights guide", () => {
       assert.match(html, new RegExp(label))
     }
   })
+
+  it("keeps legal-safety and privacy boundaries explicit", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+
+    let response = await app.router.fetch(request(routes.rights.href()))
+    let html = await response.text()
+    let mainHtml = html.match(/<main\b[\s\S]*<\/main>/)?.[0] ?? ""
+    let urgentHelpIndex = html.indexOf("Need help right now?")
+    let resourceListIndex = html.indexOf("United States resources")
+    let externalHrefs = [...mainHtml.matchAll(/href="(https:\/\/[^"#]+)"/g)].map(([, href]) => href)
+
+    assert.equal(response.status, 200)
+    assert.ok(mainHtml)
+    assert.ok(urgentHelpIndex >= 0)
+    assert.ok(resourceListIndex > urgentHelpIndex)
+    assert.match(html, /General information, not legal advice\./)
+    assert.match(html, /does not create an attorney-client relationship/i)
+    assert.match(html, /Outside the United States/i)
+    assert.deepEqual(
+      [...new Set(externalHrefs)],
+      [
+        "https://www.usa.gov/tenant-rights",
+        "https://www.hud.gov/stat/fheo/rights-obligations",
+        "https://www.hud.gov/reporthousingdiscrimination",
+        "https://www.hud.gov/stat/sfh/housing-counseling",
+        "https://www.lsc.gov/about-lsc/what-legal-aid/i-need-legal-help",
+      ],
+    )
+    assert.doesNotMatch(mainHtml, /<form\b|<input\b|<select\b|<textarea\b/)
+    assert.doesNotMatch(mainHtml, /name="(?:address|city|region|location)"|navigator\.geolocation/i)
+    assert.doesNotMatch(mainHtml, /\b\d+-day (?:deadline|notice|period)\b/i)
+    assert.doesNotMatch(
+      mainHtml,
+      /You should (?:withhold rent|repair and deduct|break your lease|change the locks)|Stop paying rent/i,
+    )
+    assert.doesNotMatch(mainHtml, /target="_blank"/)
+  })
 })
 
 function request(pathname: string, cookie?: string, method = "GET"): Request {
