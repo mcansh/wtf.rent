@@ -331,8 +331,8 @@ without a measured baseline and an actionable runbook.
 
 ## Deferred Scope
 
-- Report editing and self-service deletion
-- Comments and replies in the Remix 3 UI
+- Self-service report deletion
+- Comment replies, comment editing, and comment deletion
 - Cheers, saves, following, notifications, and personalized/nearby feeds
 - Images, evidence uploads, address geocoding, and canonical landlord/property entities
 - Category filters beyond free-text search
@@ -353,6 +353,10 @@ without a measured baseline and an actionable runbook.
   defer moderation tooling.
 - Approved on 2026-08-17: deliver create, public feed/search/pagination, and public detail before
   editing, social interactions, images, or advanced discovery.
+- Approved on 2026-08-18: add author-only editing and authenticated public comments under the
+  contracts in [`SPEC-report-editing.md`](./SPEC-report-editing.md) and
+  [`SPEC-report-comments.md`](./SPEC-report-comments.md); keep deletion, replies, moderation, and
+  rate limiting deferred.
 
 ## Open Questions
 
