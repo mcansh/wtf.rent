@@ -33,7 +33,7 @@ export const controller = createController(routes, {
         if (!parsed.success) return new Response("Invalid search query", { status: 400 })
 
         let input = parsed.value
-        let reportPage = await listPublicReports(context.db, input)
+        let reportPage = await listPublicReports(input)
 
         return context.render(
           <DocumentWithShell>
@@ -48,7 +48,7 @@ export const controller = createController(routes, {
         let parsed = parseReportSuggestionInput(context.url.searchParams)
         if (!parsed.success) return new Response("Invalid search query", { status: 400 })
 
-        let suggestions = await context.get(ReportSuggestions)(context.db, parsed.value)
+        let suggestions = await context.get(ReportSuggestions)(parsed.value)
 
         return Response.json(
           { suggestions },
