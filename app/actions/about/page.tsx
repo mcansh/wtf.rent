@@ -310,6 +310,10 @@ function ReadingContext() {
             Experiences can be incomplete, disputed, or different from one renter to the next. Look
             for patterns without treating report volume, silence, or a rating as proof.
           </p>
+          <p className="text-paper-100 max-w-[56ch] text-base/7 text-pretty sm:text-sm/6">
+            Reports are not independently verified, and a report does not prove a legal violation.
+            Check current local rules and seek qualified help when the stakes are high.
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-4">
           <a
