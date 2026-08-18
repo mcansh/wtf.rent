@@ -291,7 +291,7 @@ typecheck`, task-scoped Oxlint, task-scoped Oxfmt check, and `git diff --check` 
     All 13 controller tests, `pnpm typecheck`, `pnpm build`, task-scoped Oxlint/Oxfmt checks, and
     `git diff --check` passed.
 
-- [ ] Task 19: Prove comment validation and public/trusted persistence
+- [x] Task 19: Prove comment validation and public/trusted persistence
   - Acceptance: Comment content trims to 1–1,000 characters; writes derive protected fields;
     public reads are stably ordered and report-scoped with only content/date/username; hidden or
     missing report writes and reads expose nothing.
@@ -299,6 +299,12 @@ typecheck`, task-scoped Oxlint, task-scoped Oxfmt check, and `git diff --check` 
     `pnpm typecheck`; `git diff --check`.
   - Files: `app/actions/post/comment-input.ts`, `app/actions/post/comment-input.test.ts`,
     `app/data/comments.ts`, `app/data/comments.test.ts`, `test/reports.ts`.
+  - Evidence: RED tests first failed on the absent comment input and data modules. GREEN adds a
+    trimmed 1–1,000 character form schema with bounded safe redisplay, transactional trusted
+    creation after a published-report lookup, and a parameterized public projection ordered by
+    creation time/id. Hidden, missing, hostile-id, other-report, address, user-id, email, and
+    password cases expose nothing. All 8 focused tests, `pnpm typecheck`, task-scoped
+    Oxlint/Oxfmt checks, and `git diff --check` passed.
 
 - [ ] Task 20: Ship public report comments and authenticated native creation
   - Acceptance: Detail renders an escaped ordered list or meaningful empty state; guests receive a
