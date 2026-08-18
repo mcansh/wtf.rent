@@ -9,7 +9,10 @@ export const routes = route({
   join: form("/join"),
   logout: post("/logout"),
   health: "/health",
-  post: resources("/posts", { exclude: ["index"] }),
+  post: {
+    ...resources("/posts", { exclude: ["index"] }),
+    comment: post("/posts/:id/comments"),
+  },
   reportSuggestions: get("/reports/suggestions"),
   profile: "/profile",
 
