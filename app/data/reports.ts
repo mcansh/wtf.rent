@@ -2,12 +2,21 @@ import * as s from "remix/data-schema"
 import type { Database, SqlStatement } from "remix/data-table"
 import { rawSql, sql } from "remix/data-table"
 
+import type {
+  ReportSuggestion,
+  ReportSuggestionKind,
+} from "../actions/home-page/public/suggestion-contract.ts"
+import { REPORT_SUGGESTION_LIMIT } from "../actions/home-page/public/suggestion-contract.ts"
+import type { ReportSuggestionInput } from "../actions/home-page/suggestion-input.ts"
 import type { CreateReportInput } from "../actions/post/report-input.ts"
 import type { ReportFeedInput } from "../actions/post/report-input.ts"
+import { REPORT_CATEGORY_LABELS } from "../actions/post/report-input.ts"
 import type { Post, User } from "./schema.ts"
 import { posts, REPORT_CATEGORIES } from "./schema.ts"
 
 export const REPORT_PAGE_SIZE = 20
+
+const REPORT_SUGGESTION_CANDIDATE_LIMIT = REPORT_SUGGESTION_LIMIT * 3
 
 const publicReportSummaryFields = {
   id: s.string(),
@@ -35,6 +44,19 @@ const reportCountSchema = s
     "Expected a non-negative report count",
   )
 const reportCountRowSchema = s.object({ total: reportCountSchema })
+const reportLocationSuggestionRowSchema = s.object({
+  city: s.nullable(s.string()),
+  region: s.nullable(s.string()),
+  total: reportCountSchema,
+})
+const reportLandlordSuggestionRowSchema = s.object({
+  landlordName: s.string(),
+  total: reportCountSchema,
+})
+const reportCategorySuggestionRowSchema = s.object({
+  category: s.enum_(REPORT_CATEGORIES),
+  total: reportCountSchema,
+})
 
 export type PublicReportSummary = s.InferOutput<typeof publicReportSummarySchema>
 export type PublicReportDetail = s.InferOutput<typeof publicReportDetailSchema>
@@ -161,6 +183,173 @@ export async function findPublicReport(
   let rows = s.parse(s.array(publicReportDetailSchema), result.rows ?? [])
 
   return rows[0] ?? null
+}
+
+export async function listPublicReportSuggestions(
+  database: Database,
+  input: ReportSuggestionInput,
+): Promise<ReportSuggestion[]> {
+  if (input.likePattern == null) return []
+
+  let locationStatement = sql`
+    select
+      p."city" as "city",
+      p."region" as "region",
+      count(*) as "total"
+    from "Post" p
+    where p."status" = ${"PUBLISHED"}
+      and (
+        lower(coalesce(p."city", '')) like lower(${input.likePattern}) escape '!'
+        or lower(coalesce(p."region", '')) like lower(${input.likePattern}) escape '!'
+      )
+    group by p."city", p."region"
+    order by count(*) desc, lower(coalesce(p."city", '')), lower(coalesce(p."region", ''))
+    limit ${REPORT_SUGGESTION_CANDIDATE_LIMIT}
+  `
+  let landlordStatement = sql`
+    select
+      p."landlordName" as "landlordName",
+      count(*) as "total"
+    from "Post" p
+    where p."status" = ${"PUBLISHED"}
+      and trim(coalesce(p."landlordName", '')) <> ''
+      and lower(coalesce(p."landlordName", '')) like lower(${input.likePattern}) escape '!'
+    group by p."landlordName"
+    order by count(*) desc, lower(p."landlordName")
+    limit ${REPORT_SUGGESTION_CANDIDATE_LIMIT}
+  `
+  let categoryStatement = sql`
+    select
+      p."category" as "category",
+      count(*) as "total"
+    from "Post" p
+    where p."status" = ${"PUBLISHED"}
+      and p."category" is not null
+    group by p."category"
+    order by count(*) desc, p."category"
+  `
+  let [locationResult, landlordResult, categoryResult] = await Promise.all([
+    database.exec(locationStatement),
+    database.exec(landlordStatement),
+    database.exec(categoryStatement),
+  ])
+  let locationRows = s.parse(s.array(reportLocationSuggestionRowSchema), locationResult.rows ?? [])
+  let landlordRows = s.parse(s.array(reportLandlordSuggestionRowSchema), landlordResult.rows ?? [])
+  let categoryRows = s.parse(s.array(reportCategorySuggestionRowSchema), categoryResult.rows ?? [])
+  let normalizedQuery = input.q.toLowerCase()
+  let candidates = new Map<string, RankedReportSuggestion>()
+
+  for (let row of locationRows) {
+    let city = normalizeSuggestionText(row.city, 100)
+    let region = normalizeSuggestionText(row.region, 100)
+
+    if (city?.toLowerCase().includes(normalizedQuery)) {
+      addSuggestion(candidates, {
+        kind: "city",
+        label: city,
+        description: region == null ? "City" : `City · ${region}`,
+        value: city,
+        total: row.total,
+      })
+    }
+    if (region?.toLowerCase().includes(normalizedQuery)) {
+      addSuggestion(candidates, {
+        kind: "region",
+        label: region,
+        description: "Region",
+        value: region,
+        total: row.total,
+      })
+    }
+  }
+
+  for (let row of landlordRows) {
+    let landlordName = normalizeSuggestionText(row.landlordName, 160)
+    if (landlordName == null) continue
+
+    addSuggestion(candidates, {
+      kind: "landlord",
+      label: landlordName,
+      description: "Landlord or manager",
+      value: landlordName,
+      total: row.total,
+    })
+  }
+
+  for (let row of categoryRows) {
+    let label = REPORT_CATEGORY_LABELS[row.category]
+    if (!label.toLowerCase().includes(normalizedQuery)) continue
+
+    addSuggestion(candidates, {
+      kind: "category",
+      label,
+      description: "Report category",
+      value: label,
+      total: row.total,
+    })
+  }
+
+  return [...candidates.values()]
+    .sort((left, right) => compareSuggestions(left, right, normalizedQuery))
+    .slice(0, REPORT_SUGGESTION_LIMIT)
+    .map(({ total: _total, ...suggestion }) => suggestion)
+}
+
+interface RankedReportSuggestion extends ReportSuggestion {
+  total: number
+}
+
+const REPORT_SUGGESTION_KIND_PRIORITY = {
+  city: 0,
+  region: 1,
+  landlord: 2,
+  category: 3,
+} as const satisfies Record<ReportSuggestionKind, number>
+
+function addSuggestion(
+  suggestions: Map<string, RankedReportSuggestion>,
+  suggestion: RankedReportSuggestion,
+): void {
+  let key = `${suggestion.kind}:${suggestion.value.toLowerCase()}`
+  let existing = suggestions.get(key)
+
+  if (existing == null) {
+    suggestions.set(key, suggestion)
+    return
+  }
+
+  existing.total += suggestion.total
+  if (existing.description !== suggestion.description) existing.description = "City"
+}
+
+function compareSuggestions(
+  left: RankedReportSuggestion,
+  right: RankedReportSuggestion,
+  query: string,
+): number {
+  let matchDifference =
+    getSuggestionMatchRank(left.label, query) - getSuggestionMatchRank(right.label, query)
+  if (matchDifference !== 0) return matchDifference
+
+  let countDifference = right.total - left.total
+  if (countDifference !== 0) return countDifference
+
+  let kindDifference =
+    REPORT_SUGGESTION_KIND_PRIORITY[left.kind] - REPORT_SUGGESTION_KIND_PRIORITY[right.kind]
+  if (kindDifference !== 0) return kindDifference
+
+  return left.label.toLowerCase().localeCompare(right.label.toLowerCase())
+}
+
+function getSuggestionMatchRank(label: string, query: string): number {
+  let normalizedLabel = label.toLowerCase()
+  if (normalizedLabel === query) return 0
+  return normalizedLabel.startsWith(query) ? 1 : 2
+}
+
+function normalizeSuggestionText(value: string | null, maxLength: number): string | null {
+  let normalized = value?.trim().slice(0, maxLength) ?? ""
+  return normalized.length === 0 ? null : normalized
 }
 
 function createPublicReportWhere(likePattern: string | null): SqlStatement {
