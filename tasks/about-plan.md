@@ -4,7 +4,7 @@ Status: Approved on 2026-08-18
 
 Approved contract: [`SPEC-about-page.md`](../SPEC-about-page.md)
 
-Stack base: `logan/codex-rights-page` / draft PR #27
+Stack base: `logan/codex-report-editing-comments` / draft PR #30
 
 Target branch: `logan/codex-about-page`
 

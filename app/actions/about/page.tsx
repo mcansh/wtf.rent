@@ -31,7 +31,9 @@ const PUBLIC_DETAILS = [
 const PRIVATE_DETAILS = [
   "Account email and password data",
   "The dedicated street-address field",
-  "Reports whose visibility is hidden",
+  "Apartment or unit numbers",
+  "Private contact information and other tenants’ names",
+  "Hidden reports",
 ] as const
 
 const SHARING_STANDARDS = [
