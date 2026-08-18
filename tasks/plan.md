@@ -235,3 +235,88 @@ repository or format unrelated files.
 - Immediate-publication policy and the absence of moderation UI
 - Account export/deletion implementation and automated retention enforcement
 - CI, deployment topology, package versions, and dependency set
+
+## Extension: Report Editing and Comments
+
+Approved capability map:
+[`CAPABILITY-MAP-report-interactions.md`](../CAPABILITY-MAP-report-interactions.md)
+
+Approved contracts: [`SPEC-report-editing.md`](../SPEC-report-editing.md) and
+[`SPEC-report-comments.md`](../SPEC-report-comments.md)
+
+### Dependency graph
+
+```text
+Existing renter-report core
+├── report-editing
+│   ├── shared validation + owner-scoped data operations
+│   └── method override + edit/update controller + reusable form
+└── report-comments
+    ├── comment validation + public/trusted data operations
+    └── nested create route + report-detail list/form
+```
+
+`report-editing` and `report-comments` are independent. They are implemented sequentially because
+both modify the post controller and report-detail area; keeping one focused diff green avoids
+conflicting route and presentation changes.
+
+### 9. Record the approved extension contracts
+
+- Persist the approved capability map and one spec per stable module id.
+- Update the original report spec's deferred and resolved decisions without weakening its privacy,
+  retention, or moderation boundaries.
+- Add dependency-ordered tasks with acceptance criteria and verification commands.
+
+Checkpoint: every approved assumption is represented by a testable contract and there are no open
+questions.
+
+### 10. Implement report editing in two vertical increments
+
+- First prove shared validation, owner-scoped private reads, protected-field preservation, and
+  owner-scoped updates with focused data tests.
+- Then add method override, the prefilled edit page, reusable create/edit form behavior, controller
+  authorization, `422` responses, and the `303` success path.
+- Keep public projections address-free and return the standard `404` for non-owner, hidden, and
+  missing ids.
+
+Checkpoint: editing-focused tests and existing report tests pass; a native form can update an
+owned report without exposing its private address publicly.
+
+### 11. Implement report comments in two vertical increments
+
+- First prove bounded input parsing, trusted creation, allowlisted public reads, stable ordering,
+  report isolation, and hidden-report exclusion.
+- Then add the nested comment route and render public comments, empty state, authenticated form,
+  guest login prompt, linked `422` errors, and the `303` success path on report detail.
+- Preserve plain-text escaping and existing report visibility/privacy behavior.
+
+Checkpoint: comment-focused tests and all report tests pass; native comment submission works and
+public output contains no private account or report fields.
+
+### 12. Complete the extension quality gate
+
+- Run the full test, typecheck, build, lint, format, route, and diff checks.
+- Exercise owner edit, non-owner denial, guest comment prompt, authenticated comment creation,
+  validation errors, escaping, keyboard order, and responsive layouts in a real browser.
+- Review authorization, CSRF, public projections, secret exposure, and scope before handoff.
+
+Checkpoint: both extension specs have evidence or a precise external blocker, with no unrelated
+changes, new dependencies, or database migration.
+
+### Extension risks and mitigations
+
+| Risk | Mitigation |
+| --- | --- |
+| An authenticated user edits another renter's report | Scope private reads and writes by report id plus immutable author id; use indistinguishable `404` responses |
+| The edit page becomes a new address leak | Return the private field only from the owner-scoped query and keep it out of public types, detail output, and comments |
+| Method override bypasses mutation controls | Parse the form once, override before session/CSRF middleware, and test native `POST` plus `_method=PUT` end to end |
+| Comment text enables stored XSS or oversized writes | Trim and cap plain text at 1,000 characters, then render only escaped JSX |
+| Hidden reports leak through comments | Join public comment reads through `Post.status = 'PUBLISHED'` and reject comment writes after a published-report lookup |
+| Duplicate submissions create extra comments | Document comment creation as unsafe to retry; keep each accepted submission as a distinct comment |
+
+### Extension intentionally unchanged
+
+- Report/comment deletion, replies, reactions, saves, following, and notifications
+- Report visibility policy, moderation UI, flags, appeals, automated filtering, and rate limiting
+- Street-address privacy, public feed/search behavior, auth/session lifetime, and login throttling
+- Database schema, applied migrations, dependencies, CI, and deployment topology
