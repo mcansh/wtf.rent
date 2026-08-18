@@ -24,7 +24,7 @@
     "date-fns": "^4.4.0",
     "pg": "^8.23.0",
     "railway": "^3.10.0",
-    "remix": "3.0.0-beta.6"
+    "remix": "3.0.0-beta.10"
   },
   "devDependencies": {
     "@oxlint/plugins": "^1.78.0",
