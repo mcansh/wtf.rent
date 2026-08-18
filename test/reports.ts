@@ -4,8 +4,11 @@ import type { SQLInputValue } from "node:sqlite"
 import { createCookie } from "remix/cookie"
 import type { Cookie } from "remix/cookie"
 import * as s from "remix/data-schema"
+import { Database } from "remix/data-table"
 import { createSqliteDatabase } from "remix/data-table/sqlite"
 import type { SqliteDatabase, SqliteDatabaseClient, SqliteStatement } from "remix/data-table/sqlite"
+import { asyncContext } from "remix/middleware/async-context"
+import { RequestContext } from "remix/router"
 import type { SessionStorage } from "remix/session"
 import { createMemorySessionStorage } from "remix/session-storage/memory"
 
@@ -27,6 +30,23 @@ export interface ReportCsrfForm {
   cookie: string
   html: string
   token: string
+}
+
+export async function runWithReportDatabase<result>(
+  database: Database,
+  operation: () => Promise<result>,
+): Promise<result> {
+  let context = new RequestContext(new Request("http://localhost/test-database-context"))
+  context.set(Database, database, { property: "db" })
+  let outcome: { value: result } | undefined
+
+  await asyncContext()(context, async () => {
+    outcome = { value: await operation() }
+    return new Response(null, { status: 204 })
+  })
+
+  if (outcome == null) throw new Error("Expected the database context operation to run")
+  return outcome.value
 }
 
 type SeedUserValues = Partial<Pick<User, "id" | "username" | "email" | "password">>

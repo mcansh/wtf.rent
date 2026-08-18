@@ -30,7 +30,7 @@ export const post = createController(routes.post, {
           )
         }
 
-        let report = await createReport(context.db, parsed.value, {
+        let report = await createReport(parsed.value, {
           authorId: getCurrentUser().id,
           confirmedAt: new Date(),
         })
@@ -68,7 +68,7 @@ export const post = createController(routes.post, {
     },
 
     async show(context) {
-      let report = await findPublicReport(context.db, context.params.id)
+      let report = await findPublicReport(context.params.id)
       if (report == null) return notFound(context.render)
 
       return context.render(<ReportDetailPage report={report} />)

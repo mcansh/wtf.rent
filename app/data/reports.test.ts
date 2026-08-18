@@ -8,6 +8,7 @@ import {
   createAuthenticatedReportSession,
   createReportTestApp,
   getReportCsrfForm,
+  runWithReportDatabase,
   seedLegacyPost,
   seedReportUser,
   seedStructuredReport,
@@ -134,10 +135,12 @@ describe("createReport", () => {
       createdAt: forgedAt,
     }
 
-    let report = await createReport(app.database, input, {
-      authorId: author.id,
-      confirmedAt,
-    })
+    let report = await runWithReportDatabase(app.database, () =>
+      createReport(input, {
+        authorId: author.id,
+        confirmedAt,
+      }),
+    )
     let stored = await app.database.find(posts, report.id)
 
     assert.ok(stored)
@@ -194,7 +197,9 @@ describe("listPublicReports", () => {
       createdAt: new Date("2026-08-17T12:00:00.000Z"),
     })
 
-    let page = await listPublicReports(app.database, parseReportFeedInput(new URLSearchParams()))
+    let page = await runWithReportDatabase(app.database, () =>
+      listPublicReports(parseReportFeedInput(new URLSearchParams())),
+    )
 
     assert.deepEqual(
       page.reports.map((report) => report.id),
@@ -282,9 +287,8 @@ describe("listPublicReports", () => {
     }
 
     for (let [field, value, id] of fieldCases) {
-      let page = await listPublicReports(
-        app.database,
-        parseReportFeedInput(new URLSearchParams({ q: value.toUpperCase() })),
+      let page = await runWithReportDatabase(app.database, () =>
+        listPublicReports(parseReportFeedInput(new URLSearchParams({ q: value.toUpperCase() }))),
       )
       assert.deepEqual(
         page.reports.map((report) => report.id),
@@ -295,10 +299,11 @@ describe("listPublicReports", () => {
     }
 
     for (let category of REPORT_CATEGORIES) {
-      let page = await listPublicReports(
-        app.database,
-        parseReportFeedInput(
-          new URLSearchParams({ q: REPORT_CATEGORY_LABELS[category].toUpperCase() }),
+      let page = await runWithReportDatabase(app.database, () =>
+        listPublicReports(
+          parseReportFeedInput(
+            new URLSearchParams({ q: REPORT_CATEGORY_LABELS[category].toUpperCase() }),
+          ),
         ),
       )
       assert.deepEqual(
@@ -326,9 +331,8 @@ describe("listPublicReports", () => {
       category: null,
     })
 
-    let page = await listPublicReports(
-      app.database,
-      parseReportFeedInput(new URLSearchParams({ q: "NEEDLEADDRESS" })),
+    let page = await runWithReportDatabase(app.database, () =>
+      listPublicReports(parseReportFeedInput(new URLSearchParams({ q: "NEEDLEADDRESS" }))),
     )
 
     assert.deepEqual(page.reports, [])
@@ -351,9 +355,8 @@ describe("listPublicReports", () => {
       title: "The advertised 50XXoff! fee never existed",
     })
 
-    let page = await listPublicReports(
-      app.database,
-      parseReportFeedInput(new URLSearchParams({ q: "50%_OFF!" })),
+    let page = await runWithReportDatabase(app.database, () =>
+      listPublicReports(parseReportFeedInput(new URLSearchParams({ q: "50%_OFF!" }))),
     )
 
     assert.deepEqual(
@@ -375,13 +378,11 @@ describe("listPublicReports", () => {
       })
     }
 
-    let first = await listPublicReports(
-      app.database,
-      parseReportFeedInput(new URLSearchParams({ page: "1" })),
-    )
-    let second = await listPublicReports(
-      app.database,
-      parseReportFeedInput(new URLSearchParams({ page: "2" })),
+    let [first, second] = await runWithReportDatabase(app.database, () =>
+      Promise.all([
+        listPublicReports(parseReportFeedInput(new URLSearchParams({ page: "1" }))),
+        listPublicReports(parseReportFeedInput(new URLSearchParams({ page: "2" }))),
+      ]),
     )
 
     assert.equal(REPORT_PAGE_SIZE, 20)
@@ -411,7 +412,7 @@ describe("listPublicReports", () => {
     let database = createPostgresDatabase(recorder as PostgresDatabaseInput)
     let input = parseReportFeedInput(new URLSearchParams({ q: "50%_OFF!", page: "2" }))
 
-    let page = await listPublicReports(database, input)
+    let page = await runWithReportDatabase(database, () => listPublicReports(input))
 
     assert.equal(page.total, 0)
     assert.equal(recorder.queries.length, 2)
@@ -467,17 +468,12 @@ describe("listPublicReportSuggestions", () => {
       category: "GOOD_EXPERIENCE",
     })
 
-    let detroit = await listPublicReportSuggestions(
-      app.database,
-      parseReportSuggestionInput(new URLSearchParams({ q: "det" })),
-    )
-    let maintenance = await listPublicReportSuggestions(
-      app.database,
-      parseReportSuggestionInput(new URLSearchParams({ q: "ma" })),
-    )
-    let region = await listPublicReportSuggestions(
-      app.database,
-      parseReportSuggestionInput(new URLSearchParams({ q: "mi" })),
+    let [detroit, maintenance, region] = await runWithReportDatabase(app.database, () =>
+      Promise.all([
+        listPublicReportSuggestions(parseReportSuggestionInput(new URLSearchParams({ q: "det" }))),
+        listPublicReportSuggestions(parseReportSuggestionInput(new URLSearchParams({ q: "ma" }))),
+        listPublicReportSuggestions(parseReportSuggestionInput(new URLSearchParams({ q: "mi" }))),
+      ]),
     )
 
     assert.deepEqual(detroit, [
@@ -536,9 +532,10 @@ describe("listPublicReportSuggestions", () => {
       category: "SAFETY",
     })
 
-    let suggestions = await listPublicReportSuggestions(
-      app.database,
-      parseReportSuggestionInput(new URLSearchParams({ q: "secret needle" })),
+    let suggestions = await runWithReportDatabase(app.database, () =>
+      listPublicReportSuggestions(
+        parseReportSuggestionInput(new URLSearchParams({ q: "secret needle" })),
+      ),
     )
 
     assert.deepEqual(suggestions, [])
@@ -558,9 +555,8 @@ describe("listPublicReportSuggestions", () => {
       })
     }
 
-    let suggestions = await listPublicReportSuggestions(
-      app.database,
-      parseReportSuggestionInput(new URLSearchParams({ q: "park" })),
+    let suggestions = await runWithReportDatabase(app.database, () =>
+      listPublicReportSuggestions(parseReportSuggestionInput(new URLSearchParams({ q: "park" }))),
     )
 
     assert.equal(suggestions.length, 8)
@@ -572,7 +568,9 @@ describe("listPublicReportSuggestions", () => {
     let database = createPostgresDatabase(recorder as PostgresDatabaseInput)
     let input = parseReportSuggestionInput(new URLSearchParams({ q: "50%_OFF!" }))
 
-    let suggestions = await listPublicReportSuggestions(database, input)
+    let suggestions = await runWithReportDatabase(database, () =>
+      listPublicReportSuggestions(input),
+    )
 
     assert.deepEqual(suggestions, [])
     assert.equal(recorder.queries.length, 3)
@@ -634,7 +632,9 @@ describe("findPublicReport", () => {
       updatedAt: createdAt,
     })
 
-    let detail = await findPublicReport(app.database, "published-detail")
+    let detail = await runWithReportDatabase(app.database, () =>
+      findPublicReport("published-detail"),
+    )
 
     assert.ok(detail)
     assert.equal(detail.username, author.username)
@@ -668,7 +668,14 @@ describe("findPublicReport", () => {
       status: "HIDDEN",
     })
 
-    let legacy = await findPublicReport(app.database, "legacy-detail")
+    let [legacy, hidden, missing, hostile] = await runWithReportDatabase(app.database, () =>
+      Promise.all([
+        findPublicReport("legacy-detail"),
+        findPublicReport("hidden-detail"),
+        findPublicReport("missing-detail"),
+        findPublicReport("legacy-detail' or 1 = 1 --"),
+      ]),
+    )
 
     assert.ok(legacy)
     assert.equal("address" in legacy, false)
@@ -678,8 +685,8 @@ describe("findPublicReport", () => {
     assert.equal(legacy.category, null)
     assert.equal(legacy.rating, null)
     assert.equal(legacy.experienceConfirmedAt, null)
-    assert.equal(await findPublicReport(app.database, "hidden-detail"), null)
-    assert.equal(await findPublicReport(app.database, "missing-detail"), null)
-    assert.equal(await findPublicReport(app.database, "legacy-detail' or 1 = 1 --"), null)
+    assert.equal(hidden, null)
+    assert.equal(missing, null)
+    assert.equal(hostile, null)
   })
 })
