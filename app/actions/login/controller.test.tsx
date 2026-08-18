@@ -10,8 +10,9 @@ import {
   getCsrfForm,
   getResponseCookie,
   readSessionCookie,
+  TEST_USER_PASSWORD,
+  TEST_USER_PASSWORD_HASH,
 } from "../../../test/auth.ts"
-import { DUMMY_PASSWORD_HASH } from "../../bcrypt.ts"
 import { createLoginThrottle } from "../../middleware/auth.ts"
 import { routes } from "../../routes.ts"
 
@@ -19,7 +20,7 @@ const user = {
   id: "user-1",
   username: "renter",
   email: "renter@example.com",
-  password: DUMMY_PASSWORD_HASH,
+  password: TEST_USER_PASSWORD_HASH,
   createdAt: new Date("2026-08-17T00:00:00.000Z"),
   updatedAt: new Date("2026-08-17T00:00:00.000Z"),
 }
@@ -75,7 +76,7 @@ describe("login", () => {
     assert.doesNotMatch(html, /super-secret-password/)
   })
 
-  it("uses one generic error for unknown users and wrong passwords", async () => {
+  it("rejects unknown users without a fallback hash and preserves the generic error", async () => {
     let knownUserApp = createAuthTestApp({ database: new FakeUserDatabase([user]) })
     let wrongPasswordForm = await createCsrfFormRequest(knownUserApp, routes.login.action.href(), {
       email: user.email,
@@ -128,7 +129,7 @@ describe("login", () => {
     let form = await createCsrfFormRequest(
       app,
       pathname,
-      { email: `  ${user.email.toUpperCase()}  `, password: "not-a-real-user-password" },
+      { email: `  ${user.email.toUpperCase()}  `, password: TEST_USER_PASSWORD },
       oldCookie,
     )
     let response = await app.router.fetch(form.request)
@@ -147,7 +148,7 @@ describe("login", () => {
     let app = createAuthTestApp({ database })
     let form = await createCsrfFormRequest(app, "/login?returnTo=https://evil.example", {
       email: user.email,
-      password: "not-a-real-user-password",
+      password: TEST_USER_PASSWORD,
     })
     let response = await app.router.fetch(form.request)
     assert.equal(response.headers.get("Location"), routes.profile.href())

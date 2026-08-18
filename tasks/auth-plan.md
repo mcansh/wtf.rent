@@ -64,8 +64,7 @@ Checkpoint: focused router tests, `pnpm typecheck`, and the existing schema test
 - Add a guest-only guard for login/join.
 - Add a bounded fixed-window failed-login throttle with deterministic clock injection, cleanup,
   reset-on-success, and `Retry-After` calculation.
-- Keep credential failure timing closer by verifying against a fixed dummy bcrypt hash when no
-  account exists.
+- Return immediately when no account exists; keep fallback password hashes out of runtime code.
 
 Checkpoint: focused helper/throttle tests and typecheck pass.
 
@@ -156,7 +155,8 @@ environment blocker.
 | Router imports production environment/database during tests    | Add explicit test defaults and dependency injection; never query the production singleton in auth tests |
 | Cookie/CSRF tests become stateful                              | Construct a fresh router, storage, cookie, fake database, and throttle for each test                    |
 | PostgreSQL adapter error shape leaks or changes                | Match only the stable SQLSTATE and the two known constraint names; rethrow everything else              |
-| User enumeration through timing or copy                        | Use one generic message and a dummy bcrypt verification for missing users                               |
+| User enumeration through response copy                         | Use one generic message for missing users and incorrect passwords                                       |
+| User enumeration through timing                                | Accept the timing difference requested for missing users; retain bounded throttling as mitigation       |
 | Process-local throttling is bypassed across replicas           | Keep the limitation documented and replace it with edge/shared-store limiting before horizontal scale   |
 | CSRF middleware blocks existing form tests                     | Add tokens through a real GET/session-cookie round trip and test rejection explicitly                   |
 | Shared dirty worktree hides scope creep                        | Use path-scoped diffs and never stage/commit/revert unrelated migration files                           |

@@ -19,6 +19,10 @@ import type { User } from "../app/data/schema.ts"
 import type { LoginThrottle } from "../app/middleware/auth.ts"
 import { createAppRouter } from "../app/router.ts"
 
+export const TEST_USER_PASSWORD = "not-a-real-user-password"
+export const TEST_USER_PASSWORD_HASH =
+  "$2b$12$vJ1orAwyHYmqneb.rktQl.6xY2LbXZbNmv2LU4PeO5hrg14wmey.2"
+
 const fakeDatabaseCapabilities = {
   migrationLock: false,
   returning: true,
