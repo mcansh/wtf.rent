@@ -23,10 +23,10 @@ jobs:
           cache: "pnpm"
 
       - name: 🟧 Install dependencies
-        run: pnpm install --recursive --frozen-lockfile --strict-peer-dependencies
+        run: nub install
 
       - name: 🏗 Build
-        run: pnpm run build
+        run: nub run build
 
   test:
     name: 🧪 Run Tests
@@ -42,7 +42,7 @@ jobs:
           cache: "pnpm"
 
       - name: 🟧 Install dependencies
-        run: pnpm install --recursive --frozen-lockfile --strict-peer-dependencies
+        run: nub install
 
       - name: 🧪 Run Tests
-        run: pnpm run test
+        run: nub run test
