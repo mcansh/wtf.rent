@@ -1,0 +1,48 @@
+name: 🧪 Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: ⚙️ Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: ⎔ Setup nub
+        uses: nubjs/setup-nub@47e5e7393d50f4e9544ddaf756aa277972afba2d # v0.4.0
+        with:
+          node-version-file: package.json
+          cache: "pnpm"
+
+      - name: 🟧 Install dependencies
+        run: nub install
+
+      - name: 🏗 Build
+        run: nub run build
+
+  test:
+    name: 🧪 Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: ⎔ Setup nub
+        uses: nubjs/setup-nub@47e5e7393d50f4e9544ddaf756aa277972afba2d # v0.4.0
+        with:
+          node-version-file: package.json
+          cache: "pnpm"
+
+      - name: 🟧 Install dependencies
+        run: nub install
+
+      - name: 🧪 Run Tests
+        run: nub run test
