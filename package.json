@@ -13,7 +13,10 @@
     "hmr": "pnpm run --parallel /^hmr:.*/",
     "start": "NODE_ENV=production node --import remix/node-tsx server.ts",
     "pretest": "node --run build",
-    "test": "NODE_ENV=test node --import remix/node-tsx --test 'app/**/*.test.{ts,tsx}'",
+    "test": "NODE_ENV=test remix test",
+    "test:browser": "NODE_ENV=test remix test --type browser",
+    "pretest:e2e": "node --run build",
+    "test:e2e": "NODE_ENV=test remix test --type e2e",
     "typecheck": "tsc --noEmit",
     "format": "oxfmt",
     "lint": "oxlint --fix"
@@ -35,18 +38,19 @@
     "oxfmt": "^0.64.0",
     "oxlint": "^1.79.0",
     "oxlint-tsgolint": "^7.0.2001",
+    "playwright": "^1.62.1",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2"
   },
-  "engines": {
-    "node": ">=24.3.0"
-  },
-  "packageManager": "pnpm@11.22.0+sha512.1ff870c4c6133dfd88fb2afc46dd13d47f09c9794b438c6fdb47ca98caf3bc16381ee0be93a091b8e3824cf01f889f46d7d9e20910fb0be1ab0fb5baa80dd621",
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
       "version": "^11.22.0",
       "onFail": "warn"
     }
-  }
+  },
+  "engines": {
+    "node": ">=24.3.0"
+  },
+  "packageManager": "pnpm@11.22.0+sha512.1ff870c4c6133dfd88fb2afc46dd13d47f09c9794b438c6fdb47ca98caf3bc16381ee0be93a091b8e3824cf01f889f46d7d9e20910fb0be1ab0fb5baa80dd621"
 }
