@@ -44,5 +44,8 @@ jobs:
       - name: 🟧 Install dependencies
         run: nub install
 
+      - name: 🎭 Install Playwright browsers
+        run: nub exec playwright install --with-deps
+
       - name: 🧪 Run Tests
         run: nub run test
