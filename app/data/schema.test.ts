@@ -1,10 +1,5 @@
 import * as assert from "remix/assert"
-import {
-  getTableBeforeWrite,
-  getTableColumnDefinitions,
-  getTableName,
-  getTableTimestamps,
-} from "remix/data-table"
+import type { AnyTable, TableBeforeWrite } from "remix/data-table"
 import { describe, it } from "remix/test"
 
 import {
@@ -19,25 +14,54 @@ import {
   users,
 } from "./schema.ts"
 
+const TABLE_METADATA_KEY_DESCRIPTION = "data-table.tableMetadata"
+
+type ColumnDefinitionLike = {
+  primaryKey?: boolean
+  default?: unknown
+  unique?: { name: string }
+  references?: {
+    table: { name: string }
+    onDelete?: string
+  }
+}
+
+function readTableMetadata(table: AnyTable) {
+  let metadataKey = Reflect.ownKeys(table).find(
+    (key) => typeof key === "symbol" && key.description === TABLE_METADATA_KEY_DESCRIPTION,
+  )
+  if (metadataKey === undefined) {
+    assert.fail("Expected table metadata symbol on schema table")
+  }
+
+  return Reflect.get(table, metadataKey) as {
+    name: string
+    timestamps: Record<string, string> | undefined
+    columnDefinitions: Record<string, ColumnDefinitionLike>
+    beforeWrite: TableBeforeWrite<Record<string, unknown>> | undefined
+  }
+}
+
 describe("data schema", () => {
   it("preserves the existing PostgreSQL identifiers and constraints", () => {
-    assert.deepEqual([users, posts, comments].map(getTableName), ["User", "Post", "Comment"])
-    assert.deepEqual(getTableTimestamps(users), {
+    let [usersTable, postsTable, commentsTable] = [users, posts, comments].map(readTableMetadata)
+    assert.deepEqual([usersTable.name, postsTable.name, commentsTable.name], ["User", "Post", "Comment"])
+    assert.deepEqual(usersTable.timestamps, {
       createdAt: "createdAt",
       updatedAt: "updatedAt",
     })
 
-    let userColumns = getTableColumnDefinitions(users)
+    let userColumns = usersTable.columnDefinitions
     assert.equal(userColumns.id.primaryKey, true)
     assert.deepEqual(userColumns.createdAt.default, { kind: "now" })
     assert.deepEqual(userColumns.username.unique, { name: "User_username_key" })
     assert.deepEqual(userColumns.email.unique, { name: "User_email_key" })
 
-    let postColumns = getTableColumnDefinitions(posts)
+    let postColumns = postsTable.columnDefinitions
     assert.equal(postColumns.authorId.references?.table.name, "User")
     assert.equal(postColumns.authorId.references?.onDelete, "restrict")
 
-    let commentColumns = getTableColumnDefinitions(comments)
+    let commentColumns = commentsTable.columnDefinitions
     assert.equal(commentColumns.authorId.references?.onDelete, "restrict")
     assert.equal(commentColumns.postId.references?.table.name, "Post")
     assert.equal(commentColumns.postId.references?.onDelete, "cascade")
@@ -45,19 +69,20 @@ describe("data schema", () => {
 
   it("generates string ids before inserts", () => {
     for (let table of [users, posts, comments]) {
-      let beforeWrite = getTableBeforeWrite(table)
+      let metadata = readTableMetadata(table)
+      let beforeWrite = metadata.beforeWrite
       if (beforeWrite === undefined) {
-        assert.fail(`Expected ${getTableName(table)} to generate ids before writes`)
+        assert.fail(`Expected ${metadata.name} to generate ids before writes`)
       }
 
       let result = beforeWrite({
         operation: "create",
-        tableName: getTableName(table),
+        tableName: metadata.name,
         value: {},
       })
 
       if (!("value" in result)) {
-        assert.fail(`Expected ${getTableName(table)} id generation to succeed`)
+        assert.fail(`Expected ${metadata.name} id generation to succeed`)
       }
       assert.match(
         String(result.value.id),
