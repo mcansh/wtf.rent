@@ -26,7 +26,7 @@ jobs:
         run: nub install
 
       - name: 🏗 Build
-        run: nub run build
+        run: pnpm build
 
   test:
     name: 🧪 Run Tests
@@ -45,4 +45,4 @@ jobs:
         run: nub install
 
       - name: 🧪 Run Tests
-        run: nub run test
+        run: pnpm test
