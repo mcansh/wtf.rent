@@ -153,6 +153,8 @@ describe("new report form", () => {
     let html = await response.text()
 
     assert.equal(response.status, 200)
+    assert.equal(response.headers.get("Cache-Control"), "private, no-store")
+    assert.equal(response.headers.get("Vary"), "Cookie")
     assert.match(html, /<form[^>]*method="post"[^>]*action="\/posts"[^>]*rmx-document/)
     assert.match(html, /name="_csrf" value="[A-Za-z0-9_-]+"/)
     for (let name of [
@@ -213,6 +215,7 @@ describe("create report", () => {
       ["overlong value", { city: "x".repeat(101) }, "city"],
       ["unsupported category", { category: "UNSUPPORTED" }, "category"],
       ["out-of-range rating", { rating: "6" }, "rating"],
+      ["NUL character", { title: "Repairs\0required repeated follow-up" }, "title"],
       ["missing confirmation", { isFirsthand: undefined }, "isFirsthand"],
     ] as const
 
@@ -223,6 +226,8 @@ describe("create report", () => {
       let html = await response.text()
 
       assert.equal(response.status, 422, label)
+      assert.equal(response.headers.get("Cache-Control"), "private, no-store", label)
+      assert.equal(response.headers.get("Vary"), "Cookie", label)
       assert.match(html, /role="alert"/, label)
       assert.match(html, new RegExp(`id="${field}-error"`), label)
       assert.match(html, new RegExp(`aria-describedby="[^"]*${field}-error[^"]*"`), label)

@@ -227,6 +227,16 @@ describe("home report discovery", () => {
     assert.match(html, /Page 1 of 1/)
   })
 
+  it("rejects a NUL search query before querying reports", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+
+    let response = await app.router.fetch(request("/?q=%00"))
+
+    assert.equal(response.status, 400)
+    assert.equal(await response.text(), "Invalid search query")
+  })
+
   it("renders a truthful empty page for a capped query with no matches", async (t) => {
     let app = createReportTestApp()
     t.after(() => app.close())

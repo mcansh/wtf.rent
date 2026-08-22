@@ -7,15 +7,13 @@ import type { RequestTelemetryRecord } from "./request-telemetry.ts"
 import { requestTelemetry } from "./request-telemetry.ts"
 
 describe("request telemetry", () => {
-  it("preserves the response and emits one allowlisted completion record", async () => {
+  it("preserves the response and emits one redacted completion record", async () => {
     let records: RequestTelemetryRecord[] = []
     let ticks = [100, 112.5]
     let router = createRouter({
       middleware: [
         requestTelemetry({
-          createRequestId() {
-            assert.fail("A valid inbound request id should be preserved")
-          },
+          createRequestId: () => "generated-completion-id",
           now: () => ticks.shift()!,
           sink: (record) => records.push(record),
         }),
@@ -23,7 +21,7 @@ describe("request telemetry", () => {
     })
 
     router.get(
-      "/resource",
+      "/posts/private-user@example.com",
       () =>
         new Response("preserved body", {
           status: 201,
@@ -33,30 +31,33 @@ describe("request telemetry", () => {
     )
 
     let response = await router.fetch(
-      new Request("http://localhost/resource?q=private-address", {
-        headers: { "X-Request-Id": "trace_123-ABC" },
+      new Request("http://localhost/posts/private-user@example.com?q=private-address", {
+        headers: { "X-Request-Id": "Alice-Home-Address" },
       }),
     )
 
     assert.equal(response.status, 201)
     assert.equal(response.statusText, "Created here")
     assert.equal(response.headers.get("X-Existing"), "preserved header")
-    assert.equal(response.headers.get("X-Request-Id"), "trace_123-ABC")
+    assert.equal(response.headers.get("X-Request-Id"), "generated-completion-id")
     assert.equal(await response.text(), "preserved body")
     assert.deepEqual(records, [
       {
         event: "http_request_completed",
-        requestId: "trace_123-ABC",
+        requestId: "generated-completion-id",
         method: "GET",
-        pathname: "/resource",
+        pathname: "/:segment/:segment",
         statusClass: "2xx",
         durationMs: 12.5,
       },
     ])
-    assert.doesNotMatch(JSON.stringify(records), /private-address/)
+    assert.doesNotMatch(
+      JSON.stringify(records),
+      /Alice-Home-Address|private-address|private-user@example\.com|posts/,
+    )
   })
 
-  it("replaces unsafe inbound ids with bounded generated values", async () => {
+  it("ignores all inbound request ids", async () => {
     let records: RequestTelemetryRecord[] = []
     let generatedIds = ["generated-1", "generated-2"]
     let router = createRouter({
@@ -70,11 +71,11 @@ describe("request telemetry", () => {
     })
     router.get("/resource", () => new Response("OK"))
 
-    let unsafeIds = ["contains spaces", "x".repeat(129)]
-    for (let unsafeId of unsafeIds) {
+    let inboundIds = ["valid-looking-id", "contains private metadata"]
+    for (let inboundId of inboundIds) {
       let response = await router.fetch(
         new Request("http://localhost/resource", {
-          headers: { "X-Request-Id": unsafeId },
+          headers: { "X-Request-Id": inboundId },
         }),
       )
       assert.match(response.headers.get("X-Request-Id") ?? "", /^generated-[12]$/)
@@ -84,8 +85,7 @@ describe("request telemetry", () => {
       records.map((record) => record.requestId),
       ["generated-1", "generated-2"],
     )
-    assert.doesNotMatch(JSON.stringify(records), /contains spaces/)
-    assert.doesNotMatch(JSON.stringify(records), new RegExp("x{129}"))
+    assert.doesNotMatch(JSON.stringify(records), /valid-looking-id|private metadata/)
   })
 
   it("emits one correlated failure record and rethrows the original error", async () => {
@@ -118,7 +118,7 @@ describe("request telemetry", () => {
         event: "http_request_failed",
         requestId: "generated-error-id",
         method: "GET",
-        pathname: "/failure",
+        pathname: "/:segment",
         statusClass: "5xx",
         durationMs: 3,
       },
