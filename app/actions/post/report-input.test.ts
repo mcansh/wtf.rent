@@ -97,7 +97,8 @@ describe("report create input", () => {
     let addresses = [
       "123 Main Street Apartment 4",
       "123 Main Street Apt. 4",
-      "123 Main Street Unit B",
+      "123 Main Street Apt #4",
+      "123 Main Street Unit 4",
       "123 Main Street Suite 200",
       "123 Main Street Ste 2",
       "123 Main Street #4",
@@ -111,6 +112,36 @@ describe("report create input", () => {
       assert.ok(
         parsed.issues.some((issue) => issue.path?.[0] === "address"),
         address,
+      )
+    }
+  })
+
+  it("preserves street names that begin with unit-designator text", () => {
+    for (let address of ["1 United Nations Plaza", "123 Unity Street", "123 Aptos Lane"]) {
+      let parsed = parseCreateReportInput(validReportForm({ address }))
+
+      assert.equal(parsed.success, true, address)
+    }
+  })
+
+  it("rejects NUL from every persisted free-text field", () => {
+    let cases = {
+      address: "123 Main\0 Street",
+      city: "Det\0roit",
+      region: "M\0I",
+      landlordName: "Example\0 Homes",
+      title: "Repairs\0 required repeated follow-up",
+      content: "This is a detailed\0 firsthand rental experience.",
+    }
+
+    for (let [field, value] of Object.entries(cases)) {
+      let parsed = parseCreateReportInput(validReportForm({ [field]: value }))
+
+      assert.equal(parsed.success, false, field)
+      if (parsed.success) assert.fail(`Expected ${field} to reject NUL`)
+      assert.ok(
+        parsed.issues.some((issue) => issue.path?.[0] === field && /NUL/.test(issue.message)),
+        field,
       )
     }
   })
@@ -146,7 +177,7 @@ describe("report feed input", () => {
   it("normalizes the display query and creates a literal LIKE pattern", () => {
     let params = new URLSearchParams({ q: "  50%_off! today  ", page: "3" })
 
-    assert.deepEqual(parseReportFeedInput(params), {
+    assert.deepEqual(validReportFeedInput(params), {
       q: "50%_off! today",
       page: 3,
       likePattern: "%50!%!_off!! today%",
@@ -154,7 +185,7 @@ describe("report feed input", () => {
   })
 
   it("caps the query and normalizes invalid or missing pages to one", () => {
-    let capped = parseReportFeedInput(
+    let capped = validReportFeedInput(
       new URLSearchParams({ q: `  ${"q".repeat(150)}  `, page: "2" }),
     )
     assert.equal(capped.q.length, 100)
@@ -164,16 +195,24 @@ describe("report feed input", () => {
       let params = new URLSearchParams()
       if (page !== undefined) params.set("page", page)
 
-      assert.equal(parseReportFeedInput(params).page, 1, String(page))
+      assert.equal(validReportFeedInput(params).page, 1, String(page))
     }
   })
 
   it("returns no search pattern for an empty query", () => {
-    assert.deepEqual(parseReportFeedInput(new URLSearchParams()), {
+    assert.deepEqual(validReportFeedInput(new URLSearchParams()), {
       q: "",
       page: 1,
       likePattern: null,
     })
+  })
+
+  it("rejects NUL before building a database search pattern", () => {
+    let parsed = parseReportFeedInput(new URLSearchParams({ q: "private\0query" }))
+
+    assert.equal(parsed.success, false)
+    if (parsed.success) assert.fail("Expected a NUL search query to fail")
+    assert.ok(parsed.issues.some((issue) => issue.path?.[0] === "q"))
   })
 })
 
@@ -205,4 +244,11 @@ function validReportForm(overrides: Record<string, string | undefined> = {}): Fo
   }
 
   return formData
+}
+
+function validReportFeedInput(searchParams: URLSearchParams) {
+  let parsed = parseReportFeedInput(searchParams)
+  assert.equal(parsed.success, true)
+  if (!parsed.success) assert.fail("Expected valid report feed input")
+  return parsed.value
 }

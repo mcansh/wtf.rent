@@ -11,6 +11,11 @@ import { NewReportPage } from "./new-report.tsx"
 import { ReportDetailPage } from "./report-detail.tsx"
 import { getSafeReportValues, parseCreateReportInput } from "./report-input.ts"
 
+const PRIVATE_FORM_HEADERS = {
+  "Cache-Control": "private, no-store",
+  Vary: "Cookie",
+}
+
 export const post = createController(routes.post, {
   actions: {
     create: {
@@ -26,7 +31,7 @@ export const post = createController(routes.post, {
               issues={parsed.issues}
               values={getSafeReportValues(context.formData)}
             />,
-            { status: 422 },
+            { status: 422, headers: PRIVATE_FORM_HEADERS },
           )
         }
 
@@ -56,7 +61,9 @@ export const post = createController(routes.post, {
     new: {
       middleware: [requireAuth()],
       handler(context) {
-        return context.render(<NewReportPage csrfToken={getCsrfToken(context)} />)
+        return context.render(<NewReportPage csrfToken={getCsrfToken(context)} />, {
+          headers: PRIVATE_FORM_HEADERS,
+        })
       },
     },
 

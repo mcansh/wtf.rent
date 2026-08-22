@@ -6,8 +6,10 @@ import * as f from "remix/data-schema/form-data"
 import { REPORT_CATEGORIES } from "../../data/schema.ts"
 
 const UNIT_DESIGNATOR =
-  /\b(?:apartment|apt\.?|unit|suite|ste\.?)\s*(?:#\s*)?[A-Za-z0-9-]+\b|#\s*[A-Za-z0-9-]+/i
-const textValueSchema = s.string()
+  /\b(?:apartment|apt\.?|unit|suite|ste\.?)(?=\s|#)\s*(?:#\s*)?[A-Za-z0-9-]+\b|#\s*[A-Za-z0-9-]+/i
+const textValueSchema = s
+  .string()
+  .refine((value) => !value.includes("\0"), "NUL characters are not allowed")
 
 export const REPORT_LIKE_ESCAPE_CHARACTER = "!"
 
@@ -23,8 +25,7 @@ export const REPORT_CATEGORY_LABELS = {
   OTHER: "Other",
 } as const satisfies Record<ReportCategory, string>
 
-const trimmedAddress = s
-  .string()
+const trimmedAddress = textValueSchema
   .transform((value) => value.trim())
   .pipe(minLength(5), maxLength(160))
   .refine(
@@ -32,8 +33,7 @@ const trimmedAddress = s
     "Remove apartment, suite, or unit details from the address",
   )
 
-const optionalLandlord = s
-  .string()
+const optionalLandlord = textValueSchema
   .transform((value) => value.trim())
   .pipe(maxLength(160))
   .refine((value) => value.length === 0 || value.length >= 2, "Expected at least 2 characters")
@@ -42,16 +42,10 @@ const optionalLandlord = s
 const createReportSchema = f.object({
   address: f.field(trimmedAddress),
   city: f.field(
-    s
-      .string()
-      .transform((value) => value.trim())
-      .pipe(minLength(1), maxLength(100)),
+    textValueSchema.transform((value) => value.trim()).pipe(minLength(1), maxLength(100)),
   ),
   region: f.field(
-    s
-      .string()
-      .transform((value) => value.trim())
-      .pipe(minLength(1), maxLength(100)),
+    textValueSchema.transform((value) => value.trim()).pipe(minLength(1), maxLength(100)),
   ),
   landlordName: f.field(optionalLandlord),
   category: f.field(s.enum_(REPORT_CATEGORIES)),
@@ -59,16 +53,10 @@ const createReportSchema = f.object({
     coerce.number().refine(Number.isInteger, "Expected a whole-number rating").pipe(min(1), max(5)),
   ),
   title: f.field(
-    s
-      .string()
-      .transform((value) => value.trim())
-      .pipe(minLength(5), maxLength(120)),
+    textValueSchema.transform((value) => value.trim()).pipe(minLength(5), maxLength(120)),
   ),
   content: f.field(
-    s
-      .string()
-      .transform((value) => value.trim())
-      .pipe(minLength(20), maxLength(5_000)),
+    textValueSchema.transform((value) => value.trim()).pipe(minLength(20), maxLength(5_000)),
   ),
   isFirsthand: f.field(
     s
@@ -84,7 +72,7 @@ const createReportSchema = f.object({
 const reportFeedSchema = f.object({
   q: f.field(
     s
-      .defaulted(s.string(), "")
+      .defaulted(textValueSchema, "")
       .transform((value) => value.trim())
       .transform((value) => value.slice(0, 100)),
   ),
@@ -132,13 +120,19 @@ export function getSafeReportValues(formData: FormData): ReportFormValues {
   }
 }
 
-export function parseReportFeedInput(searchParams: URLSearchParams): ReportFeedInput {
-  let { q, page } = s.parse(reportFeedSchema, searchParams)
+export function parseReportFeedInput(searchParams: URLSearchParams) {
+  let parsed = s.parseSafe(reportFeedSchema, searchParams)
+  if (!parsed.success) return parsed
+
+  let { q, page } = parsed.value
 
   return {
-    q,
-    page,
-    likePattern: q.length === 0 ? null : toLiteralLikePattern(q),
+    success: true as const,
+    value: {
+      q,
+      page,
+      likePattern: q.length === 0 ? null : toLiteralLikePattern(q),
+    } satisfies ReportFeedInput,
   }
 }
 

@@ -27,7 +27,10 @@ export const controller = createController(routes, {
 
     home: {
       async handler(context) {
-        let input = parseReportFeedInput(context.url.searchParams)
+        let parsed = parseReportFeedInput(context.url.searchParams)
+        if (!parsed.success) return new Response("Invalid search query", { status: 400 })
+
+        let input = parsed.value
         let reportPage = await listPublicReports(context.db, input)
 
         return context.render(

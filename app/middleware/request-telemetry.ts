@@ -1,7 +1,5 @@
 import type { Middleware } from "remix/router"
 
-const SAFE_REQUEST_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/
-
 export interface RequestTelemetryRecord {
   event: "http_request_completed" | "http_request_failed"
   requestId: string
@@ -24,11 +22,11 @@ export function requestTelemetry(options: RequestTelemetryOptions = {}): Middlew
 
   return async (context, next) => {
     let startedAt = now()
-    let requestId = resolveRequestId(context.headers.get("X-Request-Id"), createRequestId)
+    let requestId = createRequestId()
     let baseRecord = {
       requestId,
       method: context.method,
-      pathname: context.url.pathname,
+      pathname: redactPathname(context.url.pathname),
     }
 
     try {
@@ -60,11 +58,8 @@ export function requestTelemetry(options: RequestTelemetryOptions = {}): Middlew
   }
 }
 
-function resolveRequestId(value: string | null, createRequestId: () => string): string {
-  if (value != null && SAFE_REQUEST_ID.test(value)) return value
-
-  let generated = createRequestId()
-  return SAFE_REQUEST_ID.test(generated) ? generated : crypto.randomUUID()
+function redactPathname(pathname: string): string {
+  return pathname.replace(/[^/]+/g, ":segment")
 }
 
 function getStatusClass(status: number): string {

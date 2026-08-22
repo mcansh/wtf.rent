@@ -187,7 +187,7 @@ describe("listPublicReports", () => {
       createdAt: new Date("2026-08-17T12:00:00.000Z"),
     })
 
-    let page = await listPublicReports(app.database, parseReportFeedInput(new URLSearchParams()))
+    let page = await listPublicReports(app.database, validReportFeedInput(new URLSearchParams()))
 
     assert.deepEqual(
       page.reports.map((report) => report.id),
@@ -277,7 +277,7 @@ describe("listPublicReports", () => {
     for (let [field, value, id] of fieldCases) {
       let page = await listPublicReports(
         app.database,
-        parseReportFeedInput(new URLSearchParams({ q: value.toUpperCase() })),
+        validReportFeedInput(new URLSearchParams({ q: value.toUpperCase() })),
       )
       assert.deepEqual(
         page.reports.map((report) => report.id),
@@ -290,7 +290,7 @@ describe("listPublicReports", () => {
     for (let category of REPORT_CATEGORIES) {
       let page = await listPublicReports(
         app.database,
-        parseReportFeedInput(
+        validReportFeedInput(
           new URLSearchParams({ q: REPORT_CATEGORY_LABELS[category].toUpperCase() }),
         ),
       )
@@ -321,7 +321,7 @@ describe("listPublicReports", () => {
 
     let page = await listPublicReports(
       app.database,
-      parseReportFeedInput(new URLSearchParams({ q: "NEEDLEADDRESS" })),
+      validReportFeedInput(new URLSearchParams({ q: "NEEDLEADDRESS" })),
     )
 
     assert.deepEqual(page.reports, [])
@@ -346,7 +346,7 @@ describe("listPublicReports", () => {
 
     let page = await listPublicReports(
       app.database,
-      parseReportFeedInput(new URLSearchParams({ q: "50%_OFF!" })),
+      validReportFeedInput(new URLSearchParams({ q: "50%_OFF!" })),
     )
 
     assert.deepEqual(
@@ -370,11 +370,11 @@ describe("listPublicReports", () => {
 
     let first = await listPublicReports(
       app.database,
-      parseReportFeedInput(new URLSearchParams({ page: "1" })),
+      validReportFeedInput(new URLSearchParams({ page: "1" })),
     )
     let second = await listPublicReports(
       app.database,
-      parseReportFeedInput(new URLSearchParams({ page: "2" })),
+      validReportFeedInput(new URLSearchParams({ page: "2" })),
     )
 
     assert.equal(REPORT_PAGE_SIZE, 20)
@@ -402,7 +402,7 @@ describe("listPublicReports", () => {
     // SAFETY: The Postgres adapter accepts query-compatible clients structurally at runtime; this
     // recorder implements the exact query call and result fields exercised by listPublicReports.
     let database = createPostgresDatabase(recorder as PostgresDatabaseInput)
-    let input = parseReportFeedInput(new URLSearchParams({ q: "50%_OFF!", page: "2" }))
+    let input = validReportFeedInput(new URLSearchParams({ q: "50%_OFF!", page: "2" }))
 
     let page = await listPublicReports(database, input)
 
@@ -520,3 +520,10 @@ describe("findPublicReport", () => {
     assert.equal(await findPublicReport(app.database, "legacy-detail' or 1 = 1 --"), null)
   })
 })
+
+function validReportFeedInput(searchParams: URLSearchParams) {
+  let parsed = parseReportFeedInput(searchParams)
+  assert.equal(parsed.success, true)
+  if (!parsed.success) assert.fail("Expected valid report feed input")
+  return parsed.value
+}
