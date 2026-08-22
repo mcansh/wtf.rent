@@ -29,7 +29,7 @@ export default defineRailway(() => {
   })
 
   let wtfRent = service("wtf.rent", {
-    source: github("mcansh/wtf.rent", { branch: "logan/remix-v3", checkSuites: false }),
+    source: github("mcansh/wtf.rent", { branch: "main", checkSuites: false }),
     replicas: { REGION: 1 },
     deploy: { drainingSeconds: 120, overlapSeconds: 0, sleepApplication: true },
     domains: ["rent.mcan.sh"],
