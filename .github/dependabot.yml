@@ -1,0 +1,34 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: daily
+      time: "10:00"
+      timezone: "America/Detroit"
+    reviewers:
+      - "mcansh"
+    assignees:
+      - "mcansh"
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      time: "10:00"
+      timezone: "America/Detroit"
+    reviewers:
+      - "mcansh"
+    assignees:
+      - "mcansh"
+    groups:
+      "oxc":
+        patterns:
+          - "@oxlint/*"
+          - oxfmt
+          - oxlint
+          - oxlint-tsgolint
+      "tailwindcss":
+        patterns:
+          - "@tailwindcss/*"
+          - tailwindcss

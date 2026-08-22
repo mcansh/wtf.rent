@@ -13,7 +13,10 @@
     "hmr": "pnpm run --parallel /^hmr:.*/",
     "start": "NODE_ENV=production node --import remix/node-tsx server.ts",
     "pretest": "node --run build",
-    "test": "NODE_ENV=test node --import remix/node-tsx --test 'app/**/*.test.{ts,tsx}'",
+    "test": "NODE_ENV=test remix test",
+    "test:browser": "NODE_ENV=test remix test --type browser",
+    "pretest:e2e": "node --run build",
+    "test:e2e": "NODE_ENV=test remix test --type e2e",
     "typecheck": "tsc --noEmit",
     "format": "oxfmt",
     "lint": "oxlint --fix"
@@ -28,13 +31,14 @@
     "remix": "3.0.0-beta.10"
   },
   "devDependencies": {
-    "@oxlint/plugins": "^1.78.0",
+    "@oxlint/plugins": "^1.79.0",
     "@tailwindcss/cli": "^4.3.3",
     "@types/node": "^26.2.0",
-    "@types/pg": "^8.21.0",
-    "oxfmt": "^0.63.0",
-    "oxlint": "^1.78.0",
+    "@types/pg": "^8.23.1",
+    "oxfmt": "^0.64.0",
+    "oxlint": "^1.79.0",
     "oxlint-tsgolint": "^7.0.2001",
+    "playwright": "^1.62.1",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2"
   },

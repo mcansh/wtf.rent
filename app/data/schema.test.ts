@@ -1,12 +1,7 @@
-import { describe, it } from "node:test"
-
 import * as assert from "remix/assert"
-import {
-  getTableBeforeWrite,
-  getTableColumnDefinitions,
-  getTableName,
-  getTableTimestamps,
-} from "remix/data-table"
+import { tableMetadataKey } from "remix/data-table"
+import type { AnyTable } from "remix/data-table"
+import { describe, it } from "remix/test"
 
 import {
   commentAuthor,
@@ -22,25 +17,43 @@ import {
   users,
 } from "./schema.ts"
 
+function readTableMetadata<table extends AnyTable>(table: table): table[typeof tableMetadataKey] {
+  let metadataKey = Object.getOwnPropertySymbols(table).find(
+    (key) => key.description === tableMetadataKey.description,
+  )
+  if (metadataKey === undefined) {
+    assert.fail("Expected table metadata symbol on schema table")
+  }
+
+  // SAFETY: The matching own symbol is the table's metadata key from its isolated module instance.
+  return table[metadataKey as typeof tableMetadataKey]
+}
+
 describe("data schema", () => {
   it("preserves the existing PostgreSQL identifiers and constraints", () => {
-    assert.deepEqual([users, posts, comments].map(getTableName), ["User", "Post", "Comment"])
-    assert.deepEqual(getTableTimestamps(users), {
+    let usersTable = readTableMetadata(users)
+    let postsTable = readTableMetadata(posts)
+    let commentsTable = readTableMetadata(comments)
+    assert.deepEqual(
+      [usersTable.name, postsTable.name, commentsTable.name],
+      ["User", "Post", "Comment"],
+    )
+    assert.deepEqual(usersTable.timestamps, {
       createdAt: "createdAt",
       updatedAt: "updatedAt",
     })
 
-    let userColumns = getTableColumnDefinitions(users)
+    let userColumns = usersTable.columnDefinitions
     assert.equal(userColumns.id.primaryKey, true)
     assert.deepEqual(userColumns.createdAt.default, { kind: "now" })
     assert.deepEqual(userColumns.username.unique, { name: "User_username_key" })
     assert.deepEqual(userColumns.email.unique, { name: "User_email_key" })
 
-    let postColumns = getTableColumnDefinitions(posts)
+    let postColumns = postsTable.columnDefinitions
     assert.equal(postColumns.authorId.references?.table.name, "User")
     assert.equal(postColumns.authorId.references?.onDelete, "restrict")
 
-    let commentColumns = getTableColumnDefinitions(comments)
+    let commentColumns = commentsTable.columnDefinitions
     assert.equal(commentColumns.authorId.references?.onDelete, "restrict")
     assert.equal(commentColumns.postId.references?.table.name, "Post")
     assert.equal(commentColumns.postId.references?.onDelete, "cascade")
@@ -48,19 +61,20 @@ describe("data schema", () => {
 
   it("generates string ids before inserts", () => {
     for (let table of [users, posts, comments]) {
-      let beforeWrite = getTableBeforeWrite(table)
+      let metadata = readTableMetadata(table)
+      let beforeWrite = metadata.beforeWrite
       if (beforeWrite === undefined) {
-        assert.fail(`Expected ${getTableName(table)} to generate ids before writes`)
+        assert.fail(`Expected ${metadata.name} to generate ids before writes`)
       }
 
       let result = beforeWrite({
         operation: "create",
-        tableName: getTableName(table),
+        tableName: metadata.name,
         value: {},
       })
 
       if (!("value" in result)) {
-        assert.fail(`Expected ${getTableName(table)} id generation to succeed`)
+        assert.fail(`Expected ${metadata.name} id generation to succeed`)
       }
       assert.match(
         String(result.value.id),

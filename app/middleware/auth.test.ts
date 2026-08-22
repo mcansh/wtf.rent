@@ -1,7 +1,6 @@
-import { describe, it } from "node:test"
-
 import * as assert from "remix/assert"
 import { Session } from "remix/session"
+import { describe, it } from "remix/test"
 
 import {
   createLoginThrottle,
