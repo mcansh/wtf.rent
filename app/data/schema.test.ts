@@ -1,5 +1,6 @@
 import * as assert from "remix/assert"
-import type { AnyTable, TableBeforeWrite } from "remix/data-table"
+import { tableMetadataKey } from "remix/data-table"
+import type { AnyTable } from "remix/data-table"
 import { describe, it } from "remix/test"
 
 import {
@@ -14,38 +15,27 @@ import {
   users,
 } from "./schema.ts"
 
-const TABLE_METADATA_KEY_DESCRIPTION = "data-table.tableMetadata"
-
-type ColumnDefinitionLike = {
-  primaryKey?: boolean
-  default?: unknown
-  unique?: { name: string }
-  references?: {
-    table: { name: string }
-    onDelete?: string
-  }
-}
-
-function readTableMetadata(table: AnyTable) {
-  let metadataKey = Reflect.ownKeys(table).find(
-    (key) => typeof key === "symbol" && key.description === TABLE_METADATA_KEY_DESCRIPTION,
+function readTableMetadata<table extends AnyTable>(table: table): table[typeof tableMetadataKey] {
+  let metadataKey = Object.getOwnPropertySymbols(table).find(
+    (key) => key.description === tableMetadataKey.description,
   )
   if (metadataKey === undefined) {
     assert.fail("Expected table metadata symbol on schema table")
   }
 
-  return Reflect.get(table, metadataKey) as {
-    name: string
-    timestamps: Record<string, string> | undefined
-    columnDefinitions: Record<string, ColumnDefinitionLike>
-    beforeWrite: TableBeforeWrite<Record<string, unknown>> | undefined
-  }
+  // SAFETY: The matching own symbol is the table's metadata key from its isolated module instance.
+  return table[metadataKey as typeof tableMetadataKey]
 }
 
 describe("data schema", () => {
   it("preserves the existing PostgreSQL identifiers and constraints", () => {
-    let [usersTable, postsTable, commentsTable] = [users, posts, comments].map(readTableMetadata)
-    assert.deepEqual([usersTable.name, postsTable.name, commentsTable.name], ["User", "Post", "Comment"])
+    let usersTable = readTableMetadata(users)
+    let postsTable = readTableMetadata(posts)
+    let commentsTable = readTableMetadata(comments)
+    assert.deepEqual(
+      [usersTable.name, postsTable.name, commentsTable.name],
+      ["User", "Post", "Comment"],
+    )
     assert.deepEqual(usersTable.timestamps, {
       createdAt: "createdAt",
       updatedAt: "updatedAt",
