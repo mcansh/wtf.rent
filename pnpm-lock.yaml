@@ -227,7 +227,7 @@ importers:
         version: 3.10.0
       remix:
         specifier: 3.0.0-beta.10
-        version: 3.0.0-beta.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(pg@8.23.0)
+        version: 3.0.0-beta.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(pg@8.23.0)(playwright@1.62.1)
     devDependencies:
       '@oxlint/plugins':
         specifier: ^1.79.0
@@ -250,6 +250,9 @@ importers:
       oxlint-tsgolint:
         specifier: ^7.0.2001
         version: 7.0.2001
+      playwright:
+        specifier: ^1.62.1
+        version: 1.62.1
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -2008,6 +2011,11 @@ packages:
     resolution: {integrity: sha512-YsGpe3WHLK8ZYi4tWDg2Jy3ebRz2rXowDxnld4bkQB00cc/1Zw9AWnC0i9ztDJitivtQvaI9KaLyKrc+hBW0yg==}
     engines: {node: '>=8'}
 
+  fsevents@2.3.2:
+    resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
+    engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
+    os: [darwin]
+
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
@@ -2316,6 +2324,16 @@ packages:
   picomatch@4.0.5:
     resolution: {integrity: sha512-RvwwcruNjI1ncT5xRakeyS9Lf8lcItv34KD+aif+VH9kduAyfYBipGh12274xtenIPZ119/R9BdTBa8gAwSh0A==}
     engines: {node: '>=12'}
+
+  playwright-core@1.62.1:
+    resolution: {integrity: sha512-wPYSwEBJY9GHraISXqyqtx0na0LpO3XEX7jNDhntbex7tzUS7kLnZsOlFruFJB4Hi/rhDMjXGqHewDZ68nYZVw==, tarball: https://registry.npmjs.org/playwright-core/-/playwright-core-1.62.1.tgz}
+    engines: {node: '>=20'}
+    hasBin: true
+
+  playwright@1.62.1:
+    resolution: {integrity: sha512-0M+L3LAD8/nm554LOla9Ayx0j0tmFZ0FBcoQ7F1VuVHpM/XpiC8RcDzBQB8W5+hA8L22THxELzeF+2WcUzvcLg==, tarball: https://registry.npmjs.org/playwright/-/playwright-1.62.1.tgz}
+    engines: {node: '>=20'}
+    hasBin: true
 
   postgres-array@2.0.0:
     resolution: {integrity: sha512-VpZrUqU5A69eQyW2c5CA1jtLecCsN2U/bD6VilrFDWq5+5UIEVO7nazS3TEcHf1zuPYO/sqGvUvW62g86RXZuA==}
@@ -3180,14 +3198,14 @@ snapshots:
       '@remix-run/fetch-router': 0.21.0
       '@remix-run/session': 0.4.2
 
-  '@remix-run/cli@0.5.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(pg@8.23.0)':
+  '@remix-run/cli@0.5.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(pg@8.23.0)(playwright@1.62.1)':
     dependencies:
       '@remix-run/data-table': 0.4.0
       '@remix-run/data-table-mysql': 0.5.0
       '@remix-run/data-table-postgres': 0.5.0(pg@8.23.0)
       '@remix-run/data-table-sqlite': 0.6.0
       '@remix-run/terminal': 0.1.1
-      '@remix-run/test': 0.6.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
+      '@remix-run/test': 0.6.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(playwright@1.62.1)
       jsonc-parser: 3.3.1
       semver: 7.8.5
     transitivePeerDependencies:
@@ -3356,7 +3374,7 @@ snapshots:
 
   '@remix-run/terminal@0.1.1': {}
 
-  '@remix-run/test@0.6.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)':
+  '@remix-run/test@0.6.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(playwright@1.62.1)':
     dependencies:
       '@remix-run/node-tsx': 0.1.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
       '@remix-run/terminal': 0.1.1
@@ -3370,6 +3388,8 @@ snapshots:
       oxc-resolver: 11.24.2
       source-map-js: 1.2.1
       v8-to-istanbul: 9.3.0
+    optionalDependencies:
+      playwright: 1.62.1
     transitivePeerDependencies:
       - '@emnapi/core'
       - '@emnapi/runtime'
@@ -3629,6 +3649,9 @@ snapshots:
   fill-range@7.1.1:
     dependencies:
       to-regex-range: 5.0.1
+
+  fsevents@2.3.2:
+    optional: true
 
   fsevents@2.3.3:
     optional: true
@@ -3984,6 +4007,14 @@ snapshots:
 
   picomatch@4.0.5: {}
 
+  playwright-core@1.62.1: {}
+
+  playwright@1.62.1:
+    dependencies:
+      playwright-core: 1.62.1
+    optionalDependencies:
+      fsevents: 2.3.2
+
   postgres-array@2.0.0: {}
 
   postgres-bytea@1.0.1: {}
@@ -4002,14 +4033,14 @@ snapshots:
 
   readdirp@5.1.1: {}
 
-  remix@3.0.0-beta.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(pg@8.23.0):
+  remix@3.0.0-beta.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(pg@8.23.0)(playwright@1.62.1):
     dependencies:
       '@remix-run/assert': 0.3.0
       '@remix-run/assets': 0.5.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
       '@remix-run/async-context-middleware': 0.3.5
       '@remix-run/auth': 0.2.7
       '@remix-run/auth-middleware': 0.2.5
-      '@remix-run/cli': 0.5.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(pg@8.23.0)
+      '@remix-run/cli': 0.5.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(pg@8.23.0)(playwright@1.62.1)
       '@remix-run/compression-middleware': 0.1.13
       '@remix-run/cookie': 0.6.0
       '@remix-run/cop-middleware': 0.1.8
@@ -4047,11 +4078,12 @@ snapshots:
       '@remix-run/static-middleware': 0.4.14
       '@remix-run/tar-parser': 0.7.1
       '@remix-run/terminal': 0.1.1
-      '@remix-run/test': 0.6.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
+      '@remix-run/test': 0.6.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(playwright@1.62.1)
       '@remix-run/ui': 0.7.0
       '@remix-run/ui-hmr': 0.1.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
     optionalDependencies:
       pg: 8.23.0
+      playwright: 1.62.1
     transitivePeerDependencies:
       - '@emnapi/core'
       - '@emnapi/runtime'
