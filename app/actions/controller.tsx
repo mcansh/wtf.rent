@@ -63,10 +63,16 @@ export const controller = createController(routes, {
               if (!r.ok) return Promise.reject(r)
             }),
           ])
-          return Response.json({ status: "OK", timestamp })
+          return Response.json(
+            { status: "OK", timestamp },
+            { headers: { "Cache-Control": "no-store" } },
+          )
         } catch (error: unknown) {
           console.error("healthcheck ❌", { error })
-          return Response.json({ status: "ERROR", timestamp }, { status: 500 })
+          return Response.json(
+            { status: "ERROR", timestamp },
+            { status: 500, headers: { "Cache-Control": "no-store" } },
+          )
         }
       },
     },
