@@ -26,7 +26,7 @@ jobs:
         run: nub install
 
       - name: 🏗 Build
-        run: pnpm build
+        run: nub run build
 
   test:
     name: 🧪 Run Tests
@@ -48,4 +48,4 @@ jobs:
         run: nub exec playwright install --with-deps
 
       - name: 🧪 Run Tests
-        run: pnpm test
+        run: nub run test

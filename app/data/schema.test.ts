@@ -94,7 +94,7 @@ describe("data schema", () => {
   })
 
   it("describes the legacy-safe report columns and allowed values", () => {
-    let postColumns = getTableColumnDefinitions(posts)
+    let postColumns = readTableMetadata(posts).columnDefinitions
 
     for (let column of [
       "address",
@@ -118,12 +118,13 @@ describe("data schema", () => {
   })
 
   it("does not fabricate structured metadata for legacy writes", () => {
-    let beforeWrite = getTableBeforeWrite(posts)
+    let postMetadata = readTableMetadata(posts)
+    let beforeWrite = postMetadata.beforeWrite
     if (beforeWrite === undefined) assert.fail("Expected Post beforeWrite hook")
 
     let result = beforeWrite({
       operation: "create",
-      tableName: getTableName(posts),
+      tableName: postMetadata.name,
       value: {
         title: "Legacy post",
         content: "Stored before structured reports",
