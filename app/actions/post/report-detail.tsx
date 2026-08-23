@@ -1,11 +1,17 @@
 import type { Handle, RemixNode } from "remix/ui"
 
+import type { PublicCommentPage } from "../../data/comments.ts"
 import type { PublicReportDetail } from "../../data/reports.ts"
 import { routes } from "../../routes.ts"
 import { ShellPage } from "../../ui/shell.tsx"
+import type { CommentFormState } from "./report-comments.tsx"
+import { ReportComments } from "./report-comments.tsx"
 import { REPORT_CATEGORY_LABELS } from "./report-input.ts"
 
 interface ReportDetailPageProps {
+  canEdit: boolean
+  commentForm: CommentFormState | null
+  commentPage: PublicCommentPage
   report: PublicReportDetail
 }
 
@@ -26,12 +32,22 @@ export function ReportDetailPage(handle: Handle<ReportDetailPageProps>) {
         <main className="bg-paper-50 min-h-dvh">
           <header className="border-ink-950 border-b-2 bg-blue-100">
             <div className="mx-auto grid w-full max-w-6xl gap-7 px-4 py-9 sm:px-8 sm:py-12 lg:gap-9 lg:py-16">
-              <a
-                className="focus-visible:outline-ink-950 w-fit text-base font-semibold underline decoration-2 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 sm:text-sm"
-                href={routes.home.href()}
-              >
-                <span aria-hidden="true">←</span> Back to renter reports
-              </a>
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <a
+                  className="focus-visible:outline-ink-950 w-fit text-base font-semibold underline decoration-2 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 sm:text-sm"
+                  href={routes.home.href()}
+                >
+                  <span aria-hidden="true">←</span> Back to renter reports
+                </a>
+                {handle.props.canEdit ? (
+                  <a
+                    className="border-ink-950 bg-paper-50 hover:bg-acid-100 focus-visible:outline-ink-950 border-[1.5px] px-3 py-2 text-base font-semibold shadow-[3px_3px_0_var(--color-ink-950)] focus-visible:outline-2 focus-visible:outline-offset-2 sm:text-sm"
+                    href={routes.post.edit.href({ id: report.id })}
+                  >
+                    Edit report
+                  </a>
+                ) : null}
+              </div>
 
               <div className="grid max-w-4xl gap-4">
                 <div className="flex flex-wrap items-center gap-2 font-mono text-xs font-medium tracking-wide uppercase">
@@ -116,6 +132,11 @@ export function ReportDetailPage(handle: Handle<ReportDetailPageProps>) {
               )}
             </aside>
           </div>
+          <ReportComments
+            commentPage={handle.props.commentPage}
+            form={handle.props.commentForm}
+            reportId={report.id}
+          />
         </main>
       </ShellPage>
     )

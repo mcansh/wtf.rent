@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises"
+
 import * as assert from "remix/assert"
 import { tableMetadataKey } from "remix/data-table"
 import type { AnyTable } from "remix/data-table"
@@ -138,5 +140,17 @@ describe("data schema", () => {
     assert.equal("category" in result.value, false)
     assert.equal("rating" in result.value, false)
     assert.equal("status" in result.value, false)
+  })
+
+  it("indexes the stable report comment feed", async () => {
+    let migration = await readFile(
+      new URL("../../db/migrations/20260818184000_add_comment_feed_index/up.sql", import.meta.url),
+      "utf8",
+    )
+
+    assert.match(
+      migration,
+      /create index if not exists "Comment_postId_createdAt_id_idx"\s+on "Comment" \("postId", "createdAt", "id"\)/i,
+    )
   })
 })
