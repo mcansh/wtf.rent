@@ -77,6 +77,8 @@ export type CreateReportValues = Omit<CreateReportInput, "isFirsthand">
 export interface CreateReportTrustedContext {
   authorId: User["id"]
   confirmedAt: Date
+  latitude: number | null
+  longitude: number | null
 }
 
 export async function createReport(
@@ -98,6 +100,8 @@ export async function createReport(
       content: values.content,
       authorId: trusted.authorId,
       experienceConfirmedAt: trusted.confirmedAt,
+      latitude: trusted.latitude,
+      longitude: trusted.longitude,
       status: "PUBLISHED",
     },
     { returnRow: true },
@@ -106,7 +110,7 @@ export async function createReport(
 
 export async function listPublicReports(input: ReportFeedInput): Promise<PublicReportPage> {
   let context = getContext()
-  let where = createPublicReportWhere(input.likePattern)
+  let where = createPublicReportWhere(input)
   let offset = getReportPageOffset(input.page)
   let reportsStatement = sql`
     select
@@ -158,7 +162,7 @@ export async function listPublicReports(input: ReportFeedInput): Promise<PublicR
 
 export async function findPublicReport(id: Post["id"]): Promise<PublicReportDetail | null> {
   let context = getContext()
-  let publicWhere = createPublicReportWhere(null)
+  let publicWhere = createPublicReportWhere({ likePattern: null, page: 1, q: "", radius: null, lat: null, lng: null })
   let statement = sql`
     select
       p."id" as "id",
@@ -396,13 +400,19 @@ function normalizeSuggestionText(value: string | null, maxLength: number): strin
   return normalized.length === 0 ? null : normalized
 }
 
-function createPublicReportWhere(likePattern: string | null): SqlStatement {
-  if (likePattern == null) return rawSql('p."status" = ?', ["PUBLISHED"])
+function createPublicReportWhere(input: ReportFeedInput): SqlStatement {
+  let { likePattern, lat, lng, radius } = input
+  let hasLocation = lat != null && lng != null && radius != null
 
-  return rawSql(
-    `
-      p."status" = ?
-      and (
+  if (likePattern == null && !hasLocation) {
+    return rawSql('p."status" = ?', ["PUBLISHED"])
+  }
+
+  let conditions: string[] = ['p."status" = ?']
+  let params: (string | number)[] = ["PUBLISHED"]
+
+  if (likePattern != null) {
+    conditions.push(`(
         lower(coalesce(p."title", '')) like lower(?) escape '!'
         or lower(coalesce(p."content", '')) like lower(?) escape '!'
         or lower(coalesce(p."city", '')) like lower(?) escape '!'
@@ -422,10 +432,24 @@ function createPublicReportWhere(likePattern: string | null): SqlStatement {
             ''
           )
         ) like lower(?) escape '!'
-      )
-    `,
-    ["PUBLISHED", ...Array<string>(6).fill(likePattern)],
-  )
+      )`)
+    params.push(...Array<string>(6).fill(likePattern))
+  }
+
+  if (hasLocation) {
+    conditions.push(`p."latitude" is not null`)
+    conditions.push(`p."longitude" is not null`)
+    conditions.push(`(
+        2 * 3958.8 * asin(sqrt(
+          power(sin((radians(p."latitude") - radians(?)) / 2), 2) +
+          cos(radians(?)) * cos(radians(p."latitude")) *
+          power(sin((radians(p."longitude") - radians(?)) / 2), 2)
+        ))
+      ) <= ?`)
+    params.push(lat!, lat!, lng!, radius!)
+  }
+
+  return rawSql(conditions.join("\n      and "), params)
 }
 
 function getReportPageOffset(page: number): number {
