@@ -1,5 +1,3 @@
-import type { Database } from "remix/data-table"
-
 import { listPublicReportSuggestions } from "../../data/reports.ts"
 import { listPhotonLocationSuggestions } from "./photon.ts"
 import type { ReportSuggestion } from "./public/suggestion-contract.ts"
@@ -18,10 +16,7 @@ export interface ReportSuggestionServiceOptions {
   photonFetch?: typeof globalThis.fetch
 }
 
-export type ReportSuggestionService = (
-  database: Database,
-  input: ReportSuggestionInput,
-) => Promise<ReportSuggestion[]>
+export type ReportSuggestionService = (input: ReportSuggestionInput) => Promise<ReportSuggestion[]>
 
 export function createReportSuggestionService(
   options: ReportSuggestionServiceOptions = {},
@@ -29,7 +24,7 @@ export function createReportSuggestionService(
   let cache = new Map<string, ReportSuggestionCacheEntry>()
   let photonFetch = options.photonFetch ?? globalThis.fetch
 
-  return async (database, input) => {
+  return async (input) => {
     if (input.likePattern == null) return []
 
     let key = input.q.toLowerCase()
@@ -39,7 +34,7 @@ export function createReportSuggestionService(
     if (cached != null) cache.delete(key)
 
     let promise = Promise.all([
-      listPublicReportSuggestions(database, input),
+      listPublicReportSuggestions(input),
       listPhotonLocationSuggestions(input.q, photonFetch),
     ]).then(([reportSuggestions, photonSuggestions]) =>
       mergeReportSuggestions(reportSuggestions, photonSuggestions),
