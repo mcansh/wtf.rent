@@ -2,10 +2,8 @@ import { getCsrfToken } from "remix/middleware/csrf"
 import { redirect } from "remix/response/redirect"
 import { createController } from "remix/router"
 
-import { geocodeLocation } from "../../actions/home-page/photon.ts"
 import { createReport, findPublicReport } from "../../data/reports.ts"
 import { requireAuth } from "../../middleware/auth.ts"
-import { PhotonFetch } from "../../middleware/report-suggestions.ts"
 import { routes } from "../../routes.ts"
 import { getCurrentUser } from "../../utils/context.ts"
 import { notFound } from "../not-found.tsx"
@@ -37,16 +35,9 @@ export const post = createController(routes.post, {
           )
         }
 
-        let coords = await geocodeLocation(
-          parsed.value.city,
-          parsed.value.region,
-          context.get(PhotonFetch),
-        )
         let report = await createReport(parsed.value, {
           authorId: getCurrentUser().id,
           confirmedAt: new Date(),
-          latitude: coords?.latitude ?? null,
-          longitude: coords?.longitude ?? null,
         })
 
         return redirect(routes.post.show.href({ id: report.id }), 303)
