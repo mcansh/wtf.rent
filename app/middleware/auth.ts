@@ -189,6 +189,7 @@ export const passwordProvider = createCredentialsAuthProvider({
 
 export interface RequireAuthOptions {
   redirectTo?: Route
+  returnTo?: Route
 }
 
 export interface RequireGuestOptions {
@@ -200,13 +201,14 @@ export function requireAuth(options?: RequireAuthOptions) {
 
   return requireAuthenticated<User>({
     onFailure(context) {
+      let returnTo =
+        options?.returnTo?.href(context.params, { searchParams: context.url.searchParams }) ??
+        getSafeReturnTo(context.url.searchParams.get("returnTo")) ??
+        context.url.pathname + context.url.search
+
       return redirect(
         redirectTo.href(undefined, {
-          searchParams: {
-            returnTo:
-              getSafeReturnTo(context.url.searchParams.get("returnTo")) ??
-              context.url.pathname + context.url.search,
-          },
+          searchParams: { returnTo },
         }),
       )
     },

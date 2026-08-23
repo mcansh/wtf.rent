@@ -23,6 +23,7 @@ export interface PublicCommentCursor {
 
 export interface PublicCommentPage {
   comments: PublicComment[]
+  cursor: PublicCommentCursor | null
   hasOlder: boolean
   isLatest: boolean
   olderCursor: PublicCommentCursor | null
@@ -95,6 +96,7 @@ export async function listPublicComments(
 
   return {
     comments: visibleDescending.toReversed(),
+    cursor,
     hasOlder,
     isLatest: cursor == null,
     olderCursor:

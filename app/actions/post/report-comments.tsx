@@ -117,7 +117,7 @@ export function ReportComments(handle: Handle<ReportCommentsProps>) {
               </a>
             </aside>
           ) : (
-            <CommentForm form={form} reportId={reportId} />
+            <CommentForm cursor={commentPage.cursor} form={form} reportId={reportId} />
           )}
         </div>
       </section>
@@ -135,17 +135,36 @@ function getOlderCommentsHref(reportId: Post["id"], cursor: PublicCommentCursor)
   let href = routes.post.show.href(
     { id: reportId },
     {
-      searchParams: {
-        [COMMENT_CURSOR_AT_PARAM]: cursor.createdAt.toISOString(),
-        [COMMENT_CURSOR_ID_PARAM]: cursor.id,
-      },
+      searchParams: getCommentCursorSearchParams(cursor),
     },
   )
 
   return `${href}#comments`
 }
 
-function CommentForm(handle: Handle<{ form: CommentFormState; reportId: Post["id"] }>) {
+function getCommentActionHref(reportId: Post["id"], cursor: PublicCommentCursor | null): string {
+  if (cursor == null) return routes.post.comment.href({ id: reportId })
+
+  return routes.post.comment.href(
+    { id: reportId },
+    { searchParams: getCommentCursorSearchParams(cursor) },
+  )
+}
+
+function getCommentCursorSearchParams(cursor: PublicCommentCursor) {
+  return {
+    [COMMENT_CURSOR_AT_PARAM]: cursor.createdAt.toISOString(),
+    [COMMENT_CURSOR_ID_PARAM]: cursor.id,
+  }
+}
+
+function CommentForm(
+  handle: Handle<{
+    cursor: PublicCommentCursor | null
+    form: CommentFormState
+    reportId: Post["id"]
+  }>,
+) {
   return () => {
     let errors =
       handle.props.form.issues
@@ -157,7 +176,7 @@ function CommentForm(handle: Handle<{ form: CommentFormState; reportId: Post["id
       <form
         className="border-ink-950 shadow-ink-950 bg-paper-50 grid gap-5 border-2 p-5 shadow-[6px_6px_0_var(--color-ink-950)] sm:p-6"
         method="post"
-        action={routes.post.comment.href({ id: handle.props.reportId })}
+        action={getCommentActionHref(handle.props.reportId, handle.props.cursor)}
         rmx-document
       >
         <input type="hidden" name="_csrf" value={handle.props.form.csrfToken} />

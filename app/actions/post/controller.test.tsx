@@ -1,7 +1,13 @@
 import * as assert from "remix/assert"
 import { describe, it } from "remix/test"
 
-import { createAuthTestApp, createSessionCookie } from "../../../test/auth.ts"
+import {
+  createAuthTestApp,
+  createSessionCookie,
+  getResponseCookie,
+  TEST_USER_PASSWORD,
+  TEST_USER_PASSWORD_HASH,
+} from "../../../test/auth.ts"
 import {
   createAuthenticatedReportSession,
   createReportTestApp,
@@ -14,6 +20,7 @@ import {
 import { PUBLIC_COMMENT_PAGE_SIZE } from "../../data/comments.ts"
 import { comments, posts } from "../../data/schema.ts"
 import { routes } from "../../routes.ts"
+import { COMMENT_CURSOR_AT_PARAM, COMMENT_CURSOR_ID_PARAM } from "./comment-input.ts"
 import { REPORT_CATEGORY_LABELS } from "./report-input.ts"
 
 describe("post authorization", () => {
@@ -22,22 +29,84 @@ describe("post authorization", () => {
     let csrfToken = "post-csrf-token"
     let cookie = await createSessionCookie(app, (session) => session.set("_csrf", csrfToken))
     let protectedRequests = [
-      [routes.post.new.href(), "GET"],
-      [routes.post.create.href(), "POST"],
-      [routes.post.edit.href({ id: "report-id" }), "GET"],
-      [routes.post.update.href({ id: "report-id" }), "PUT"],
-      [routes.post.destroy.href({ id: "report-id" }), "DELETE"],
-      [routes.post.comment.href({ id: "report-id" }), "POST"],
+      [routes.post.new.href(), "GET", routes.post.new.href()],
+      [routes.post.create.href(), "POST", routes.post.create.href()],
+      [
+        routes.post.edit.href({ id: "report-id" }),
+        "GET",
+        routes.post.edit.href({ id: "report-id" }),
+      ],
+      [
+        routes.post.update.href({ id: "report-id" }),
+        "PUT",
+        routes.post.update.href({ id: "report-id" }),
+      ],
+      [
+        routes.post.destroy.href({ id: "report-id" }),
+        "DELETE",
+        routes.post.destroy.href({ id: "report-id" }),
+      ],
+      [
+        routes.post.comment.href({ id: "report-id" }),
+        "POST",
+        routes.post.show.href({ id: "report-id" }),
+      ],
     ] as const
 
-    for (let [pathname, method] of protectedRequests) {
+    for (let [pathname, method, returnTo] of protectedRequests) {
       let response = await app.router.fetch(request(pathname, method, cookie, csrfToken))
       let location = new URL(response.headers.get("Location")!, "http://localhost")
 
       assert.equal(response.status, 302, `${method} ${pathname}`)
       assert.equal(location.pathname, routes.login.index.href(), `${method} ${pathname}`)
-      assert.equal(location.searchParams.get("returnTo"), pathname, `${method} ${pathname}`)
+      assert.equal(location.searchParams.get("returnTo"), returnTo, `${method} ${pathname}`)
     }
+  })
+
+  it("returns to the public report after logging in from a comment POST", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let commenter = await seedReportUser(app, { password: TEST_USER_PASSWORD_HASH })
+    let report = await seedStructuredReport(app, {
+      id: "comment-login-return",
+      authorId: commenter.id,
+    })
+    let csrfToken = "comment-login-csrf"
+    let guestCookie = await createSessionCookie(app, (session) => session.set("_csrf", csrfToken))
+    let protectedResponse = await app.router.fetch(
+      request(routes.post.comment.href({ id: report.id }), "POST", guestCookie, csrfToken),
+    )
+    let loginHref = protectedResponse.headers.get("Location")!
+    let loginURL = new URL(loginHref, "http://localhost")
+
+    assert.equal(protectedResponse.status, 302)
+    assert.equal(loginURL.pathname, routes.login.index.href())
+    assert.equal(loginURL.searchParams.get("returnTo"), routes.post.show.href({ id: report.id }))
+
+    let loginForm = await getReportCsrfForm(app, loginHref, guestCookie)
+    let credentials = new FormData()
+    credentials.set("_csrf", loginForm.token)
+    credentials.set("email", commenter.email)
+    credentials.set("password", TEST_USER_PASSWORD)
+    let loginResponse = await app.router.fetch(
+      new Request(new URL(loginHref, "http://localhost"), {
+        method: "POST",
+        headers: { Cookie: loginForm.cookie },
+        body: credentials,
+      }),
+    )
+
+    assert.equal(loginResponse.status, 303)
+    assert.equal(loginResponse.headers.get("Location"), routes.post.show.href({ id: report.id }))
+
+    let finalResponse = await app.router.fetch(
+      request(loginResponse.headers.get("Location")!, "GET", getResponseCookie(loginResponse)),
+    )
+    let html = await finalResponse.text()
+
+    assert.equal(finalResponse.status, 200)
+    assert.match(html, /Repairs took repeated follow-up/)
+    assert.match(html, /Add a comment/)
   })
 
   it("keeps the post show route public", async (t) => {
@@ -303,11 +372,36 @@ describe("report comments", () => {
       id: "comment-validation",
       authorId: author.id,
     })
+    await seedComment(app, {
+      id: "validation-older-comment",
+      authorId: author.id,
+      postId: report.id,
+      content: "Visible on the retained older page.",
+      createdAt: new Date("2026-08-17T12:00:00.000Z"),
+      updatedAt: new Date("2026-08-17T12:00:00.000Z"),
+    })
+    await seedComment(app, {
+      id: "validation-newer-comment",
+      authorId: author.id,
+      postId: report.id,
+      content: "Only visible on the latest page.",
+      createdAt: new Date("2026-08-19T12:00:00.000Z"),
+      updatedAt: new Date("2026-08-19T12:00:00.000Z"),
+    })
+    let cursorSearch = {
+      [COMMENT_CURSOR_AT_PARAM]: "2026-08-18T12:00:00.000Z",
+      [COMMENT_CURSOR_ID_PARAM]: "validation-cursor",
+    }
+    let existingComments = await app.database.findMany(comments)
     let cookie = await createAuthenticatedReportSession(app, commenter)
     let missingCsrf = await app.router.fetch(
       commentCreateRequest(report.id, { content: "Missing CSRF" }, cookie),
     )
-    let form = await getReportCsrfForm(app, routes.post.show.href({ id: report.id }), cookie)
+    let form = await getReportCsrfForm(
+      app,
+      routes.post.show.href({ id: report.id }, { searchParams: cursorSearch }),
+      cookie,
+    )
     let submitted = `<script>alert("unsafe")</script>${"x".repeat(1_000)}`
     let invalid = await app.router.fetch(
       commentCreateRequest(
@@ -317,9 +411,13 @@ describe("report comments", () => {
           content: submitted,
         },
         form.cookie,
+        cursorSearch,
       ),
     )
     let html = await invalid.text()
+    let expectedAction = routes.post.comment
+      .href({ id: report.id }, { searchParams: cursorSearch })
+      .replaceAll("&", "&amp;")
 
     assert.equal(missingCsrf.status, 403)
     assert.equal(invalid.status, 422)
@@ -329,8 +427,12 @@ describe("report comments", () => {
     assert.match(html, /aria-invalid="true"/)
     assert.match(html, /&lt;script&gt;alert\("unsafe"\)&lt;\/script&gt;/)
     assert.doesNotMatch(html, /<script>alert\("unsafe"\)<\/script>/)
+    assert.match(html, /Showing older public comments/)
+    assert.match(html, /Visible on the retained older page\./)
+    assert.doesNotMatch(html, /Only visible on the latest page\./)
+    assert.equal(html.includes(`action="${expectedAction}"`), true)
     assert.equal(html.includes("x".repeat(1_001)), false)
-    assert.deepEqual(await app.database.findMany(comments), [])
+    assert.deepEqual(await app.database.findMany(comments), existingComments)
   })
 
   it("returns the same 404 and writes nothing for hidden or missing reports", async (t) => {
@@ -908,17 +1010,21 @@ function commentCreateRequest(
   id: string,
   values: Record<string, string | undefined>,
   cookie: string,
+  searchParams?: Record<string, string>,
 ): Request {
   let formData = new FormData()
   for (let [name, value] of Object.entries(values)) {
     if (value !== undefined) formData.set(name, value)
   }
 
-  return new Request(new URL(routes.post.comment.href({ id }), "http://localhost"), {
-    method: "POST",
-    headers: { Cookie: cookie },
-    body: formData,
-  })
+  return new Request(
+    new URL(routes.post.comment.href({ id }, { searchParams }), "http://localhost"),
+    {
+      method: "POST",
+      headers: { Cookie: cookie },
+      body: formData,
+    },
+  )
 }
 
 function request(pathname: string, method = "GET", cookie?: string, csrfToken?: string): Request {

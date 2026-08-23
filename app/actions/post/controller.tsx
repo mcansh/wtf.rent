@@ -26,7 +26,7 @@ import {
 export const post = createController(routes.post, {
   actions: {
     comment: {
-      middleware: [requireAuth()],
+      middleware: [requireAuth({ returnTo: routes.post.show })],
       async handler(context) {
         let report = await findPublicReport(context.params.id)
         if (report == null) return notFound(context.render)
@@ -34,7 +34,11 @@ export const post = createController(routes.post, {
         let currentUser = getCurrentUser()
         let parsed = parseCommentInput(context.formData)
         if (!parsed.success) {
-          let commentPage = await listPublicComments(context.db, report.id)
+          let commentPage = await listPublicComments(
+            context.db,
+            report.id,
+            parseCommentCursor(context.url.searchParams),
+          )
           return context.render(
             <ReportDetailPage
               canEdit={currentUser.username === report.username}
