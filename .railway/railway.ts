@@ -39,7 +39,7 @@ export default defineRailway(() => {
       REDIS_URL: preserve(),
       SESSION_SECRETS: preserve(),
     },
-    preDeployCommand: ["pnpm exec remix db migrate"],
+    preDeployCommand: ["nub exec remix db migrate"],
   })
 
   return project("wtf.rent", {

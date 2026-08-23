@@ -1,6 +1,0 @@
-[phases.install]
-cmds = [
-  "corepack enable",
-  "corepack prepare pnpm@11.22.0 --activate",
-  "pnpm install --frozen-lockfile --prefer-offline --registry=https://registry.npmjs.org/"
-]
