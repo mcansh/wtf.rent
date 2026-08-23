@@ -4,7 +4,7 @@ Status: Approved on 2026-08-18
 
 Approved contract: [`SPEC-about-page.md`](../SPEC-about-page.md)
 
-Stack base: `logan/codex-report-editing-comments` / draft PR #30
+Stack base: `logan/codex-report-editing-comments` / PR #30
 
 Target branch: `logan/codex-about-page`
 
@@ -81,11 +81,11 @@ approved public/private explanation.
   responses, and console output.
 - Review the complete branch diff across correctness, readability, architecture, security, and
   performance; inspect staged content and scan it for secret-like material.
-- Create focused signed-off Conventional Commits, publish `logan/codex-about-page`, and open a draft
-  PR based on `logan/codex-rights-page`.
+- Create focused signed-off Conventional Commits, publish `logan/codex-about-page`, and open a PR
+  based on `logan/codex-report-editing-comments`.
 
-Checkpoint: the remote merge base is the exact Rights head and the PR diff contains only the
-approved About contract, plan/evidence, page, handler, and tests.
+Checkpoint: the remote merge base is the exact report-interactions head and the PR diff contains
+only the approved About contract, plan/evidence, page, handler, and tests.
 
 ## Sequential Work and Parallelization
 
@@ -102,7 +102,7 @@ browser inspection uses one isolated server and one named browser session.
 | Privacy wording implies the whole report body is redacted | Separate the dedicated address field from contributor-authored public text                  |
 | Dense disclosure becomes unreadable on mobile             | Use stacked semantic descriptions, short sections, and browser checks at four widths        |
 | Static copy drifts from report behavior later             | Keep exact lifecycle/privacy assertions in the root controller suite                        |
-| The final stacked PR repeats Rights changes               | Publish from PR #27's verified remote head and require an exact merge-base comparison       |
+| The final stacked PR repeats lower-layer changes          | Publish from PR #30's verified remote head and require an exact merge-base comparison       |
 
 ## Verification Commands
 

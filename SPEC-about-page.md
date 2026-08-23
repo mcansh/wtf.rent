@@ -148,7 +148,8 @@ Do not add a generic shared component or data module for one static page.
 - The route remains static, server-rendered, database-free, form-free, external-link-free, and useful
   without JavaScript.
 - Full automated checks and responsive real-browser verification pass.
-- The branch is published as a draft PR based on `logan/codex-rights-page`, whose own draft PR is #27.
+- The branch is published as PR #31 based on `logan/codex-report-editing-comments` (PR #30), above
+  the renter-rights layer in PR #39.
 
 ## Open Questions
 

@@ -97,7 +97,7 @@ claims match the approved About and reports specifications.
 ## Task 3: Verify responsiveness and publish the final stacked PR
 
 **Description:** Complete repository-wide and real-browser review, correct only verified issues,
-record evidence, create signed-off Conventional Commits, and publish the final draft stacked PR.
+record evidence, create signed-off Conventional Commits, and publish the final stacked PR.
 
 **Acceptance criteria:**
 
@@ -106,7 +106,7 @@ record evidence, create signed-off Conventional Commits, and publish the final d
       document/assets, and a clean console.
 - [x] Full tests, typecheck, build, lint, format, Remix routes, Remix Doctor, and patch hygiene pass;
       every remaining diff belongs to the approved About capability.
-- [x] Focused signed-off commits are published from `logan/codex-about-page`, and its draft PR is
+- [x] Focused signed-off commits are published from `logan/codex-about-page`, and its PR is
       based on `logan/codex-report-editing-comments` with the exact report-interactions head as its
       merge base.
 
@@ -127,26 +127,23 @@ record evidence, create signed-off Conventional Commits, and publish the final d
 
 **Estimated scope:** Small to medium — 1 to 5 files.
 
-**Local verification evidence (2026-08-18):** The full suite passed 104/104 tests; typecheck,
-Tailwind build, repository-wide Oxlint, Oxfmt across 102 files, Remix routes, `git diff --check`, and
-Remix Doctor all passed, with Doctor reporting zero warnings and zero advice. Isolated Playwright
-checks at 320, 768, 1024, and 1440 CSS pixels found exact viewport/scroll-width matches, one main,
-one h1, five sections, ordered h1/h2 headings, logical desktop and mobile-menu focus order, visible
-focus outlines, successful document/assets, and zero console errors or warnings. Final review moved
-the decorative step numbers inside their terms, confirmed each process group contains only `DT` and
-`DD`, normalized the last checklist divider, and raised both standalone text-link targets to 44px.
+**Local verification evidence (2026-08-23):** The current 76-test server suite, three Chromium
+component tests, two Chromium end-to-end tests, typecheck, Tailwind build, repository-wide Oxlint,
+changed-file Oxfmt, Remix routes, `git diff --check`, and Remix Doctor all pass, with Doctor reporting
+zero warnings and zero advice. The reviewed About implementation is patch-equivalent to the prior
+PR #31 scope, whose isolated Playwright checks at 320, 768, 1024, and 1440 CSS pixels found exact
+viewport/scroll-width matches, one main, one h1, five sections, ordered headings, logical focus
+order, visible outlines, successful document/assets, and zero console errors or warnings.
 
-**Publication evidence (2026-08-18):** Draft PR
+**Publication evidence (2026-08-23):**
 [#31](https://github.com/mcansh/wtf.rent/pull/31) is open and mergeable from
-`logan/codex-about-page` into `logan/codex-report-editing-comments`. GitHub's remote comparison
-reports the exact report-interactions head `9a4820887617027d5766f3a0d327d81466f2af29` as the merge
-base, zero commits behind, and an About-only six-file diff. Every published feature commit carries a
-DCO signoff. Staged patch checks and candidate-secret scans passed; CodeRabbit was pending at the
-publication checkpoint.
+`logan/codex-about-page` into `logan/codex-report-editing-comments`. GitHub's remote comparison uses
+the exact rebuilt report-interactions head `0c306542fec5f6922db56629a61774e91feab3d5` as the merge
+base and shows an About-only six-file diff. Every published feature commit carries a DCO signoff.
 
 ## Checkpoint: Ready for review
 
 - [x] Every approved spec success criterion has evidence.
 - [x] Every task and verification item above is checked with recorded evidence.
 - [x] No dependency, schema, environment, external-service, or personal-data change exists.
-- [x] The final draft stacked PR is open and ready for human review.
+- [x] The final stacked PR is open and ready for human review.
