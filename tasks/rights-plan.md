@@ -4,7 +4,7 @@ Status: Approved on 2026-08-18
 
 Approved contract: [`SPEC-rights-page.md`](../SPEC-rights-page.md)
 
-Stack base: `logan/codex-directory-page` / draft PR #25
+Stack base: `logan/codex-directory-page` / PR #25
 
 Target branch: `logan/codex-rights-page`
 
@@ -71,8 +71,8 @@ field, client-only state, street-address disclosure, or database-derived content
   order, keyboard navigation, visible focus, readable links, no horizontal overflow, and a clean
   console.
 - Review every rendered legal/help statement against the approved copy and source allowlist.
-- Create a focused signed-off Conventional Commit, publish `logan/codex-rights-page`, and open a
-  draft PR based on `logan/codex-directory-page`.
+- Create focused signed-off Conventional Commits, publish `logan/codex-rights-page`, and open a PR
+  based on `logan/codex-directory-page`.
 
 Checkpoint: the remote PR contains only the approved Rights capability and its planning artifacts,
 and its base/head relationship preserves the stack.

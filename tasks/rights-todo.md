@@ -29,9 +29,9 @@ root-controller response.
 
 **Evidence:** The new router test first failed with `404 !== 200`. The route now renders the typed,
 static guide through the shared shell with the approved title, navigation state, four sections,
-review date, and five exact source destinations. All 101 tests, typecheck, production build,
-targeted Oxlint, targeted Oxfmt, and patch checks pass; `app/routes.ts`, the database layer,
-dependencies, and browser entrypoints remain unchanged.
+review date, and five exact source destinations. The current 61-test server suite, typecheck,
+production build, targeted Oxlint, targeted Oxfmt, and patch checks pass; `app/routes.ts`, the
+database layer, dependencies, and browser entrypoints remain unchanged.
 
 **Dependencies:** None.
 
@@ -72,8 +72,8 @@ attorney-client relationship. The copy now adds that boundary and directs reader
 United States to local housing, consumer-protection, or legal-aid help. The test scopes inspection
 to `<main>`, proves urgent guidance precedes the U.S. resource list, allows only the five reviewed
 destinations, and rejects forms, location fields, geolocation, fixed-day deadlines, unsafe
-self-help directives, and new-tab links. All 102 tests, typecheck, build, targeted lint, formatting,
-and patch checks pass.
+self-help directives, and new-tab links. The current 61-test server suite, typecheck, build,
+targeted lint, formatting, and patch checks pass.
 
 **Dependencies:** Task 1.
 
@@ -115,15 +115,14 @@ issues, record evidence, create a signed-off Conventional Commit, and publish th
 - [x] Real-browser keyboard, console, network, semantic, and overflow inspection at all four widths.
 - [x] Inspect the staged diff and secret scan, then verify the remote PR diff and stack metadata.
 
-**Evidence:** All 102 tests, typecheck, production build, repository-wide Oxlint, repository-wide
-Oxfmt, Remix routes, Remix Doctor, and patch checks pass. Isolated Chromium review at 320, 768,
-1024, and 1440 CSS pixels confirmed semantic headings and landmarks, readable responsive layouts,
-working mobile-menu keyboard navigation with visible focus, successful static requests, no
-horizontal overflow, and zero console errors or warnings. Full-page review at 1440 pixels found no
-visual defects. The five-axis code review found no blocking issues.
-The staged verification diff passed patch and secret-pattern scans. Draft PR #27 is mergeable and
-targets `logan/codex-directory-page`; its merge base is the exact Directory head, its history is a
-direct descendant of that head, and its seven-file diff contains only the approved Rights capability.
+**Evidence:** The current 61-test server suite, three Chromium component tests, two Chromium
+end-to-end tests, typecheck, production build, repository-wide Oxlint, targeted Oxfmt, Remix routes,
+Remix Doctor, and patch checks pass. The reviewed Rights implementation is patch-equivalent to the
+historical PR #27 scope, whose isolated Chromium review at 320, 768, 1024, and 1440 CSS pixels found
+no semantic, responsive, keyboard, network, overflow, or console defects. PR #39 is mergeable and
+targets `logan/codex-directory-page`; its merge base is the exact PR #25 Directory head, its history
+is a direct descendant of that head, and its seven-file diff contains only the approved Rights
+capability.
 
 **Dependencies:** Tasks 1 and 2 plus the complete-server-contract checkpoint.
 
