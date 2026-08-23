@@ -90,7 +90,7 @@ export function createAppRouter(options: AppRouterOptions = {}) {
   middleware.push(
     session(options.sessionCookie ?? sessionCookie, options.sessionStorage ?? sessionStorage),
   )
-  middleware.push(csrf({ origin: ["rent.mcan.sh"] }))
+  middleware.push(csrf())
   middleware.push(render())
   middleware.push(loadDatabase(options.database))
   middleware.push(loadReportSuggestions({ photonFetch: options.photonFetch }))
