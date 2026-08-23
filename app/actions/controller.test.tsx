@@ -602,6 +602,137 @@ describe("public directory", () => {
   })
 })
 
+describe("public renter rights guide", () => {
+  it("renders the approved guide and reviewed source set", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+
+    let response = await app.router.fetch(request(routes.rights.href()))
+    let html = await response.text()
+
+    assert.equal(response.status, 200)
+    assert.match(html, /<title>Renter rights \| wtf\.rent<\/title>/)
+    assert.match(html, /href="\/rights" aria-current="page"/)
+    let stepHeadings = [...html.matchAll(/<h3\b[^>]*>[\s\S]*?<\/h3>/g)].map(([heading]) => heading)
+    for (let title of [
+      "Start with the rules that apply where you live",
+      "Build a clear record",
+      "Match the problem to qualified help",
+      "Know what this guide cannot decide",
+    ]) {
+      assert.ok(
+        stepHeadings.some((heading) => heading.includes(title)),
+        `${title} is an h3`,
+      )
+    }
+    assert.match(html, /Last reviewed <time datetime="2026-08-18">August 18, 2026<\/time>/)
+
+    let approvedSources = [
+      {
+        label: "USAGov",
+        href: "https://www.usa.gov/tenant-rights",
+        purpose: "Find state tenant-rights agencies, handbooks, and dispute help.",
+        scope: "United States",
+        displayDomain: "usa.gov",
+      },
+      {
+        label: "HUD: Fair Housing Rights and Obligations",
+        href: "https://www.hud.gov/stat/fheo/rights-obligations",
+        purpose: "Understand the federal fair-housing baseline and protected classes.",
+        scope: "United States federal",
+        displayDomain: "hud.gov",
+      },
+      {
+        label: "HUD: Report Housing Discrimination",
+        href: "https://www.hud.gov/reporthousingdiscrimination",
+        purpose: "Reach the current federal housing-discrimination complaint process.",
+        scope: "United States federal",
+        displayDomain: "hud.gov",
+      },
+      {
+        label: "HUD: Housing Counseling",
+        href: "https://www.hud.gov/stat/sfh/housing-counseling",
+        purpose: "Find a participating housing counseling agency.",
+        scope: "United States",
+        displayDomain: "hud.gov",
+      },
+      {
+        label: "Legal Services Corporation",
+        href: "https://www.lsc.gov/about-lsc/what-legal-aid/i-need-legal-help",
+        purpose: "Find an LSC-funded civil legal-aid organization.",
+        scope: "United States and territories",
+        displayDomain: "lsc.gov",
+      },
+    ] as const
+
+    for (let { label, href, purpose, scope, displayDomain } of approvedSources) {
+      assert.match(html, new RegExp(`href="${href.replaceAll(".", "\\.")}"`))
+      assert.match(html, new RegExp(label))
+      assert.match(html, new RegExp(purpose.replaceAll(".", "\\.")))
+      assert.match(html, new RegExp(scope))
+      assert.match(html, new RegExp(displayDomain.replaceAll(".", "\\.")))
+    }
+  })
+
+  it("keeps authenticated shell responses private", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let reportUser = await seedReportUser(app, { username: "rights-renter" })
+    let authCookie = await createAuthenticatedReportSession(app, reportUser)
+
+    let firstResponse = await app.router.fetch(request(routes.rights.href(), authCookie))
+    let response = await app.router.fetch(
+      request(routes.rights.href(), getResponseCookie(firstResponse)),
+    )
+    let html = await response.text()
+
+    assert.equal(response.status, 200)
+    assert.equal(response.headers.get("Cache-Control"), "private, no-store")
+    assert.equal(response.headers.get("Vary"), "Cookie")
+    assert.equal(response.headers.get("Set-Cookie"), null)
+    assert.match(html, /method="post" action="\/logout"/)
+    assert.match(html, /name="_csrf" value="[^"]+"/)
+  })
+
+  it("keeps legal-safety and privacy boundaries explicit", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+
+    let response = await app.router.fetch(request(routes.rights.href()))
+    let html = await response.text()
+    let mainHtml = html.match(/<main\b[\s\S]*<\/main>/)?.[0] ?? ""
+    let urgentHelpIndex = html.indexOf("Need help right now?")
+    let resourceListIndex = html.indexOf("United States resources")
+    let externalHrefs = [...mainHtml.matchAll(/href="(https:\/\/[^"#]+)"/g)].map(([, href]) => href)
+
+    assert.equal(response.status, 200)
+    assert.ok(mainHtml)
+    assert.ok(urgentHelpIndex >= 0)
+    assert.ok(resourceListIndex > urgentHelpIndex)
+    assert.match(html, /General information, not legal advice\./)
+    assert.match(html, /does not create an attorney-client relationship/i)
+    assert.match(html, /Outside the United States/i)
+    assert.deepEqual(
+      [...new Set(externalHrefs)],
+      [
+        "https://www.usa.gov/tenant-rights",
+        "https://www.hud.gov/stat/fheo/rights-obligations",
+        "https://www.hud.gov/reporthousingdiscrimination",
+        "https://www.hud.gov/stat/sfh/housing-counseling",
+        "https://www.lsc.gov/about-lsc/what-legal-aid/i-need-legal-help",
+      ],
+    )
+    assert.doesNotMatch(mainHtml, /<form\b|<input\b|<select\b|<textarea\b/)
+    assert.doesNotMatch(mainHtml, /name="(?:address|city|region|location)"|navigator\.geolocation/i)
+    assert.doesNotMatch(mainHtml, /\b\d+-day (?:deadline|notice|period)\b/i)
+    assert.doesNotMatch(
+      mainHtml,
+      /You should (?:withhold rent|repair and deduct|break your lease|change the locks)|Stop paying rent/i,
+    )
+    assert.doesNotMatch(mainHtml, /target="_blank"/)
+  })
+})
+
 function request(pathname: string, cookie?: string, method = "GET"): Request {
   let headers = new Headers()
   if (cookie) headers.set("Cookie", cookie)
