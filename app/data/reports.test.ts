@@ -469,15 +469,15 @@ describe("listPublicReportSuggestions", () => {
 
     let detroit = await listPublicReportSuggestions(
       app.database,
-      parseReportSuggestionInput(new URLSearchParams({ q: "det" })),
+      validReportSuggestionInput(new URLSearchParams({ q: "det" })),
     )
     let maintenance = await listPublicReportSuggestions(
       app.database,
-      parseReportSuggestionInput(new URLSearchParams({ q: "ma" })),
+      validReportSuggestionInput(new URLSearchParams({ q: "ma" })),
     )
     let region = await listPublicReportSuggestions(
       app.database,
-      parseReportSuggestionInput(new URLSearchParams({ q: "mi" })),
+      validReportSuggestionInput(new URLSearchParams({ q: "mi" })),
     )
 
     assert.deepEqual(detroit, [
@@ -538,7 +538,7 @@ describe("listPublicReportSuggestions", () => {
 
     let suggestions = await listPublicReportSuggestions(
       app.database,
-      parseReportSuggestionInput(new URLSearchParams({ q: "secret needle" })),
+      validReportSuggestionInput(new URLSearchParams({ q: "secret needle" })),
     )
 
     assert.deepEqual(suggestions, [])
@@ -560,22 +560,84 @@ describe("listPublicReportSuggestions", () => {
 
     let suggestions = await listPublicReportSuggestions(
       app.database,
-      parseReportSuggestionInput(new URLSearchParams({ q: "park" })),
+      validReportSuggestionInput(new URLSearchParams({ q: "park" })),
     )
 
     assert.equal(suggestions.length, 8)
+  })
+
+  it("keeps low-frequency exact locations and landlords ahead of full prefix windows", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let author = await seedReportUser(app)
+
+    await seedStructuredReport(app, {
+      id: "maple-exact",
+      authorId: author.id,
+      city: "Maple",
+      region: "ZZ",
+      landlordName: "Maple",
+    })
+    for (let index = 0; index < 24; index++) {
+      for (let report = 0; report < 2; report++) {
+        await seedStructuredReport(app, {
+          id: `maple-prefix-${index}-${report}`,
+          authorId: author.id,
+          city: `Maple ${String(index).padStart(2, "0")}`,
+          region: "ZZ",
+          landlordName: `Maple ${String(index).padStart(2, "0")} Management`,
+        })
+      }
+    }
+    for (let index = 0; index < 25; index++) {
+      await seedStructuredReport(app, {
+        id: `maple-shared-${index}`,
+        authorId: author.id,
+        city: "Maple Shared",
+        region: `R${String(index).padStart(2, "0")}`,
+        landlordName: "Unrelated Homes",
+      })
+    }
+
+    let suggestions = await listPublicReportSuggestions(
+      app.database,
+      validReportSuggestionInput(new URLSearchParams({ q: "maple" })),
+    )
+    let prefixes = await listPublicReportSuggestions(
+      app.database,
+      validReportSuggestionInput(new URLSearchParams({ q: "map" })),
+    )
+
+    assert.deepEqual(suggestions[0], {
+      kind: "city",
+      label: "Maple",
+      description: "City · ZZ",
+      value: "Maple",
+    })
+    assert.deepEqual(prefixes[0], {
+      kind: "city",
+      label: "Maple Shared",
+      description: "City",
+      value: "Maple Shared",
+    })
+    assert.deepEqual(suggestions[1], {
+      kind: "landlord",
+      label: "Maple",
+      description: "Landlord or manager",
+      value: "Maple",
+    })
   })
 
   it("compiles parameterized PostgreSQL suggestion queries without private columns", async () => {
     let recorder = new ReportPostgresQueryRecorder()
     // SAFETY: The recorder implements the query surface exercised by the Postgres adapter.
     let database = createPostgresDatabase(recorder as PostgresDatabaseInput)
-    let input = parseReportSuggestionInput(new URLSearchParams({ q: "50%_OFF!" }))
+    let input = validReportSuggestionInput(new URLSearchParams({ q: "50%_OFF!" }))
 
     let suggestions = await listPublicReportSuggestions(database, input)
 
     assert.deepEqual(suggestions, [])
-    assert.equal(recorder.queries.length, 3)
+    assert.equal(recorder.queries.length, 2)
     for (let query of recorder.queries) {
       assert.doesNotMatch(query.text, /\?/)
       assert.doesNotMatch(query.text, /"address"|"title"|"content"|"email"|"password"/)
@@ -583,11 +645,21 @@ describe("listPublicReportSuggestions", () => {
     assert.deepEqual(recorder.queries[0]?.values, [
       "PUBLISHED",
       input.likePattern ?? "",
+      "PUBLISHED",
       input.likePattern ?? "",
+      input.q,
+      input.prefixPattern ?? "",
       24,
     ])
-    assert.deepEqual(recorder.queries[1]?.values, ["PUBLISHED", input.likePattern ?? "", 24])
-    assert.deepEqual(recorder.queries[2]?.values, ["PUBLISHED"])
+    assert.deepEqual(recorder.queries[1]?.values, [
+      "PUBLISHED",
+      input.likePattern ?? "",
+      input.q,
+      input.prefixPattern ?? "",
+      24,
+    ])
+    assert.match(recorder.queries[0]?.text ?? "", /case\s+when/)
+    assert.match(recorder.queries[1]?.text ?? "", /case\s+when/)
   })
 })
 
@@ -602,7 +674,7 @@ class ReportPostgresQueryRecorder {
   async query(text: string, values: Array<number | string> = []) {
     this.queries.push({ text, values: [...values] })
 
-    if (text.includes('as "city"') || text.includes('as "landlordName"')) {
+    if (text.includes('as "kind"') || text.includes('as "landlordName"')) {
       return { rows: [], rowCount: 0 }
     }
     if (text.includes('as "category"') && !text.includes('as "id"')) {
@@ -688,5 +760,12 @@ function validReportFeedInput(searchParams: URLSearchParams) {
   let parsed = parseReportFeedInput(searchParams)
   assert.equal(parsed.success, true)
   if (!parsed.success) assert.fail("Expected valid report feed input")
+  return parsed.value
+}
+
+function validReportSuggestionInput(searchParams: URLSearchParams) {
+  let parsed = parseReportSuggestionInput(searchParams)
+  assert.equal(parsed.success, true)
+  if (!parsed.success) assert.fail("Expected valid report suggestion input")
   return parsed.value
 }

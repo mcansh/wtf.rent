@@ -93,9 +93,9 @@ export const ReportSearch = clientEntry(
               placeholder="Search a landlord, city, region, or experience"
               aria-label="Search renter reports"
               aria-autocomplete="list"
-              aria-controls={listboxId}
+              aria-controls={listboxVisible ? listboxId : undefined}
               aria-describedby={statusId}
-              aria-expanded={listboxVisible ? "true" : "false"}
+              aria-expanded={popupVisible ? "true" : "false"}
               aria-activedescendant={activeOptionId}
               list={undefined}
               role="combobox"
@@ -156,7 +156,7 @@ export const ReportSearch = clientEntry(
 
                   handle.update()
                 }),
-                on("keydown", (event) => {
+                on("keydown", async (event) => {
                   if (event.key === "Escape" && popupVisible) {
                     event.preventDefault()
                     closeSuggestions()
@@ -174,7 +174,13 @@ export const ReportSearch = clientEntry(
                       event.key === "ArrowDown" ? 1 : -1,
                       suggestions.length,
                     )
-                    handle.update()
+                    let nextActiveIndex = activeIndex
+                    let signal = await handle.update()
+                    if (signal.aborted) return
+
+                    inputElement?.ownerDocument
+                      .getElementById(`${listboxId}-${nextActiveIndex}`)
+                      ?.scrollIntoView({ block: "nearest" })
                     return
                   }
 
@@ -246,33 +252,51 @@ function renderSuggestionPopup({
           No suggestions yet. Press Enter to search all reports.
         </p>
       ) : (
-        <div id={listboxId} role="listbox" aria-label="Search suggestions">
-          {suggestions.map((suggestion, index) => (
-            <button
-              key={`${suggestion.kind}:${suggestion.value}`}
-              id={`${listboxId}-${index}`}
-              className={`border-ink-950/15 focus-visible:outline-ink-950 flex w-full items-start justify-between gap-4 border-0 border-b py-3 pr-3 pl-4 text-left last:border-b-0 hover:bg-blue-100 focus-visible:outline-2 focus-visible:-outline-offset-2 ${index === activeIndex ? "bg-acid-100" : "bg-paper-50"}`}
-              type="button"
-              role="option"
-              tabIndex={-1}
-              aria-selected={index === activeIndex ? "true" : "false"}
-              mix={[
-                on("pointerdown", (event) => event.preventDefault()),
-                on("click", () => onSelect(suggestion)),
-              ]}
-            >
-              <div className="min-w-0">
-                <p className="truncate text-base font-semibold sm:text-sm">{suggestion.label}</p>
-                <p className="font-mono text-[10px] font-medium tracking-wide uppercase">
-                  {suggestion.description}
+        <>
+          <div
+            id={listboxId}
+            className="max-h-[min(20rem,50vh)] overflow-y-auto overscroll-contain"
+            role="listbox"
+            aria-label="Search suggestions"
+          >
+            {suggestions.map((suggestion, index) => (
+              <button
+                key={`${suggestion.kind}:${suggestion.value}`}
+                id={`${listboxId}-${index}`}
+                className={`border-ink-950/15 focus-visible:outline-ink-950 flex w-full items-start justify-between gap-4 border-0 border-b py-3 pr-3 pl-4 text-left last:border-b-0 hover:bg-blue-100 focus-visible:outline-2 focus-visible:-outline-offset-2 ${index === activeIndex ? "bg-acid-100" : "bg-paper-50"}`}
+                type="button"
+                role="option"
+                tabIndex={-1}
+                aria-selected={index === activeIndex ? "true" : "false"}
+                mix={[
+                  on("pointerdown", (event) => event.preventDefault()),
+                  on("click", () => onSelect(suggestion)),
+                ]}
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-base font-semibold sm:text-sm">{suggestion.label}</p>
+                  <p className="font-mono text-[10px] font-medium tracking-wide uppercase">
+                    {suggestion.description}
+                  </p>
+                </div>
+                <p className="shrink-0 font-mono text-[10px] font-medium tracking-wide uppercase">
+                  {index === activeIndex ? "Press Enter" : "Search"}{" "}
+                  <span aria-hidden="true">→</span>
                 </p>
-              </div>
-              <p className="shrink-0 font-mono text-[10px] font-medium tracking-wide uppercase">
-                {index === activeIndex ? "Press Enter" : "Search"} <span aria-hidden="true">→</span>
-              </p>
-            </button>
-          ))}
-        </div>
+              </button>
+            ))}
+          </div>
+          <p className="border-ink-950/15 border-t px-4 py-2 font-mono text-[9px] tracking-wide uppercase">
+            Locations by{" "}
+            <a className="underline" href="https://photon.komoot.io/">
+              Photon
+            </a>{" "}
+            · ©{" "}
+            <a className="underline" href="https://www.openstreetmap.org/copyright">
+              OpenStreetMap contributors
+            </a>
+          </p>
+        </>
       )}
     </div>
   )

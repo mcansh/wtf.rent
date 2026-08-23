@@ -1,10 +1,11 @@
 import { redirect } from "remix/response/redirect"
 import { createController } from "remix/router"
 
-import { listPublicReports, listPublicReportSuggestions } from "../data/reports.ts"
+import { listPublicReports } from "../data/reports.ts"
 import { users } from "../data/schema.ts"
 import { db } from "../db.ts"
 import { requireAuth } from "../middleware/auth.ts"
+import { ReportSuggestions } from "../middleware/report-suggestions.ts"
 import { routes } from "../routes.ts"
 import { DocumentWithShell } from "../ui/shell.tsx"
 import { assetServer } from "../utils/assets.ts"
@@ -44,12 +45,18 @@ export const controller = createController(routes, {
 
     reportSuggestions: {
       async handler(context) {
-        let input = parseReportSuggestionInput(context.url.searchParams)
-        let suggestions = await listPublicReportSuggestions(context.db, input)
+        let parsed = parseReportSuggestionInput(context.url.searchParams)
+        if (!parsed.success) return new Response("Invalid search query", { status: 400 })
+
+        let suggestions = await context.get(ReportSuggestions)(context.db, parsed.value)
 
         return Response.json(
           { suggestions },
-          { headers: { "Cache-Control": "private, max-age=60" } },
+          {
+            headers: {
+              "Cache-Control": "public, max-age=60, s-maxage=300, stale-while-revalidate=300",
+            },
+          },
         )
       },
     },

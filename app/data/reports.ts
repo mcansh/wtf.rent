@@ -45,8 +45,9 @@ const reportCountSchema = s
   )
 const reportCountRowSchema = s.object({ total: reportCountSchema })
 const reportLocationSuggestionRowSchema = s.object({
-  city: s.nullable(s.string()),
-  region: s.nullable(s.string()),
+  context: s.nullable(s.string()),
+  kind: s.enum_(["city", "region"]),
+  label: s.string(),
   total: reportCountSchema,
 })
 const reportLandlordSuggestionRowSchema = s.object({
@@ -189,33 +190,77 @@ export async function listPublicReportSuggestions(
   database: Database,
   input: ReportSuggestionInput,
 ): Promise<ReportSuggestion[]> {
-  if (input.likePattern == null) return []
+  if (input.likePattern == null || input.prefixPattern == null) return []
+
+  let normalizedQuery = input.q.toLowerCase()
+  let matchesCategory = REPORT_CATEGORIES.some((category) =>
+    REPORT_CATEGORY_LABELS[category].toLowerCase().includes(normalizedQuery),
+  )
 
   let locationStatement = sql`
-    select
-      p."city" as "city",
-      p."region" as "region",
-      count(*) as "total"
-    from "Post" p
-    where p."status" = ${"PUBLISHED"}
-      and (
-        lower(coalesce(p."city", '')) like lower(${input.likePattern}) escape '!'
-        or lower(coalesce(p."region", '')) like lower(${input.likePattern}) escape '!'
-      )
-    group by p."city", p."region"
-    order by count(*) desc, lower(coalesce(p."city", '')), lower(coalesce(p."region", ''))
+    with "locationSuggestions" as (
+      select
+        'city' as "kind",
+        min(trim(p."city")) as "label",
+        case
+          when count(distinct lower(nullif(trim(p."region"), ''))) = 1
+            then min(nullif(trim(p."region"), ''))
+          else null
+        end as "context",
+        count(*) as "total"
+      from "Post" p
+      where p."status" = ${"PUBLISHED"}
+        and trim(coalesce(p."city", '')) <> ''
+        and lower(trim(p."city")) like lower(${input.likePattern}) escape '!'
+      group by lower(trim(p."city"))
+
+      union all
+
+      select
+        'region' as "kind",
+        min(trim(p."region")) as "label",
+        null as "context",
+        count(*) as "total"
+      from "Post" p
+      where p."status" = ${"PUBLISHED"}
+        and trim(coalesce(p."region", '')) <> ''
+        and lower(trim(p."region")) like lower(${input.likePattern}) escape '!'
+      group by lower(trim(p."region"))
+    )
+    select "kind", "label", "context", "total"
+    from "locationSuggestions"
+    order by
+      case
+        when lower("label") = lower(${input.q}) then 0
+        when lower("label") like lower(${input.prefixPattern}) escape '!' then 1
+        else 2
+      end,
+      "total" desc,
+      case "kind" when 'city' then 0 else 1 end,
+      lower("label")
     limit ${REPORT_SUGGESTION_CANDIDATE_LIMIT}
   `
   let landlordStatement = sql`
-    select
-      p."landlordName" as "landlordName",
-      count(*) as "total"
-    from "Post" p
-    where p."status" = ${"PUBLISHED"}
-      and trim(coalesce(p."landlordName", '')) <> ''
-      and lower(coalesce(p."landlordName", '')) like lower(${input.likePattern}) escape '!'
-    group by p."landlordName"
-    order by count(*) desc, lower(p."landlordName")
+    with "landlordSuggestions" as (
+      select
+        min(trim(p."landlordName")) as "landlordName",
+        count(*) as "total"
+      from "Post" p
+      where p."status" = ${"PUBLISHED"}
+        and trim(coalesce(p."landlordName", '')) <> ''
+        and lower(trim(p."landlordName")) like lower(${input.likePattern}) escape '!'
+      group by lower(trim(p."landlordName"))
+    )
+    select "landlordName", "total"
+    from "landlordSuggestions"
+    order by
+      case
+        when lower("landlordName") = lower(${input.q}) then 0
+        when lower("landlordName") like lower(${input.prefixPattern}) escape '!' then 1
+        else 2
+      end,
+      "total" desc,
+      lower("landlordName")
     limit ${REPORT_SUGGESTION_CANDIDATE_LIMIT}
   `
   let categoryStatement = sql`
@@ -225,42 +270,44 @@ export async function listPublicReportSuggestions(
     from "Post" p
     where p."status" = ${"PUBLISHED"}
       and p."category" is not null
+      and lower(
+        case p."category"
+          when 'MAINTENANCE' then 'Maintenance'
+          when 'RENT_INCREASE' then 'Rent increase'
+          when 'FEES_OR_DEPOSIT' then 'Fees or deposit'
+          when 'SAFETY' then 'Safety'
+          when 'COMMUNICATION' then 'Communication'
+          when 'GOOD_EXPERIENCE' then 'Good experience'
+          when 'OTHER' then 'Other'
+        end
+      ) like lower(${input.likePattern}) escape '!'
     group by p."category"
     order by count(*) desc, p."category"
   `
   let [locationResult, landlordResult, categoryResult] = await Promise.all([
     database.exec(locationStatement),
     database.exec(landlordStatement),
-    database.exec(categoryStatement),
+    matchesCategory ? database.exec(categoryStatement) : Promise.resolve({ rows: [] }),
   ])
   let locationRows = s.parse(s.array(reportLocationSuggestionRowSchema), locationResult.rows ?? [])
   let landlordRows = s.parse(s.array(reportLandlordSuggestionRowSchema), landlordResult.rows ?? [])
   let categoryRows = s.parse(s.array(reportCategorySuggestionRowSchema), categoryResult.rows ?? [])
-  let normalizedQuery = input.q.toLowerCase()
   let candidates = new Map<string, RankedReportSuggestion>()
 
   for (let row of locationRows) {
-    let city = normalizeSuggestionText(row.city, 100)
-    let region = normalizeSuggestionText(row.region, 100)
+    let label = normalizeSuggestionText(row.label, 100)
+    let context = normalizeSuggestionText(row.context, 100)
+    if (label == null) continue
+    let description =
+      row.kind === "region" ? "Region" : context == null ? "City" : `City · ${context}`
 
-    if (city?.toLowerCase().includes(normalizedQuery)) {
-      addSuggestion(candidates, {
-        kind: "city",
-        label: city,
-        description: region == null ? "City" : `City · ${region}`,
-        value: city,
-        total: row.total,
-      })
-    }
-    if (region?.toLowerCase().includes(normalizedQuery)) {
-      addSuggestion(candidates, {
-        kind: "region",
-        label: region,
-        description: "Region",
-        value: region,
-        total: row.total,
-      })
-    }
+    addSuggestion(candidates, {
+      kind: row.kind,
+      label,
+      description,
+      value: label,
+      total: row.total,
+    })
   }
 
   for (let row of landlordRows) {

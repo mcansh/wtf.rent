@@ -21,6 +21,7 @@ import type { LoginThrottle } from "./middleware/auth.ts"
 import { loadAuth, loadLoginThrottle } from "./middleware/auth.ts"
 import { loadDatabase } from "./middleware/database.ts"
 import { render } from "./middleware/render.tsx"
+import { loadReportSuggestions } from "./middleware/report-suggestions.ts"
 import type { RequestTelemetryOptions } from "./middleware/request-telemetry.ts"
 import { requestTelemetry } from "./middleware/request-telemetry.ts"
 import { sessionCookie, sessionStorage } from "./middleware/session.ts"
@@ -35,6 +36,7 @@ export type AppContext = MiddlewareContext<
     // ReturnType<typeof staticFiles>,
     ReturnType<typeof render>,
     ReturnType<typeof loadDatabase>,
+    ReturnType<typeof loadReportSuggestions>,
     ReturnType<typeof loadAuth>,
     ReturnType<typeof loadLoginThrottle>,
     ReturnType<typeof loadAssetEntry>,
@@ -50,6 +52,7 @@ declare module "remix/router" {
 export interface AppRouterOptions {
   database?: Database
   loginThrottle?: LoginThrottle
+  photonFetch?: typeof globalThis.fetch
   requestTelemetry?: RequestTelemetryOptions
   sessionCookie?: Cookie
   sessionStorage?: SessionStorage
@@ -90,6 +93,7 @@ export function createAppRouter(options: AppRouterOptions = {}) {
   middleware.push(csrf())
   middleware.push(render())
   middleware.push(loadDatabase(options.database))
+  middleware.push(loadReportSuggestions({ photonFetch: options.photonFetch }))
   middleware.push(loadAuth())
   middleware.push(loadLoginThrottle(options.loginThrottle))
   middleware.push(loadAssetEntry())

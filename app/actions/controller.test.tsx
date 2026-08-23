@@ -161,7 +161,10 @@ describe("home report discovery", () => {
 
     assert.equal(response.status, 200)
     assert.match(response.headers.get("Content-Type") ?? "", /^application\/json/)
-    assert.equal(response.headers.get("Cache-Control"), "private, max-age=60")
+    assert.equal(
+      response.headers.get("Cache-Control"),
+      "public, max-age=60, s-maxage=300, stale-while-revalidate=300",
+    )
     assert.deepEqual(payload, {
       suggestions: [{ kind: "city", label: "Detroit", description: "City · MI", value: "Detroit" }],
     })
@@ -170,6 +173,83 @@ describe("home report discovery", () => {
       JSON.stringify(payload),
       /808 Private Suggestion Marker|private-suggestion@example\.test|private-suggestion-password|Detention/,
     )
+  })
+
+  it("merges cached Photon places with report-backed suggestions", async (t) => {
+    let photonRequests = 0
+    let app = createReportTestApp({
+      photonFetch: async () => {
+        photonRequests++
+        return Response.json({
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              properties: {
+                type: "city",
+                name: "Berlin",
+                state: "Berlin",
+                country: "Germany",
+                street: "Provider-only street",
+              },
+              geometry: { type: "Point", coordinates: [13.3889, 52.517] },
+            },
+          ],
+        })
+      },
+    })
+    t.after(() => app.close())
+    let author = await seedReportUser(app)
+    await seedStructuredReport(app, {
+      id: "berlin-landlord",
+      authorId: author.id,
+      city: "Detroit",
+      region: "MI",
+      landlordName: "Berlin Homes",
+    })
+    let href = routes.reportSuggestions.href(undefined, { searchParams: { q: "ber" } })
+
+    let firstResponse = await app.router.fetch(request(href))
+    let secondResponse = await app.router.fetch(request(href))
+    let payload = await firstResponse.json()
+
+    assert.equal(firstResponse.status, 200)
+    assert.equal(secondResponse.status, 200)
+    assert.equal(photonRequests, 1)
+    assert.deepEqual(payload, {
+      suggestions: [
+        {
+          kind: "landlord",
+          label: "Berlin Homes",
+          description: "Landlord or manager",
+          value: "Berlin Homes",
+        },
+        {
+          kind: "city",
+          label: "Berlin",
+          description: "City · Germany",
+          value: "Berlin",
+        },
+      ],
+    })
+    assert.doesNotMatch(JSON.stringify(payload), /Provider-only street/)
+  })
+
+  it("rejects invalid suggestion queries before querying reports or Photon", async (t) => {
+    let photonRequests = 0
+    let app = createReportTestApp({
+      photonFetch: () => {
+        photonRequests++
+        return Promise.resolve(Response.json({ features: [] }))
+      },
+    })
+    t.after(() => app.close())
+
+    let response = await app.router.fetch(request("/reports/suggestions?q=%00"))
+
+    assert.equal(response.status, 400)
+    assert.equal(await response.text(), "Invalid search query")
+    assert.equal(photonRequests, 0)
   })
 
   it("renders the real default page with legacy rows and without hidden, private, or mock data", async (t) => {

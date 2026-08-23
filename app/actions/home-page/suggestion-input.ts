@@ -5,14 +5,23 @@ export { REPORT_SUGGESTION_QUERY_MIN_LENGTH } from "./public/suggestion-contract
 
 export interface ReportSuggestionInput {
   likePattern: string | null
+  prefixPattern: string | null
   q: string
 }
 
-export function parseReportSuggestionInput(searchParams: URLSearchParams): ReportSuggestionInput {
-  let { likePattern, q } = parseReportFeedInput(searchParams)
+export function parseReportSuggestionInput(searchParams: URLSearchParams) {
+  let parsed = parseReportFeedInput(searchParams)
+  if (!parsed.success) return parsed
+
+  let { likePattern, q } = parsed.value
+  let meetsMinimum = q.length >= REPORT_SUGGESTION_QUERY_MIN_LENGTH
 
   return {
-    q,
-    likePattern: q.length >= REPORT_SUGGESTION_QUERY_MIN_LENGTH ? likePattern : null,
+    success: true as const,
+    value: {
+      q,
+      likePattern: meetsMinimum ? likePattern : null,
+      prefixPattern: meetsMinimum && likePattern != null ? likePattern.slice(1) : null,
+    } satisfies ReportSuggestionInput,
   }
 }
