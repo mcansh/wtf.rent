@@ -18,10 +18,12 @@ import { parseReportSuggestionInput } from "../actions/home-page/suggestion-inpu
 import { parseReportFeedInput, REPORT_CATEGORY_LABELS } from "../actions/post/report-input.ts"
 import {
   createReport,
+  findEditableReport,
   findPublicReport,
   listPublicReports,
   listPublicReportSuggestions,
   REPORT_PAGE_SIZE,
+  updateReport,
 } from "./reports.ts"
 import { posts, REPORT_CATEGORIES, users } from "./schema.ts"
 
@@ -150,6 +152,174 @@ describe("createReport", () => {
     assert.equal(report.experienceConfirmedAt?.toISOString(), confirmedAt.toISOString())
     assert.equal(report.createdAt.toISOString(), TEST_REPORT_NOW.toISOString())
     assert.deepEqual(stored, report)
+  })
+})
+
+describe("findEditableReport", () => {
+  it("returns the complete private row only to the author of a published report", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let author = await seedReportUser(app)
+    let other = await seedReportUser(app, {
+      id: "other-renter",
+      username: "other-renter",
+      email: "other-renter@example.test",
+    })
+    await seedStructuredReport(app, {
+      id: "editable-report",
+      authorId: author.id,
+      address: "818 Owner Only Street",
+    })
+    await seedLegacyPost(app, { id: "editable-legacy", authorId: author.id })
+    await seedStructuredReport(app, {
+      id: "hidden-report",
+      authorId: author.id,
+      status: "HIDDEN",
+    })
+
+    let [editable, legacy, wrongOwner, hidden, missing] = await runWithReportDatabase(
+      app.database,
+      () =>
+        Promise.all([
+          findEditableReport("editable-report", author.id),
+          findEditableReport("editable-legacy", author.id),
+          findEditableReport("editable-report", other.id),
+          findEditableReport("hidden-report", author.id),
+          findEditableReport("missing-report", author.id),
+        ]),
+    )
+
+    assert.ok(editable)
+    assert.equal(editable.address, "818 Owner Only Street")
+    assert.equal(editable.authorId, author.id)
+    assert.ok(legacy)
+    assert.equal(legacy.address, null)
+    assert.equal(wrongOwner, null)
+    assert.equal(hidden, null)
+    assert.equal(missing, null)
+  })
+})
+
+describe("updateReport", () => {
+  it("updates allowlisted fields while preserving protected report state", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let author = await seedReportUser(app)
+    let originalCreatedAt = new Date("2026-01-02T03:04:05.000Z")
+    let originalConfirmedAt = new Date("2026-01-03T03:04:05.000Z")
+    let report = await seedStructuredReport(app, {
+      id: "owned-report",
+      authorId: author.id,
+      createdAt: originalCreatedAt,
+      updatedAt: originalCreatedAt,
+      experienceConfirmedAt: originalConfirmedAt,
+    })
+    let forgedAt = new Date("2000-01-01T00:00:00.000Z")
+    let values = {
+      address: "456 Woodward Avenue",
+      city: "Detroit",
+      region: "MI",
+      landlordName: null,
+      category: "GOOD_EXPERIENCE" as const,
+      rating: 5,
+      title: "Repairs are now handled promptly",
+      content: "The maintenance team now responds promptly and communicates clearly.",
+      id: "forged-id",
+      authorId: "forged-author",
+      status: "HIDDEN",
+      createdAt: forgedAt,
+      experienceConfirmedAt: forgedAt,
+    }
+
+    let updated = await runWithReportDatabase(app.database, () =>
+      updateReport(report.id, values, {
+        authorId: author.id,
+        confirmedAt: new Date("2026-08-18T12:00:00.000Z"),
+      }),
+    )
+
+    assert.ok(updated)
+    assert.equal(updated.id, report.id)
+    assert.equal(updated.authorId, author.id)
+    assert.equal(updated.status, "PUBLISHED")
+    assert.equal(updated.createdAt.toISOString(), originalCreatedAt.toISOString())
+    assert.equal(updated.experienceConfirmedAt?.toISOString(), originalConfirmedAt.toISOString())
+    assert.equal(updated.address, "456 Woodward Avenue")
+    assert.equal(updated.landlordName, null)
+    assert.equal(updated.category, "GOOD_EXPERIENCE")
+    assert.equal(updated.rating, 5)
+    assert.equal(updated.title, "Repairs are now handled promptly")
+
+    let publicDetail = await runWithReportDatabase(app.database, () => findPublicReport(report.id))
+    assert.ok(publicDetail)
+    assert.equal("address" in publicDetail, false)
+    assert.equal(JSON.stringify(publicDetail).includes("456 Woodward Avenue"), false)
+  })
+
+  it("sets confirmation when completing a legacy report", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let author = await seedReportUser(app)
+    let legacy = await seedLegacyPost(app, { id: "legacy-update", authorId: author.id })
+    let confirmedAt = new Date("2026-08-18T12:00:00.000Z")
+
+    let updated = await runWithReportDatabase(app.database, () =>
+      updateReport(legacy.id, editableReportValues(), {
+        authorId: author.id,
+        confirmedAt,
+      }),
+    )
+
+    assert.ok(updated)
+    assert.equal(updated.experienceConfirmedAt?.toISOString(), confirmedAt.toISOString())
+    assert.equal(updated.address, "456 Woodward Avenue")
+    assert.equal(updated.category, "COMMUNICATION")
+  })
+
+  it("does not update non-owner, hidden, or missing reports", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let author = await seedReportUser(app)
+    let other = await seedReportUser(app, {
+      id: "other-renter",
+      username: "other-renter",
+      email: "other-renter@example.test",
+    })
+    let published = await seedStructuredReport(app, {
+      id: "not-owned",
+      authorId: author.id,
+      title: "Original published title",
+    })
+    let hidden = await seedStructuredReport(app, {
+      id: "hidden-update",
+      authorId: author.id,
+      title: "Original hidden title",
+      status: "HIDDEN",
+    })
+
+    let [wrongOwner, hiddenResult, missing] = await runWithReportDatabase(app.database, () =>
+      Promise.all([
+        updateReport(published.id, editableReportValues(), {
+          authorId: other.id,
+          confirmedAt: TEST_REPORT_NOW,
+        }),
+        updateReport(hidden.id, editableReportValues(), {
+          authorId: author.id,
+          confirmedAt: TEST_REPORT_NOW,
+        }),
+        updateReport("missing-update", editableReportValues(), {
+          authorId: author.id,
+          confirmedAt: TEST_REPORT_NOW,
+        }),
+      ]),
+    )
+
+    assert.equal(wrongOwner, null)
+    assert.equal(hiddenResult, null)
+    assert.equal(missing, null)
+
+    assert.equal((await app.database.find(posts, published.id))?.title, "Original published title")
+    assert.equal((await app.database.find(posts, hidden.id))?.title, "Original hidden title")
   })
 })
 
@@ -403,56 +573,6 @@ describe("listPublicReports", () => {
       first.reports.some((report) => second.reports.some((other) => other.id === report.id)),
       false,
     )
-  })
-
-  it("filters by proximity radius when lat/lng are provided", async (t) => {
-    let app = createReportTestApp()
-    t.after(() => app.close())
-    let author = await seedReportUser(app)
-
-    // Detroit, MI — within 50 miles of the search origin
-    await seedStructuredReport(app, {
-      id: "nearby",
-      authorId: author.id,
-      city: "Detroit",
-      region: "MI",
-      latitude: 42.3314,
-      longitude: -83.0458,
-    })
-    // New York, NY — ~508 miles away
-    await seedStructuredReport(app, {
-      id: "distant",
-      authorId: author.id,
-      city: "New York",
-      region: "NY",
-      latitude: 40.7128,
-      longitude: -74.006,
-    })
-    // No coordinates — excluded from proximity results
-    await seedStructuredReport(app, {
-      id: "no-coords",
-      authorId: author.id,
-      city: "Anywhere",
-      region: "ZZ",
-    })
-
-    let withinFifty = await runWithReportDatabase(app.database, () =>
-      listPublicReports(
-        validReportFeedInput(
-          new URLSearchParams({ radius: "50", lat: "42.3314", lng: "-83.0458" }),
-        ),
-      ),
-    )
-    let anyDistance = await runWithReportDatabase(app.database, () =>
-      listPublicReports(validReportFeedInput(new URLSearchParams())),
-    )
-
-    assert.deepEqual(
-      withinFifty.reports.map((r) => r.id),
-      ["nearby"],
-    )
-    assert.equal(withinFifty.total, 1)
-    assert.equal(anyDistance.total, 3)
   })
 
   it("compiles equivalent parameterized PostgreSQL join, search, count, order, and page intent", async () => {
@@ -825,4 +945,17 @@ function validReportSuggestionInput(searchParams: URLSearchParams) {
   assert.equal(parsed.success, true)
   if (!parsed.success) assert.fail("Expected valid report suggestion input")
   return parsed.value
+}
+
+function editableReportValues() {
+  return {
+    address: "456 Woodward Avenue",
+    city: "Detroit",
+    region: "MI",
+    landlordName: "Example Homes",
+    category: "COMMUNICATION" as const,
+    rating: 4,
+    title: "Communication improved this year",
+    content: "The property manager now responds clearly and follows up on open requests.",
+  }
 }

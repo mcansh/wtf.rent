@@ -733,6 +733,65 @@ describe("public renter rights guide", () => {
   })
 })
 
+describe("public About page", () => {
+  it("renders the approved mission, record process, and next steps", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+
+    let response = await app.router.fetch(request(routes.about.href()))
+    let html = await response.text()
+
+    assert.equal(response.status, 200)
+    assert.match(html, /<title>About \| wtf\.rent<\/title>/)
+    assert.match(html, /href="\/about" aria-current="page"/)
+    assert.match(html, /A public record renters can use/)
+    assert.match(html, /How the record works/)
+    assert.match(html, /What’s public—and what isn’t/)
+    assert.match(html, /Standards for sharing/)
+    assert.match(html, /Read every report with context/)
+    assert.match(html, /href="\/#feed"[^>]*>\s*Read renter reports/)
+    assert.match(html, /href="\/directory"[^>]*>\s*Browse the Directory/)
+    assert.match(html, /href="\/rights"[^>]*>\s*Open the Rights guide/)
+    assert.match(html, /href="\/posts\/new"[^>]*>\s*Share your experience/)
+    assert.equal((html.match(/<main\b/g) ?? []).length, 1)
+    assert.equal((html.match(/<h1\b/g) ?? []).length, 1)
+    assert.match(html, /<dl\b/)
+    assert.match(html, /<dl\b[^>]*>\s*<div[^>]*>\s*<dt\b/)
+  })
+
+  it("keeps publishing, privacy, and legal boundaries explicit", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+
+    let response = await app.router.fetch(request(routes.about.href()))
+    let html = await response.text()
+    let main = html.match(/<main\b[\s\S]*<\/main>/)?.[0]
+
+    assert.equal(response.status, 200)
+    assert.ok(main)
+    assert.match(main, /A valid report publishes immediately/i)
+    assert.match(main, /Report text is public/i)
+    assert.match(main, /Public username/i)
+    assert.match(main, /City and region are the only structured location fields shown publicly/i)
+    assert.match(main, /Account email and password data/i)
+    assert.match(main, /The dedicated street-address field/i)
+    assert.match(
+      main,
+      /Remove apartment or unit details, private contact information,\s*and other tenants’ names before you submit it/i,
+    )
+    assert.match(main, /Experiences can be incomplete, disputed/i)
+    assert.match(main, /not independently verified/i)
+    assert.match(main, /does not (?:prove|establish) a legal violation/i)
+    assert.doesNotMatch(
+      main,
+      /we (?:verify|review) every report|reports? (?:is|are) reviewed before publication|automatically redact|anonym(?:ous(?:ly)?|ity)|comprehensive moderation|end-to-end encrypt(?:ed|ion)|regulatory compliance|dispute resolution|evidence storage|we provide legal advice|edit your report|flag a report|delete your report/i,
+    )
+    assert.doesNotMatch(main, /<form\b|<input\b|<select\b|<textarea\b|<button\b/)
+    assert.doesNotMatch(main, /href="https?:\/\//)
+    assert.doesNotMatch(main, /navigator\.geolocation|client-entry|data-hydrate/i)
+  })
+})
+
 function request(pathname: string, cookie?: string, method = "GET"): Request {
   let headers = new Headers()
   if (cookie) headers.set("Cookie", cookie)
