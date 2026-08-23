@@ -613,10 +613,18 @@ describe("public renter rights guide", () => {
     assert.equal(response.status, 200)
     assert.match(html, /<title>Renter rights \| wtf\.rent<\/title>/)
     assert.match(html, /href="\/rights" aria-current="page"/)
-    assert.match(html, /Start with the rules that apply where you live/)
-    assert.match(html, /Build a clear record/)
-    assert.match(html, /Match the problem to qualified help/)
-    assert.match(html, /Know what this guide cannot decide/)
+    let stepHeadings = [...html.matchAll(/<h3\b[^>]*>[\s\S]*?<\/h3>/g)].map(([heading]) => heading)
+    for (let title of [
+      "Start with the rules that apply where you live",
+      "Build a clear record",
+      "Match the problem to qualified help",
+      "Know what this guide cannot decide",
+    ]) {
+      assert.ok(
+        stepHeadings.some((heading) => heading.includes(title)),
+        `${title} is an h3`,
+      )
+    }
     assert.match(html, /Last reviewed <time datetime="2026-08-18">August 18, 2026<\/time>/)
 
     let approvedSources = [
@@ -637,6 +645,26 @@ describe("public renter rights guide", () => {
       assert.match(html, new RegExp(`href="${href.replaceAll(".", "\\.")}"`))
       assert.match(html, new RegExp(label))
     }
+  })
+
+  it("keeps authenticated shell responses private", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let reportUser = await seedReportUser(app, { username: "rights-renter" })
+    let authCookie = await createAuthenticatedReportSession(app, reportUser)
+
+    let firstResponse = await app.router.fetch(request(routes.rights.href(), authCookie))
+    let response = await app.router.fetch(
+      request(routes.rights.href(), getResponseCookie(firstResponse)),
+    )
+    let html = await response.text()
+
+    assert.equal(response.status, 200)
+    assert.equal(response.headers.get("Cache-Control"), "private, no-store")
+    assert.equal(response.headers.get("Vary"), "Cookie")
+    assert.equal(response.headers.get("Set-Cookie"), null)
+    assert.match(html, /method="post" action="\/logout"/)
+    assert.match(html, /name="_csrf" value="[^"]+"/)
   })
 
   it("keeps legal-safety and privacy boundaries explicit", async (t) => {

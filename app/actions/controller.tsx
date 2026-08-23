@@ -139,6 +139,7 @@ export const controller = createController(routes, {
           <DocumentWithShell title="Renter rights | wtf.rent">
             <RightsPage guide={RIGHTS_GUIDE} />
           </DocumentWithShell>,
+          { headers: { "Cache-Control": "private, no-store", Vary: "Cookie" } },
         )
       },
     },

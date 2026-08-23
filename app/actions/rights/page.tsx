@@ -98,11 +98,11 @@ export function RightsPage(handle: Handle<RightsPageProps>) {
               </p>
             </header>
 
-            <dl>
+            <div>
               {guide.steps.map((step, index) => (
                 <RightsStep key={step.id} step={step} isLast={index === guide.steps.length - 1} />
               ))}
-            </dl>
+            </div>
           </div>
         </section>
 
@@ -169,11 +169,11 @@ function RightsStep(handle: Handle<{ isLast: boolean; step: RightsGuideStep }>) 
     let { isLast, step } = handle.props
 
     return (
-      <div
+      <section
         id={step.id}
         className={`grid gap-5 py-8 sm:py-10 lg:grid-cols-[7fr_13fr] lg:gap-12 ${isLast ? "" : "border-ink-950/15 border-b"}`}
       >
-        <dt className="flex min-w-0 items-start gap-4">
+        <h3 className="flex min-w-0 items-start gap-4">
           <span
             className="font-mono text-base font-medium tabular-nums sm:text-sm"
             aria-hidden="true"
@@ -183,8 +183,8 @@ function RightsStep(handle: Handle<{ isLast: boolean; step: RightsGuideStep }>) 
           <span className="max-w-[40ch] font-serif text-3xl font-semibold tracking-tight text-balance">
             {step.title}
           </span>
-        </dt>
-        <dd className="text-ink-700 grid gap-5">
+        </h3>
+        <div className="text-ink-700 grid gap-5">
           <p className="max-w-[56ch] text-base/7 text-pretty sm:text-sm/6">{step.summary}</p>
           <ul className="grid max-w-[64ch] gap-3" role="list">
             {step.items.map((item) => (
@@ -209,8 +209,8 @@ function RightsStep(handle: Handle<{ isLast: boolean; step: RightsGuideStep }>) 
               </a>
             </p>
           ) : null}
-        </dd>
-      </div>
+        </div>
+      </section>
     )
   }
 }
