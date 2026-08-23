@@ -253,20 +253,20 @@ describe("home report discovery", () => {
     assert.doesNotMatch(html, /Page 1 of/)
   })
 
-  it("preserves a positive out-of-range page with real totals and no fabricated rows", async (t) => {
+  it("preserves an active search on an out-of-range page", async (t) => {
     let app = createReportTestApp()
     t.after(() => app.close())
     let author = await seedReportUser(app)
-    await seedStructuredReport(app, { authorId: author.id })
+    await seedStructuredReport(app, { authorId: author.id, city: "Detroit" })
 
     let response = await app.router.fetch(
-      request(routes.home.href(undefined, { searchParams: { page: "999" } })),
+      request(routes.home.href(undefined, { searchParams: { q: "Detroit", page: "999" } })),
     )
     let html = await response.text()
 
     assert.match(html, /Page 999 is beyond the available reports\./)
     assert.match(html, /There is 1 report on the record\./)
-    assert.match(html, /href="\/#feed"[^>]*>\s*Back to the first page\s*<\/a>/)
+    assert.match(html, /href="\/\?q=Detroit#feed"[^>]*>\s*Back to the first page\s*<\/a>/)
     assert.doesNotMatch(html, /rel="prev"/)
     assert.doesNotMatch(html, /rel="next"/)
   })

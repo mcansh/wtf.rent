@@ -252,9 +252,13 @@ function EmptyFeed(handle: Handle<{ query: string; reportPage: ClientReportPage 
             : "Try another landlord, city, region, category, or experience—or add the first useful record."}
         </p>
         <div className="flex flex-wrap gap-4 text-sm font-semibold">
-          {isOutOfRange || query ? (
+          {isOutOfRange ? (
+            <a className="underline decoration-2 underline-offset-4" href={feedHref(query, 1)}>
+              Back to the first page
+            </a>
+          ) : query ? (
             <a className="underline decoration-2 underline-offset-4" href={feedHref("", 1)}>
-              {isOutOfRange ? "Back to the first page" : "Clear search"}
+              Clear search
             </a>
           ) : null}
           <a className="underline decoration-2 underline-offset-4" href={routes.post.new.href()}>
