@@ -7,6 +7,7 @@ import {
   FakeUserDatabase,
   getResponseCookie,
   readSessionCookie,
+  TEST_USER_PASSWORD_HASH,
 } from "../../test/auth.ts"
 import {
   createAuthenticatedReportSession,
@@ -15,14 +16,13 @@ import {
   seedReportUser,
   seedStructuredReport,
 } from "../../test/reports.ts"
-import { DUMMY_PASSWORD_HASH } from "../bcrypt.ts"
 import { routes } from "../routes.ts"
 
 const user = {
   id: "user-profile",
   username: "profile-renter",
   email: "profile@example.com",
-  password: DUMMY_PASSWORD_HASH,
+  password: TEST_USER_PASSWORD_HASH,
   createdAt: new Date("2026-08-17T00:00:00.000Z"),
   updatedAt: new Date("2026-08-17T00:00:00.000Z"),
 }
@@ -113,6 +113,145 @@ describe("profile and logout", () => {
 })
 
 describe("home report discovery", () => {
+  it("renders an accessible combobox while preserving the native GET search", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+
+    let response = await app.router.fetch(request(routes.home.href()))
+    let html = await response.text()
+
+    assert.equal(response.status, 200)
+    assert.match(html, /<form[^>]*method="get"[^>]*action="\/#feed"[^>]*role="search"/)
+    assert.match(html, /<input[^>]*name="q"[^>]*type="search"/)
+    assert.match(html, /role="combobox"/)
+    assert.match(html, /aria-autocomplete="list"/)
+    assert.match(html, /aria-expanded="false"/)
+    assert.match(html, /autocomplete="off"/)
+    assert.match(html, /aria-live="polite"/)
+  })
+
+  it("returns only published, allowlisted autocomplete values", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let author = await seedReportUser(app, {
+      email: "private-suggestion@example.test",
+      password: "private-suggestion-password",
+    })
+    await seedStructuredReport(app, {
+      id: "public-suggestion",
+      authorId: author.id,
+      address: "808 Private Suggestion Marker",
+      city: "Detroit",
+      region: "MI",
+    })
+    await seedStructuredReport(app, {
+      id: "hidden-suggestion",
+      authorId: author.id,
+      status: "HIDDEN",
+      city: "Detention",
+      region: "XX",
+    })
+
+    let href = routes.reportSuggestions.href(undefined, { searchParams: { q: "det" } })
+    let response = await app.router.fetch(request(href))
+    let payload = await response.json()
+    let shortResponse = await app.router.fetch(
+      request(routes.reportSuggestions.href(undefined, { searchParams: { q: "d" } })),
+    )
+
+    assert.equal(response.status, 200)
+    assert.match(response.headers.get("Content-Type") ?? "", /^application\/json/)
+    assert.equal(
+      response.headers.get("Cache-Control"),
+      "public, max-age=60, s-maxage=300, stale-while-revalidate=300",
+    )
+    assert.deepEqual(payload, {
+      suggestions: [{ kind: "city", label: "Detroit", description: "City · MI", value: "Detroit" }],
+    })
+    assert.deepEqual(await shortResponse.json(), { suggestions: [] })
+    assert.doesNotMatch(
+      JSON.stringify(payload),
+      /808 Private Suggestion Marker|private-suggestion@example\.test|private-suggestion-password|Detention/,
+    )
+  })
+
+  it("merges cached Photon places with report-backed suggestions", async (t) => {
+    let photonRequests = 0
+    let app = createReportTestApp({
+      photonFetch: async () => {
+        photonRequests++
+        return Response.json({
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              properties: {
+                type: "city",
+                name: "Berlin",
+                state: "Berlin",
+                country: "Germany",
+                street: "Provider-only street",
+              },
+              geometry: { type: "Point", coordinates: [13.3889, 52.517] },
+            },
+          ],
+        })
+      },
+    })
+    t.after(() => app.close())
+    let author = await seedReportUser(app)
+    await seedStructuredReport(app, {
+      id: "berlin-landlord",
+      authorId: author.id,
+      city: "Detroit",
+      region: "MI",
+      landlordName: "Berlin Homes",
+    })
+    let href = routes.reportSuggestions.href(undefined, { searchParams: { q: "ber" } })
+
+    let firstResponse = await app.router.fetch(request(href))
+    let secondResponse = await app.router.fetch(request(href))
+    let payload = await firstResponse.json()
+
+    assert.equal(firstResponse.status, 200)
+    assert.equal(secondResponse.status, 200)
+    assert.equal(photonRequests, 1)
+    assert.deepEqual(payload, {
+      suggestions: [
+        {
+          kind: "landlord",
+          label: "Berlin Homes",
+          description: "Landlord or manager",
+          value: "Berlin Homes",
+        },
+        {
+          kind: "city",
+          label: "Berlin",
+          description: "City · Germany",
+          value: "Berlin",
+        },
+      ],
+    })
+    assert.doesNotMatch(JSON.stringify(payload), /Provider-only street/)
+  })
+
+  it("rejects invalid suggestion queries before querying reports or Photon", async (t) => {
+    let photonRequests = 0
+    let app = createReportTestApp({
+      photonFetch: () => {
+        photonRequests++
+        return Promise.resolve(Response.json({ features: [] }))
+      },
+    })
+    t.after(() => app.close())
+
+    let response = await app.router.fetch(request("/reports/suggestions?q=%00"))
+
+    assert.equal(response.status, 400)
+    assert.equal(await response.text(), "Invalid search query")
+    assert.equal(photonRequests, 0)
+  })
+
   it("renders the real default page with legacy rows and without hidden, private, or mock data", async (t) => {
     let app = createReportTestApp()
     t.after(() => app.close())

@@ -5,12 +5,14 @@ import { listPublicReports } from "../data/reports.ts"
 import { users } from "../data/schema.ts"
 import { db } from "../db.ts"
 import { requireAuth } from "../middleware/auth.ts"
+import { ReportSuggestions } from "../middleware/report-suggestions.ts"
 import { routes } from "../routes.ts"
 import { DocumentWithShell } from "../ui/shell.tsx"
 import { assetServer } from "../utils/assets.ts"
 import { getCurrentUser } from "../utils/context.ts"
 import { HomePage } from "./home-page/public/page.tsx"
 import { serializeReportPage } from "./home-page/report.ts"
+import { parseReportSuggestionInput } from "./home-page/suggestion-input.ts"
 import { notFound } from "./not-found.tsx"
 import { parseReportFeedInput } from "./post/report-input.ts"
 import { ProfilePage } from "./profile/page.tsx"
@@ -37,6 +39,24 @@ export const controller = createController(routes, {
           <DocumentWithShell>
             <HomePage query={input.q} reportPage={serializeReportPage(reportPage)} />
           </DocumentWithShell>,
+        )
+      },
+    },
+
+    reportSuggestions: {
+      async handler(context) {
+        let parsed = parseReportSuggestionInput(context.url.searchParams)
+        if (!parsed.success) return new Response("Invalid search query", { status: 400 })
+
+        let suggestions = await context.get(ReportSuggestions)(context.db, parsed.value)
+
+        return Response.json(
+          { suggestions },
+          {
+            headers: {
+              "Cache-Control": "public, max-age=60, s-maxage=300, stale-while-revalidate=300",
+            },
+          },
         )
       },
     },

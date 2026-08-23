@@ -8,15 +8,16 @@ import {
   FakeUserDatabase,
   getResponseCookie,
   readSessionCookie,
+  TEST_USER_PASSWORD_HASH,
 } from "../../../test/auth.ts"
-import { DUMMY_PASSWORD_HASH, verifyPassword } from "../../bcrypt.ts"
+import { verifyPassword } from "../../bcrypt.ts"
 import { routes } from "../../routes.ts"
 
 const existingUser = {
   id: "user-existing",
   username: "existing-renter",
   email: "existing@example.com",
-  password: DUMMY_PASSWORD_HASH,
+  password: TEST_USER_PASSWORD_HASH,
   createdAt: new Date("2026-08-17T00:00:00.000Z"),
   updatedAt: new Date("2026-08-17T00:00:00.000Z"),
 }

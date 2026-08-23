@@ -23,6 +23,10 @@ export interface ReportTestApp {
   storage: SessionStorage
 }
 
+export interface ReportTestAppOptions {
+  photonFetch?: typeof globalThis.fetch
+}
+
 export interface ReportCsrfForm {
   cookie: string
   html: string
@@ -56,7 +60,7 @@ type SqliteOutputValue = s.InferOutput<typeof sqliteOutputSchema>
 type DateAwareSqliteValue = SqliteOutputValue | Date
 type DateAwareSqliteRow = Record<string, DateAwareSqliteValue>
 
-export function createReportTestApp(): ReportTestApp {
+export function createReportTestApp(options: ReportTestAppOptions = {}): ReportTestApp {
   let client = new DateAwareSqliteClient()
   client.exec(reportTestSchema)
 
@@ -73,6 +77,7 @@ export function createReportTestApp(): ReportTestApp {
   let storage = createMemorySessionStorage()
   let router = createAppRouter({
     database,
+    photonFetch: options.photonFetch ?? emptyPhotonFetch,
     sessionCookie: cookie,
     sessionStorage: storage,
   })
@@ -86,6 +91,10 @@ export function createReportTestApp(): ReportTestApp {
       client.close()
     },
   }
+}
+
+function emptyPhotonFetch(): Promise<Response> {
+  return Promise.resolve(Response.json({ type: "FeatureCollection", features: [] }))
 }
 
 export async function seedReportUser(
