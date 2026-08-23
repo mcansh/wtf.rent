@@ -331,9 +331,10 @@ typecheck`, task-scoped Oxlint, task-scoped Oxfmt check, and `git diff --check` 
     `pnpm exec oxfmt --check .`; `pnpm exec remix routes`; `pnpm exec remix doctor`;
     `pnpm audit`; `git diff --check`; browser journey and complete diff review.
   - Files: `tasks/todo.md` (evidence only; split discovered defects before changing product files).
-  - Evidence: The complete gate passes `pnpm build`, all 104 tests in 29 suites, `pnpm
-typecheck`, repository-wide Oxlint/Oxfmt, `pnpm exec remix routes`, `pnpm exec remix doctor`,
-    and `git diff --check`. Independent review found and the implementation now covers private
+  - Evidence: The current gate passes `pnpm build`, 74 server tests, three Chromium component
+    tests, two Chromium end-to-end tests, `pnpm typecheck`, repository-wide Oxlint, changed-file
+    Oxfmt, `pnpm exec remix routes`, `pnpm exec remix doctor`, and `git diff --check`. Independent
+    review found and the implementation now covers private
     `no-store`/`Vary: Cookie` edit responses, 50-row keyset comment pages backed by
     `Comment(postId, createdAt, id)`, PUT authorization denial, and legacy editing. A real isolated
     Playwright journey covered registration, authenticated edit, category changes with untouched
