@@ -8,6 +8,9 @@ const PHOTON_RESULT_LIMIT = 8
 const PHOTON_TIMEOUT_MS = 2_000
 
 const photonFeatureSchema = s.object({
+  geometry: s.object({
+    coordinates: s.tuple([s.number(), s.number()]),
+  }),
   properties: s.object({
     city: s.optional(s.string()),
     country: s.optional(s.string()),
@@ -111,4 +114,47 @@ function getLocationContext(properties: PhotonProperties, label: string): string
 function normalizeText(value: string | undefined, maxLength: number): string | null {
   let normalized = value?.trim().slice(0, maxLength) ?? ""
   return normalized.length === 0 ? null : normalized
+}
+
+export interface GeocodedCoordinates {
+  latitude: number
+  longitude: number
+}
+
+export async function geocodeLocation(
+  city: string,
+  region: string,
+  photonFetch: typeof globalThis.fetch = globalThis.fetch,
+): Promise<GeocodedCoordinates | null> {
+  let query = `${city}, ${region}`.trim()
+  if (query.length === 0) return null
+
+  let url = new URL(PHOTON_API_URL)
+  url.searchParams.set("q", query)
+  url.searchParams.set("lang", "en")
+  url.searchParams.set("limit", "1")
+
+  try {
+    let response = await photonFetch(url, {
+      headers: {
+        Accept: "application/geo+json, application/json",
+        "User-Agent": "wtf.rent geocoder",
+      },
+      signal: AbortSignal.timeout(PHOTON_TIMEOUT_MS),
+    })
+    if (!response.ok) return null
+
+    let parsed = s.parseSafe(photonResponseSchema, await response.json())
+    if (!parsed.success) return null
+
+    let feature = parsed.value.features[0]
+    if (feature == null) return null
+
+    let [longitude, latitude] = feature.geometry.coordinates
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null
+
+    return { latitude, longitude }
+  } catch {
+    return null
+  }
 }

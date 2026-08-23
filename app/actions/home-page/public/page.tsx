@@ -18,11 +18,14 @@ export interface ClientReportPage extends SerializableObject {
 interface HomePageProps {
   query: string
   reportPage: ClientReportPage
+  radius: string
+  lat: string
+  lng: string
 }
 
 export function HomePage(handle: Handle<HomePageProps>) {
   return () => {
-    let { query, reportPage } = handle.props
+    let { query, reportPage, radius, lat, lng } = handle.props
     let resultStart = (reportPage.page - 1) * reportPage.pageSize + 1
     let resultEnd = resultStart + reportPage.reports.length - 1
 
@@ -45,7 +48,7 @@ export function HomePage(handle: Handle<HomePageProps>) {
               Firsthand reports from renters. The good, the bad, and the landlord specials.
             </p>
 
-            <ReportSearch query={query} />
+            <ReportSearch query={query} radius={radius} lat={lat} lng={lng} />
 
             <div className="mt-6 flex flex-wrap items-center gap-4 text-sm">
               <a
@@ -144,7 +147,7 @@ export function HomePage(handle: Handle<HomePageProps>) {
               {query ? (
                 <a
                   className="text-sm font-semibold underline decoration-2 underline-offset-4"
-                  href={feedHref("", 1)}
+                  href={feedHref("", 1, radius, lat, lng)}
                 >
                   Clear search
                 </a>
@@ -165,7 +168,7 @@ export function HomePage(handle: Handle<HomePageProps>) {
                 </div>
               </>
             ) : (
-              <EmptyFeed query={query} reportPage={reportPage} />
+              <EmptyFeed query={query} reportPage={reportPage} radius={radius} lat={lat} lng={lng} />
             )}
 
             {reportPage.reports.length > 0 && reportPage.totalPages > 0 ? (
@@ -176,7 +179,7 @@ export function HomePage(handle: Handle<HomePageProps>) {
                 {reportPage.hasPreviousPage ? (
                   <a
                     className="border-ink-950 bg-paper-50 hover:bg-acid-50 focus-visible:outline-ink-950 w-fit border-[1.5px] px-3 py-2 text-sm font-bold focus-visible:outline-2 focus-visible:outline-offset-3"
-                    href={feedHref(query, reportPage.page - 1)}
+                    href={feedHref(query, reportPage.page - 1, radius, lat, lng)}
                     rel="prev"
                   >
                     <span aria-hidden="true">←</span> Previous
@@ -190,7 +193,7 @@ export function HomePage(handle: Handle<HomePageProps>) {
                 {reportPage.hasNextPage ? (
                   <a
                     className="border-ink-950 bg-acid-100 hover:bg-acid-200 focus-visible:outline-ink-950 justify-self-end border-[1.5px] px-3 py-2 text-sm font-bold shadow-[3px_3px_0_var(--color-ink-950)] focus-visible:outline-2 focus-visible:outline-offset-3"
-                    href={feedHref(query, reportPage.page + 1)}
+                    href={feedHref(query, reportPage.page + 1, radius, lat, lng)}
                     rel="next"
                   >
                     Next <span aria-hidden="true">→</span>
@@ -207,9 +210,11 @@ export function HomePage(handle: Handle<HomePageProps>) {
   }
 }
 
-function EmptyFeed(handle: Handle<{ query: string; reportPage: ClientReportPage }>) {
+function EmptyFeed(
+  handle: Handle<{ query: string; reportPage: ClientReportPage; radius: string; lat: string; lng: string }>,
+) {
   return () => {
-    let { query, reportPage } = handle.props
+    let { query, reportPage, radius, lat, lng } = handle.props
     let isOutOfRange = reportPage.total > 0
 
     return (
@@ -221,7 +226,7 @@ function EmptyFeed(handle: Handle<{ query: string; reportPage: ClientReportPage 
           {isOutOfRange
             ? `Page ${reportPage.page} is beyond the available reports.`
             : query
-              ? `No reports match “${query}”.`
+              ? `No reports match "${query}".`
               : "No renter reports have been published yet."}
         </h3>
         <p className="max-w-[54ch] text-base/7 text-pretty sm:text-sm/6">
@@ -231,11 +236,17 @@ function EmptyFeed(handle: Handle<{ query: string; reportPage: ClientReportPage 
         </p>
         <div className="flex flex-wrap gap-4 text-sm font-semibold">
           {isOutOfRange ? (
-            <a className="underline decoration-2 underline-offset-4" href={feedHref(query, 1)}>
+            <a
+              className="underline decoration-2 underline-offset-4"
+              href={feedHref(query, 1, radius, lat, lng)}
+            >
               Back to the first page
             </a>
           ) : query ? (
-            <a className="underline decoration-2 underline-offset-4" href={feedHref("", 1)}>
+            <a
+              className="underline decoration-2 underline-offset-4"
+              href={feedHref("", 1, radius, lat, lng)}
+            >
               Clear search
             </a>
           ) : null}
@@ -248,10 +259,13 @@ function EmptyFeed(handle: Handle<{ query: string; reportPage: ClientReportPage 
   }
 }
 
-function feedHref(query: string, page: number): string {
+function feedHref(query: string, page: number, radius: string, lat: string, lng: string): string {
   let searchParams = new URLSearchParams()
   if (query.length > 0) searchParams.set("q", query)
   if (page > 1) searchParams.set("page", String(page))
+  if (radius) searchParams.set("radius", radius)
+  if (lat) searchParams.set("lat", lat)
+  if (lng) searchParams.set("lng", lng)
 
   let search = searchParams.toString()
   return `${routes.home.href()}${search.length > 0 ? `?${search}` : ""}#feed`

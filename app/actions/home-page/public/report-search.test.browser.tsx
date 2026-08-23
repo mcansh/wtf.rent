@@ -22,7 +22,7 @@ describe("ReportSearch", () => {
       globalThis.fetch = originalFetch
     })
 
-    let result = render(<ReportSearch query="" />)
+    let result = render(<ReportSearch query="" radius="" lat="" lng="" />)
     t.after(result.cleanup)
     let input = result.$('input[name="q"]')
     assert.ok(input instanceof HTMLInputElement)

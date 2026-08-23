@@ -50,6 +50,8 @@ export const posts = table({
     landlordName: c.text().nullable(),
     category: c.enum(REPORT_CATEGORIES).nullable(),
     rating: c.integer().nullable().check('"rating" between 1 and 5', "Post_rating_check"),
+    latitude: c.decimal(10, 7).nullable(),
+    longitude: c.decimal(11, 7).nullable(),
     experienceConfirmedAt: timestamp().nullable(),
     status: c.enum(REPORT_STATUSES).notNull().default("PUBLISHED"),
     createdAt: timestamp().notNull().defaultNow(),

@@ -405,6 +405,56 @@ describe("listPublicReports", () => {
     )
   })
 
+  it("filters by proximity radius when lat/lng are provided", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let author = await seedReportUser(app)
+
+    // Detroit, MI — within 50 miles of the search origin
+    await seedStructuredReport(app, {
+      id: "nearby",
+      authorId: author.id,
+      city: "Detroit",
+      region: "MI",
+      latitude: 42.3314,
+      longitude: -83.0458,
+    })
+    // New York, NY — ~508 miles away
+    await seedStructuredReport(app, {
+      id: "distant",
+      authorId: author.id,
+      city: "New York",
+      region: "NY",
+      latitude: 40.7128,
+      longitude: -74.006,
+    })
+    // No coordinates — excluded from proximity results
+    await seedStructuredReport(app, {
+      id: "no-coords",
+      authorId: author.id,
+      city: "Anywhere",
+      region: "ZZ",
+    })
+
+    let withinFifty = await runWithReportDatabase(app.database, () =>
+      listPublicReports(
+        validReportFeedInput(
+          new URLSearchParams({ radius: "50", lat: "42.3314", lng: "-83.0458" }),
+        ),
+      ),
+    )
+    let anyDistance = await runWithReportDatabase(app.database, () =>
+      listPublicReports(validReportFeedInput(new URLSearchParams())),
+    )
+
+    assert.deepEqual(
+      withinFifty.reports.map((r) => r.id),
+      ["nearby"],
+    )
+    assert.equal(withinFifty.total, 1)
+    assert.equal(anyDistance.total, 3)
+  })
+
   it("compiles equivalent parameterized PostgreSQL join, search, count, order, and page intent", async () => {
     let recorder = new ReportPostgresQueryRecorder()
     // SAFETY: The Postgres adapter accepts query-compatible clients structurally at runtime; this
