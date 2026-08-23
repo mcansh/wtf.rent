@@ -50,7 +50,9 @@ if (!parsed.success) {
   })
 }
 
-await createComment(context.db, report.id, getCurrentUser().id, parsed.value.content)
+await createComment(context.db, report.id, parsed.value.content, {
+  authorId: getCurrentUser().id,
+})
 return redirect(routes.post.show.href({ id: report.id }), 303)
 ```
 

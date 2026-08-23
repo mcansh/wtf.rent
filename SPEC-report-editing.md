@@ -41,7 +41,7 @@ authenticated non-owners and requests for hidden or missing reports receive the 
 Keep authorization in the persisted operation as well as the controller response path:
 
 ```tsx
-let report = await findEditableReport(context.db, context.params.id, currentUser.id)
+let report = await findEditableReport(context.params.id, currentUser.id)
 if (report == null) return notFound(context.render)
 
 let parsed = parseUpdateReportInput(context.formData)
@@ -55,7 +55,10 @@ if (!parsed.success) {
   )
 }
 
-await updateReport(context.db, report.id, currentUser.id, parsed.value)
+await updateReport(report.id, parsed.value, {
+  authorId: currentUser.id,
+  confirmedAt: new Date(),
+})
 return redirect(routes.post.show.href({ id: report.id }), 303)
 ```
 
