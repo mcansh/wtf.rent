@@ -2,7 +2,6 @@ import * as s from "remix/data-schema"
 import type { Handle, RemixNode, SerializableObject } from "remix/ui"
 import { clientEntry, on, ref } from "remix/ui"
 
-import { RADIUS_OPTIONS } from "../../post/report-input.ts"
 import { routes } from "../../../routes.ts"
 import type { ReportSuggestion } from "./suggestion-contract.ts"
 import {
@@ -15,9 +14,6 @@ const REPORT_SUGGESTION_DEBOUNCE_MS = 180
 
 interface ReportSearchProps extends SerializableObject {
   query: string
-  radius: string
-  lat: string
-  lng: string
 }
 
 type SuggestionStatus = "idle" | "loading" | "ready" | "error"
@@ -28,9 +24,6 @@ export const ReportSearch = clientEntry(
     let activeIndex = -1
     let formElement: HTMLFormElement | null = null
     let inputElement: HTMLInputElement | null = null
-    let latInputElement: HTMLInputElement | null = null
-    let lngInputElement: HTMLInputElement | null = null
-    let selectElement: HTMLSelectElement | null = null
     let isOpen = false
     let status: SuggestionStatus = "idle"
     let suggestions: ReportSuggestion[] = []
@@ -55,23 +48,6 @@ export const ReportSearch = clientEntry(
       wantsSuggestions = false
       handle.update()
       formElement.requestSubmit()
-    }
-
-    function requestGeolocation(onSuccess: (lat: number, lng: number) => void) {
-      if (!("geolocation" in navigator)) return
-
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          onSuccess(position.coords.latitude, position.coords.longitude)
-        },
-        () => {
-          if (selectElement != null) selectElement.value = ""
-          if (latInputElement != null) latInputElement.value = ""
-          if (lngInputElement != null) lngInputElement.value = ""
-          handle.update()
-        },
-        { timeout: 8_000 },
-      )
     }
 
     return () => {
@@ -215,55 +191,6 @@ export const ReportSearch = clientEntry(
                   }
                 }),
               ]}
-            />
-            <select
-              className="border-ink-950 focus-visible:outline-ink-950 h-full shrink-0 border-0 border-l-[1.5px] bg-transparent px-2 text-sm font-medium focus-visible:outline-2 focus-visible:-outline-offset-3"
-              name="radius"
-              aria-label="Search radius"
-              defaultValue={handle.props.radius}
-              mix={[
-                ref((element) => {
-                  selectElement = element
-                }),
-                on("change", (event) => {
-                  let value = event.currentTarget.value
-                  if (value === "") {
-                    if (latInputElement != null) latInputElement.value = ""
-                    if (lngInputElement != null) lngInputElement.value = ""
-                    handle.update()
-                    return
-                  }
-                  requestGeolocation((lat, lng) => {
-                    if (latInputElement != null) latInputElement.value = String(lat)
-                    if (lngInputElement != null) lngInputElement.value = String(lng)
-                    handle.update()
-                    formElement?.requestSubmit()
-                  })
-                }),
-              ]}
-            >
-              <option value="">Any distance</option>
-              {RADIUS_OPTIONS.map((miles) => (
-                <option key={String(miles)} value={String(miles)}>
-                  {miles} mi
-                </option>
-              ))}
-            </select>
-            <input
-              type="hidden"
-              name="lat"
-              defaultValue={handle.props.lat}
-              mix={ref((element) => {
-                latInputElement = element
-              })}
-            />
-            <input
-              type="hidden"
-              name="lng"
-              defaultValue={handle.props.lng}
-              mix={ref((element) => {
-                lngInputElement = element
-              })}
             />
             <button
               className="border-ink-950 bg-acid-100 hover:bg-acid-200 focus-visible:outline-ink-950 h-full shrink-0 border-0 border-l-[1.5px] px-3 font-semibold focus-visible:outline-2 focus-visible:-outline-offset-3 min-[901px]:px-5"
