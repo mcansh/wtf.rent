@@ -10,6 +10,8 @@ import {
   postAuthor,
   postComments,
   posts,
+  REPORT_CATEGORIES,
+  REPORT_STATUSES,
   userComments,
   userPosts,
   users,
@@ -89,5 +91,52 @@ describe("data schema", () => {
     assert.deepEqual(postComments.targetKey, ["postId"])
     assert.deepEqual(commentAuthor.sourceKey, ["authorId"])
     assert.deepEqual(commentPost.sourceKey, ["postId"])
+  })
+
+  it("describes the legacy-safe report columns and allowed values", () => {
+    let postColumns = readTableMetadata(posts).columnDefinitions
+
+    for (let column of [
+      "address",
+      "city",
+      "region",
+      "landlordName",
+      "category",
+      "rating",
+      "experienceConfirmedAt",
+    ] as const) {
+      assert.equal(postColumns[column].nullable, true, column)
+    }
+
+    assert.deepEqual(postColumns.category.enumValues, REPORT_CATEGORIES)
+    assert.deepEqual(postColumns.status.enumValues, REPORT_STATUSES)
+    assert.equal(postColumns.status.nullable, false)
+    assert.deepEqual(postColumns.status.default, { kind: "literal", value: "PUBLISHED" })
+    assert.deepEqual(postColumns.rating.checks, [
+      { expression: '"rating" between 1 and 5', name: "Post_rating_check" },
+    ])
+  })
+
+  it("does not fabricate structured metadata for legacy writes", () => {
+    let postMetadata = readTableMetadata(posts)
+    let beforeWrite = postMetadata.beforeWrite
+    if (beforeWrite === undefined) assert.fail("Expected Post beforeWrite hook")
+
+    let result = beforeWrite({
+      operation: "create",
+      tableName: postMetadata.name,
+      value: {
+        title: "Legacy post",
+        content: "Stored before structured reports",
+        authorId: "legacy-author",
+      },
+    })
+    if (!("value" in result)) assert.fail("Expected legacy Post write to succeed")
+
+    assert.match(String(result.value.id), /^[0-9a-f-]{36}$/)
+    assert.equal("address" in result.value, false)
+    assert.equal("category" in result.value, false)
+    assert.equal("rating" in result.value, false)
+    assert.equal("status" in result.value, false)
   })
 })

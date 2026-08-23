@@ -21,12 +21,17 @@ describe("app router", () => {
     let response = await router.fetch(
       new Request(new URL(routes.login.action.href(), "http://localhost"), {
         method: "POST",
+        headers: { "X-Request-Id": "router-test-id" },
       }),
     )
 
     assert.equal(response.status, 403)
     assert.equal(response.headers.get("Location"), null)
     assert.equal(response.headers.get("X-Content-Type-Options"), "nosniff")
+    assert.match(
+      response.headers.get("X-Request-Id") ?? "",
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    )
   })
 
   it("serves static assets without creating session state", async () => {
@@ -36,5 +41,9 @@ describe("app router", () => {
     assert.equal(response.status, 200)
     assert.equal(response.headers.get("Set-Cookie"), null)
     assert.equal(response.headers.get("X-Content-Type-Options"), "nosniff")
+    assert.match(
+      response.headers.get("X-Request-Id") ?? "",
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    )
   })
 })

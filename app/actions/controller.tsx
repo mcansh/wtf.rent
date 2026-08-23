@@ -1,7 +1,7 @@
 import { redirect } from "remix/response/redirect"
 import { createController } from "remix/router"
-import type { Handle } from "remix/ui"
 
+import { listPublicReports } from "../data/reports.ts"
 import { users } from "../data/schema.ts"
 import { db } from "../db.ts"
 import { requireAuth } from "../middleware/auth.ts"
@@ -10,7 +10,10 @@ import { DocumentWithShell } from "../ui/shell.tsx"
 import { assetServer } from "../utils/assets.ts"
 import { getCurrentUser } from "../utils/context.ts"
 import { HomePage } from "./home-page/public/page.tsx"
+import { serializeReportPage } from "./home-page/report.ts"
 import { notFound } from "./not-found.tsx"
+import { parseReportFeedInput } from "./post/report-input.ts"
+import { ProfilePage } from "./profile/page.tsx"
 
 export const controller = createController(routes, {
   actions: {
@@ -24,11 +27,15 @@ export const controller = createController(routes, {
 
     home: {
       async handler(context) {
-        let initialQuery = context.url.searchParams.get("q") ?? ""
+        let parsed = parseReportFeedInput(context.url.searchParams)
+        if (!parsed.success) return new Response("Invalid search query", { status: 400 })
+
+        let input = parsed.value
+        let reportPage = await listPublicReports(context.db, input)
 
         return context.render(
           <DocumentWithShell>
-            <HomePage initialQuery={initialQuery} />
+            <HomePage query={input.q} reportPage={serializeReportPage(reportPage)} />
           </DocumentWithShell>,
         )
       },
@@ -44,6 +51,7 @@ export const controller = createController(routes, {
     health: {
       async handler(context) {
         let host = context.headers.get("X-Forwarded-Host") ?? context.headers.get("Host")
+        let timestamp = new Date().toISOString()
 
         try {
           let url = new URL("/", `http://${host}`)
@@ -55,10 +63,16 @@ export const controller = createController(routes, {
               if (!r.ok) return Promise.reject(r)
             }),
           ])
-          return new Response("OK")
+          return Response.json(
+            { status: "OK", timestamp },
+            { headers: { "Cache-Control": "no-store" } },
+          )
         } catch (error: unknown) {
-          console.log("healthcheck ❌", { error })
-          return new Response("ERROR", { status: 500 })
+          console.error("healthcheck ❌", { error })
+          return Response.json(
+            { status: "ERROR", timestamp },
+            { status: 500, headers: { "Cache-Control": "no-store" } },
+          )
         }
       },
     },
@@ -91,32 +105,3 @@ export const controller = createController(routes, {
     },
   },
 })
-
-function ProfilePage(handle: Handle<{ email: string; username: string }>) {
-  return () => (
-    <DocumentWithShell title={`${handle.props.username} · wtf.rent`}>
-      <main className="min-h-[calc(100vh-4.375rem)] bg-blue-100 px-5 py-12 min-[541px]:px-8 min-[901px]:min-h-[calc(100vh-5.125rem)] min-[901px]:px-[8vw] min-[901px]:py-18">
-        <section className="border-ink-950 shadow-ink-950 bg-paper-50 mx-auto max-w-180 border-2 p-6 shadow-[7px_7px_0_var(--color-ink-950)] min-[541px]:p-9 min-[901px]:p-12">
-          <p className="font-mono text-[10px] font-medium tracking-[1.1px] uppercase">
-            Your account
-          </p>
-          <h1 className="mt-4 font-serif text-5xl leading-none font-extrabold tracking-[-2px] min-[541px]:text-6xl">
-            Profile
-          </h1>
-          <dl className="border-ink-950 mt-9 grid gap-6 border-t-2 pt-7 min-[541px]:grid-cols-2">
-            <div>
-              <dt className="font-mono text-[10px] font-bold tracking-[.8px] uppercase">
-                Username
-              </dt>
-              <dd className="mt-2 text-lg font-bold break-words">{handle.props.username}</dd>
-            </div>
-            <div>
-              <dt className="font-mono text-[10px] font-bold tracking-[.8px] uppercase">Email</dt>
-              <dd className="mt-2 text-lg font-bold break-words">{handle.props.email}</dd>
-            </div>
-          </dl>
-        </section>
-      </main>
-    </DocumentWithShell>
-  )
-}
