@@ -628,22 +628,49 @@ describe("public renter rights guide", () => {
     assert.match(html, /Last reviewed <time datetime="2026-08-18">August 18, 2026<\/time>/)
 
     let approvedSources = [
-      ["USAGov", "https://www.usa.gov/tenant-rights"],
-      [
-        "HUD: Fair Housing Rights and Obligations",
-        "https://www.hud.gov/stat/fheo/rights-obligations",
-      ],
-      ["HUD: Report Housing Discrimination", "https://www.hud.gov/reporthousingdiscrimination"],
-      ["HUD: Housing Counseling", "https://www.hud.gov/stat/sfh/housing-counseling"],
-      [
-        "Legal Services Corporation",
-        "https://www.lsc.gov/about-lsc/what-legal-aid/i-need-legal-help",
-      ],
+      {
+        label: "USAGov",
+        href: "https://www.usa.gov/tenant-rights",
+        purpose: "Find state tenant-rights agencies, handbooks, and dispute help.",
+        scope: "United States",
+        displayDomain: "usa.gov",
+      },
+      {
+        label: "HUD: Fair Housing Rights and Obligations",
+        href: "https://www.hud.gov/stat/fheo/rights-obligations",
+        purpose: "Understand the federal fair-housing baseline and protected classes.",
+        scope: "United States federal",
+        displayDomain: "hud.gov",
+      },
+      {
+        label: "HUD: Report Housing Discrimination",
+        href: "https://www.hud.gov/reporthousingdiscrimination",
+        purpose: "Reach the current federal housing-discrimination complaint process.",
+        scope: "United States federal",
+        displayDomain: "hud.gov",
+      },
+      {
+        label: "HUD: Housing Counseling",
+        href: "https://www.hud.gov/stat/sfh/housing-counseling",
+        purpose: "Find a participating housing counseling agency.",
+        scope: "United States",
+        displayDomain: "hud.gov",
+      },
+      {
+        label: "Legal Services Corporation",
+        href: "https://www.lsc.gov/about-lsc/what-legal-aid/i-need-legal-help",
+        purpose: "Find an LSC-funded civil legal-aid organization.",
+        scope: "United States and territories",
+        displayDomain: "lsc.gov",
+      },
     ] as const
 
-    for (let [label, href] of approvedSources) {
+    for (let { label, href, purpose, scope, displayDomain } of approvedSources) {
       assert.match(html, new RegExp(`href="${href.replaceAll(".", "\\.")}"`))
       assert.match(html, new RegExp(label))
+      assert.match(html, new RegExp(purpose.replaceAll(".", "\\.")))
+      assert.match(html, new RegExp(scope))
+      assert.match(html, new RegExp(displayDomain.replaceAll(".", "\\.")))
     }
   })
 

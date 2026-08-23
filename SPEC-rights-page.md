@@ -100,7 +100,7 @@ rights: {
   async handler(context) {
     return context.render(
       <DocumentWithShell title="Renter rights | wtf.rent">
-        <RightsPage resources={RIGHTS_RESOURCES} />
+        <RightsPage guide={RIGHTS_GUIDE} />
       </DocumentWithShell>,
     )
   },
