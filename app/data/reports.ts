@@ -162,7 +162,7 @@ export async function listPublicReports(input: ReportFeedInput): Promise<PublicR
 
 export async function findPublicReport(id: Post["id"]): Promise<PublicReportDetail | null> {
   let context = getContext()
-  let publicWhere = createPublicReportWhere({ likePattern: null, page: 1, q: "", radius: null, lat: null, lng: null })
+  let publicWhere = createPublishedStatusWhere()
   let statement = sql`
     select
       p."id" as "id",
@@ -400,12 +400,16 @@ function normalizeSuggestionText(value: string | null, maxLength: number): strin
   return normalized.length === 0 ? null : normalized
 }
 
+function createPublishedStatusWhere(): SqlStatement {
+  return rawSql('p."status" = ?', ["PUBLISHED"])
+}
+
 function createPublicReportWhere(input: ReportFeedInput): SqlStatement {
   let { likePattern, lat, lng, radius } = input
   let hasLocation = lat != null && lng != null && radius != null
 
   if (likePattern == null && !hasLocation) {
-    return rawSql('p."status" = ?', ["PUBLISHED"])
+    return createPublishedStatusWhere()
   }
 
   let conditions: string[] = ['p."status" = ?']

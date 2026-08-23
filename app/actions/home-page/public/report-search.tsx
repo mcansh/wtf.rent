@@ -57,7 +57,7 @@ export const ReportSearch = clientEntry(
       formElement.requestSubmit()
     }
 
-    async function requestGeolocation(onSuccess: (lat: number, lng: number) => void) {
+    function requestGeolocation(onSuccess: (lat: number, lng: number) => void) {
       if (!("geolocation" in navigator)) return
 
       navigator.geolocation.getCurrentPosition(

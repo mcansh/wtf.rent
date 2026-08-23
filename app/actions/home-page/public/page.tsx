@@ -179,7 +179,7 @@ export function HomePage(handle: Handle<HomePageProps>) {
                 {reportPage.hasPreviousPage ? (
                   <a
                     className="border-ink-950 bg-paper-50 hover:bg-acid-50 focus-visible:outline-ink-950 w-fit border-[1.5px] px-3 py-2 text-sm font-bold focus-visible:outline-2 focus-visible:outline-offset-3"
-                  href={feedHref(query, reportPage.page - 1, radius, lat, lng)}
+                    href={feedHref(query, reportPage.page - 1, radius, lat, lng)}
                     rel="prev"
                   >
                     <span aria-hidden="true">←</span> Previous
@@ -193,7 +193,7 @@ export function HomePage(handle: Handle<HomePageProps>) {
                 {reportPage.hasNextPage ? (
                   <a
                     className="border-ink-950 bg-acid-100 hover:bg-acid-200 focus-visible:outline-ink-950 justify-self-end border-[1.5px] px-3 py-2 text-sm font-bold shadow-[3px_3px_0_var(--color-ink-950)] focus-visible:outline-2 focus-visible:outline-offset-3"
-                  href={feedHref(query, reportPage.page + 1, radius, lat, lng)}
+                    href={feedHref(query, reportPage.page + 1, radius, lat, lng)}
                     rel="next"
                   >
                     Next <span aria-hidden="true">→</span>
