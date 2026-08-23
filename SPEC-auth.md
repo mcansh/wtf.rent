@@ -151,7 +151,10 @@ return redirect(getPostAuthRedirect(context.url), 303)
 - Session fixation or stolen browser-readable tokens → session regeneration and `HttpOnly` cookies.
 - Cross-site form submission → `SameSite=Lax` plus synchronizer-token CSRF checks.
 - Open redirect → strict same-origin path validation.
-- Account-enumeration through login → identical response for unknown user and wrong password.
+- Account-enumeration through response copy → identical response for unknown user and wrong
+  password.
+- Account-enumeration through login timing → accepted risk: unknown accounts return before
+  bcrypt; bounded throttling remains the mitigating control.
 - Duplicate registration race → database uniqueness remains authoritative and is translated into a
   safe `422` response.
 - Unauthorized writes → server-side auth middleware on every protected action.

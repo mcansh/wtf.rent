@@ -13,8 +13,15 @@ import {
   seedStructuredReport,
   TEST_REPORT_NOW,
 } from "../../test/reports.ts"
+import { parseReportSuggestionInput } from "../actions/home-page/suggestion-input.ts"
 import { parseReportFeedInput, REPORT_CATEGORY_LABELS } from "../actions/post/report-input.ts"
-import { createReport, findPublicReport, listPublicReports, REPORT_PAGE_SIZE } from "./reports.ts"
+import {
+  createReport,
+  findPublicReport,
+  listPublicReports,
+  listPublicReportSuggestions,
+  REPORT_PAGE_SIZE,
+} from "./reports.ts"
 import { posts, REPORT_CATEGORIES, users } from "./schema.ts"
 
 describe("report database test harness", () => {
@@ -435,6 +442,227 @@ describe("listPublicReports", () => {
   })
 })
 
+describe("listPublicReportSuggestions", () => {
+  it("ranks and deduplicates public city, region, landlord, and category values", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let author = await seedReportUser(app)
+
+    for (let index = 0; index < 2; index++) {
+      await seedStructuredReport(app, {
+        id: `detroit-${index}`,
+        authorId: author.id,
+        city: "Detroit",
+        region: "MI",
+        landlordName: "Maple Management",
+        category: "MAINTENANCE",
+      })
+    }
+    await seedStructuredReport(app, {
+      id: "midland",
+      authorId: author.id,
+      city: "Midland",
+      region: "MI",
+      landlordName: "Detroit Rentals",
+      category: "GOOD_EXPERIENCE",
+    })
+
+    let detroit = await listPublicReportSuggestions(
+      app.database,
+      validReportSuggestionInput(new URLSearchParams({ q: "det" })),
+    )
+    let maintenance = await listPublicReportSuggestions(
+      app.database,
+      validReportSuggestionInput(new URLSearchParams({ q: "ma" })),
+    )
+    let region = await listPublicReportSuggestions(
+      app.database,
+      validReportSuggestionInput(new URLSearchParams({ q: "mi" })),
+    )
+
+    assert.deepEqual(detroit, [
+      { kind: "city", label: "Detroit", description: "City · MI", value: "Detroit" },
+      {
+        kind: "landlord",
+        label: "Detroit Rentals",
+        description: "Landlord or manager",
+        value: "Detroit Rentals",
+      },
+    ])
+    assert.deepEqual(maintenance, [
+      {
+        kind: "landlord",
+        label: "Maple Management",
+        description: "Landlord or manager",
+        value: "Maple Management",
+      },
+      {
+        kind: "category",
+        label: "Maintenance",
+        description: "Report category",
+        value: "Maintenance",
+      },
+    ])
+    assert.deepEqual(region[0], {
+      kind: "region",
+      label: "MI",
+      description: "Region",
+      value: "MI",
+    })
+    assert.equal(region.filter((suggestion) => suggestion.kind === "region").length, 1)
+  })
+
+  it("excludes street addresses, report prose, and hidden records", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let author = await seedReportUser(app)
+    await seedStructuredReport(app, {
+      id: "private-autocomplete-source",
+      authorId: author.id,
+      address: "77 Secret Needle Road",
+      title: "Secret Needle title",
+      content: "Secret Needle content with enough detail for this public report.",
+      city: "Detroit",
+      region: "MI",
+      landlordName: "Maple Homes",
+    })
+    await seedStructuredReport(app, {
+      id: "hidden-autocomplete-source",
+      authorId: author.id,
+      status: "HIDDEN",
+      city: "Secretville",
+      region: "ZZ",
+      landlordName: "Secret Needle Homes",
+      category: "SAFETY",
+    })
+
+    let suggestions = await listPublicReportSuggestions(
+      app.database,
+      validReportSuggestionInput(new URLSearchParams({ q: "secret needle" })),
+    )
+
+    assert.deepEqual(suggestions, [])
+    assert.equal(JSON.stringify(suggestions).includes("77 Secret Needle Road"), false)
+  })
+
+  it("returns at most eight suggestions", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let author = await seedReportUser(app)
+
+    for (let index = 0; index < 12; index++) {
+      await seedStructuredReport(app, {
+        id: `park-${index}`,
+        authorId: author.id,
+        landlordName: `Park ${String(index).padStart(2, "0")} Management`,
+      })
+    }
+
+    let suggestions = await listPublicReportSuggestions(
+      app.database,
+      validReportSuggestionInput(new URLSearchParams({ q: "park" })),
+    )
+
+    assert.equal(suggestions.length, 8)
+  })
+
+  it("keeps low-frequency exact locations and landlords ahead of full prefix windows", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let author = await seedReportUser(app)
+
+    await seedStructuredReport(app, {
+      id: "maple-exact",
+      authorId: author.id,
+      city: "Maple",
+      region: "ZZ",
+      landlordName: "Maple",
+    })
+    for (let index = 0; index < 24; index++) {
+      for (let report = 0; report < 2; report++) {
+        await seedStructuredReport(app, {
+          id: `maple-prefix-${index}-${report}`,
+          authorId: author.id,
+          city: `Maple ${String(index).padStart(2, "0")}`,
+          region: "ZZ",
+          landlordName: `Maple ${String(index).padStart(2, "0")} Management`,
+        })
+      }
+    }
+    for (let index = 0; index < 25; index++) {
+      await seedStructuredReport(app, {
+        id: `maple-shared-${index}`,
+        authorId: author.id,
+        city: "Maple Shared",
+        region: `R${String(index).padStart(2, "0")}`,
+        landlordName: "Unrelated Homes",
+      })
+    }
+
+    let suggestions = await listPublicReportSuggestions(
+      app.database,
+      validReportSuggestionInput(new URLSearchParams({ q: "maple" })),
+    )
+    let prefixes = await listPublicReportSuggestions(
+      app.database,
+      validReportSuggestionInput(new URLSearchParams({ q: "map" })),
+    )
+
+    assert.deepEqual(suggestions[0], {
+      kind: "city",
+      label: "Maple",
+      description: "City · ZZ",
+      value: "Maple",
+    })
+    assert.deepEqual(prefixes[0], {
+      kind: "city",
+      label: "Maple Shared",
+      description: "City",
+      value: "Maple Shared",
+    })
+    assert.deepEqual(suggestions[1], {
+      kind: "landlord",
+      label: "Maple",
+      description: "Landlord or manager",
+      value: "Maple",
+    })
+  })
+
+  it("compiles parameterized PostgreSQL suggestion queries without private columns", async () => {
+    let recorder = new ReportPostgresQueryRecorder()
+    // SAFETY: The recorder implements the query surface exercised by the Postgres adapter.
+    let database = createPostgresDatabase(recorder as PostgresDatabaseInput)
+    let input = validReportSuggestionInput(new URLSearchParams({ q: "50%_OFF!" }))
+
+    let suggestions = await listPublicReportSuggestions(database, input)
+
+    assert.deepEqual(suggestions, [])
+    assert.equal(recorder.queries.length, 2)
+    for (let query of recorder.queries) {
+      assert.doesNotMatch(query.text, /\?/)
+      assert.doesNotMatch(query.text, /"address"|"title"|"content"|"email"|"password"/)
+    }
+    assert.deepEqual(recorder.queries[0]?.values, [
+      "PUBLISHED",
+      input.likePattern ?? "",
+      "PUBLISHED",
+      input.likePattern ?? "",
+      input.q,
+      input.prefixPattern ?? "",
+      24,
+    ])
+    assert.deepEqual(recorder.queries[1]?.values, [
+      "PUBLISHED",
+      input.likePattern ?? "",
+      input.q,
+      input.prefixPattern ?? "",
+      24,
+    ])
+    assert.match(recorder.queries[0]?.text ?? "", /case\s+when/)
+    assert.match(recorder.queries[1]?.text ?? "", /case\s+when/)
+  })
+})
+
 interface CapturedReportQuery {
   text: string
   values: Array<number | string>
@@ -445,6 +673,13 @@ class ReportPostgresQueryRecorder {
 
   async query(text: string, values: Array<number | string> = []) {
     this.queries.push({ text, values: [...values] })
+
+    if (text.includes('as "kind"') || text.includes('as "landlordName"')) {
+      return { rows: [], rowCount: 0 }
+    }
+    if (text.includes('as "category"') && !text.includes('as "id"')) {
+      return { rows: [], rowCount: 0 }
+    }
 
     return text.includes("count(*)")
       ? { rows: [{ total: "0" }], rowCount: 1 }
@@ -525,5 +760,12 @@ function validReportFeedInput(searchParams: URLSearchParams) {
   let parsed = parseReportFeedInput(searchParams)
   assert.equal(parsed.success, true)
   if (!parsed.success) assert.fail("Expected valid report feed input")
+  return parsed.value
+}
+
+function validReportSuggestionInput(searchParams: URLSearchParams) {
+  let parsed = parseReportSuggestionInput(searchParams)
+  assert.equal(parsed.success, true)
+  if (!parsed.success) assert.fail("Expected valid report suggestion input")
   return parsed.value
 }
