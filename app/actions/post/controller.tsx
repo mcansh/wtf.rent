@@ -169,7 +169,7 @@ export const post = createController(routes.post, {
           }
           report={report}
         />,
-        currentUser == null ? undefined : privateRenderInit(),
+        currentUser == null ? { headers: { Vary: "Cookie" } } : privateRenderInit(),
       )
     },
   },

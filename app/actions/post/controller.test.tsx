@@ -177,6 +177,7 @@ describe("report comments", () => {
     let html = await response.text()
 
     assert.equal(response.status, 200)
+    assert.equal(response.headers.get("Vary"), "Cookie")
     assert.match(html, /id="comments"/)
     assert.match(html, /<h2[^>]*>Comments<\/h2>/)
     assert.ok(html.indexOf("Earlier context") < html.indexOf("Later &lt;script&gt;"))
