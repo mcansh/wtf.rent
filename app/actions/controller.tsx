@@ -11,12 +11,12 @@ import { routes } from "../routes.ts"
 import { DocumentWithShell } from "../ui/shell.tsx"
 import { assetServer } from "../utils/assets.ts"
 import { getCurrentUser } from "../utils/context.ts"
+import { AboutPage } from "./about/page.tsx"
 import { parseDirectoryInput } from "./directory/input.ts"
 import { DirectoryPage } from "./directory/page.tsx"
 import { HomePage } from "./home-page/public/page.tsx"
 import { serializeReportPage } from "./home-page/report.ts"
 import { parseReportSuggestionInput } from "./home-page/suggestion-input.ts"
-import { notFound } from "./not-found.tsx"
 import { parseReportFeedInput } from "./post/report-input.ts"
 import { ProfilePage } from "./profile/page.tsx"
 import { RightsPage } from "./rights/page.tsx"
@@ -113,7 +113,11 @@ export const controller = createController(routes, {
 
     about: {
       async handler(context) {
-        return notFound(context.render)
+        return context.render(
+          <DocumentWithShell title="About | wtf.rent">
+            <AboutPage />
+          </DocumentWithShell>,
+        )
       },
     },
 
