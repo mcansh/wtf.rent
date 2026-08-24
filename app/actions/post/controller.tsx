@@ -2,24 +2,69 @@ import { getCsrfToken } from "remix/middleware/csrf"
 import { redirect } from "remix/response/redirect"
 import { createController } from "remix/router"
 
-import { geocodeLocation } from "../../actions/home-page/photon.ts"
-import { createReport, findPublicReport } from "../../data/reports.ts"
+import { createComment, listPublicComments } from "../../data/comments.ts"
+import {
+  createReport,
+  findEditableReport,
+  findPublicReport,
+  updateReport,
+} from "../../data/reports.ts"
 import { requireAuth } from "../../middleware/auth.ts"
 import { PhotonFetch } from "../../middleware/report-suggestions.ts"
 import { routes } from "../../routes.ts"
-import { getCurrentUser } from "../../utils/context.ts"
+import { getCurrentUser, getCurrentUserSafely } from "../../utils/context.ts"
+import { geocodeLocation } from "../home-page/photon.ts"
 import { notFound } from "../not-found.tsx"
+import { getSafeCommentValue, parseCommentCursor, parseCommentInput } from "./comment-input.ts"
+import { EditReportPage } from "./edit-report.tsx"
 import { NewReportPage } from "./new-report.tsx"
 import { ReportDetailPage } from "./report-detail.tsx"
-import { getSafeReportValues, parseCreateReportInput } from "./report-input.ts"
-
-const PRIVATE_FORM_HEADERS = {
-  "Cache-Control": "private, no-store",
-  Vary: "Cookie",
-}
+import {
+  getSafeReportValues,
+  parseCreateReportInput,
+  parseUpdateReportInput,
+} from "./report-input.ts"
 
 export const post = createController(routes.post, {
   actions: {
+    comment: {
+      middleware: [requireAuth({ returnTo: routes.post.show })],
+      async handler(context) {
+        let report = await findPublicReport(context.params.id)
+        if (report == null) return notFound(context.render)
+
+        let currentUser = getCurrentUser()
+        let parsed = parseCommentInput(context.formData)
+        if (!parsed.success) {
+          let commentPage = await listPublicComments(
+            context.db,
+            report.id,
+            parseCommentCursor(context.url.searchParams),
+          )
+          return context.render(
+            <ReportDetailPage
+              canEdit={currentUser.username === report.username}
+              commentPage={commentPage}
+              commentForm={{
+                csrfToken: getCsrfToken(context),
+                issues: parsed.issues,
+                value: getSafeCommentValue(context.formData),
+              }}
+              report={report}
+            />,
+            privateRenderInit(422),
+          )
+        }
+
+        let comment = await createComment(context.db, report.id, parsed.value.content, {
+          authorId: currentUser.id,
+        })
+        if (comment == null) return notFound(context.render)
+
+        return redirect(routes.post.show.href({ id: report.id }), 303)
+      },
+    },
+
     create: {
       middleware: [requireAuth()],
       async handler(context) {
@@ -33,7 +78,7 @@ export const post = createController(routes.post, {
               issues={parsed.issues}
               values={getSafeReportValues(context.formData)}
             />,
-            { status: 422, headers: PRIVATE_FORM_HEADERS },
+            privateRenderInit(422),
           )
         }
 
@@ -62,24 +107,64 @@ export const post = createController(routes.post, {
 
     edit: {
       middleware: [requireAuth()],
-      handler(context) {
-        return notFound(context.render)
+      async handler(context) {
+        let report = await findEditableReport(context.params.id, getCurrentUser().id)
+        if (report == null) return notFound(context.render)
+
+        return context.render(
+          <EditReportPage csrfToken={getCsrfToken(context)} report={report} />,
+          privateRenderInit(),
+        )
       },
     },
 
     new: {
       middleware: [requireAuth()],
       handler(context) {
-        return context.render(<NewReportPage csrfToken={getCsrfToken(context)} />, {
-          headers: PRIVATE_FORM_HEADERS,
-        })
+        return context.render(
+          <NewReportPage csrfToken={getCsrfToken(context)} />,
+          privateRenderInit(),
+        )
       },
     },
 
     update: {
       middleware: [requireAuth()],
-      handler() {
-        return redirect(routes.home.href())
+      async handler(context) {
+        let currentUser = getCurrentUser()
+        let report = await findEditableReport(context.params.id, currentUser.id)
+        if (report == null) return notFound(context.render)
+
+        let parsed = parseUpdateReportInput(context.formData)
+        if (!parsed.success) {
+          return context.render(
+            <EditReportPage
+              csrfToken={getCsrfToken(context)}
+              issues={parsed.issues}
+              report={report}
+              values={getSafeReportValues(context.formData)}
+            />,
+            privateRenderInit(422),
+          )
+        }
+
+        let coordinates =
+          parsed.value.city === report.city && parsed.value.region === report.region
+            ? { latitude: report.latitude, longitude: report.longitude }
+            : await geocodeLocation(
+                parsed.value.city,
+                parsed.value.region,
+                context.get(PhotonFetch),
+              )
+        let updated = await updateReport(report.id, parsed.value, {
+          authorId: currentUser.id,
+          confirmedAt: new Date(),
+          latitude: coordinates?.latitude ?? null,
+          longitude: coordinates?.longitude ?? null,
+        })
+        if (updated == null) return notFound(context.render)
+
+        return redirect(routes.post.show.href({ id: updated.id }), 303)
       },
     },
 
@@ -87,7 +172,38 @@ export const post = createController(routes.post, {
       let report = await findPublicReport(context.params.id)
       if (report == null) return notFound(context.render)
 
-      return context.render(<ReportDetailPage report={report} />)
+      let currentUser = getCurrentUserSafely()
+      let commentPage = await listPublicComments(
+        context.db,
+        report.id,
+        parseCommentCursor(context.url.searchParams),
+      )
+
+      return context.render(
+        <ReportDetailPage
+          canEdit={currentUser?.username === report.username}
+          commentPage={commentPage}
+          commentForm={
+            currentUser == null
+              ? null
+              : {
+                  csrfToken: getCsrfToken(context),
+                }
+          }
+          report={report}
+        />,
+        currentUser == null ? { headers: { Vary: "Cookie" } } : privateRenderInit(),
+      )
     },
   },
 })
+
+function privateRenderInit(status?: number): ResponseInit {
+  return {
+    status,
+    headers: {
+      "Cache-Control": "private, no-store",
+      Vary: "Cookie",
+    },
+  }
+}

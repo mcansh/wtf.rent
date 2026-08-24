@@ -48,6 +48,20 @@ describe("login", () => {
     assert.equal(invalid.status, 403)
   })
 
+  it("rejects a valid token submitted from another origin", async () => {
+    let app = createAuthTestApp()
+    let form = await createCsrfFormRequest(app, routes.login.action.href(), {
+      email: "renter@example.com",
+      password: "incorrect-password",
+    })
+    form.request.headers.set("Origin", "https://evil.example")
+
+    let response = await app.router.fetch(form.request)
+
+    assert.equal(response.status, 403)
+    assert.equal(await response.text(), "Forbidden: invalid CSRF origin")
+  })
+
   it("renders the guest login page", async () => {
     let app = createAuthTestApp()
     let response = await app.router.fetch(request(routes.login.index.href()))

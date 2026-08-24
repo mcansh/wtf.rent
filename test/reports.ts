@@ -12,8 +12,8 @@ import { RequestContext } from "remix/router"
 import type { SessionStorage } from "remix/session"
 import { createMemorySessionStorage } from "remix/session-storage/memory"
 
-import type { Post, User } from "../app/data/schema.ts"
-import { posts, users } from "../app/data/schema.ts"
+import type { Comment, Post, User } from "../app/data/schema.ts"
+import { comments, posts, users } from "../app/data/schema.ts"
 import { createAppRouter } from "../app/router.ts"
 
 export const TEST_REPORT_NOW = new Date("2026-08-17T12:00:00.000Z")
@@ -56,6 +56,7 @@ export async function runWithReportDatabase<result>(
 type SeedUserValues = Partial<Pick<User, "id" | "username" | "email" | "password">>
 type SeedLegacyPostValues = Partial<Post> & Pick<Post, "authorId">
 type SeedStructuredReportValues = Partial<Post> & Pick<Post, "authorId">
+type SeedCommentValues = Partial<Comment> & Pick<Comment, "authorId" | "postId">
 
 const sqliteInputSchema = s.union([
   s.null_(),
@@ -168,6 +169,21 @@ export async function seedStructuredReport(
       content: "I had to follow up several times before a recurring leak was repaired.",
       experienceConfirmedAt: new Date(TEST_REPORT_NOW),
       status: "PUBLISHED",
+      ...values,
+    },
+    { returnRow: true },
+  )
+}
+
+export async function seedComment(
+  app: Pick<ReportTestApp, "database">,
+  values: SeedCommentValues,
+): Promise<Comment> {
+  return app.database.create(
+    comments,
+    {
+      id: "report-comment",
+      content: "This report adds useful context.",
       ...values,
     },
     { returnRow: true },
@@ -343,4 +359,7 @@ const reportTestSchema = `
     constraint "Comment_postId_fkey" foreign key ("postId") references "Post" ("id")
       on delete cascade on update cascade
   );
+
+  create index "Comment_postId_createdAt_id_idx"
+    on "Comment" ("postId", "createdAt", "id");
 `

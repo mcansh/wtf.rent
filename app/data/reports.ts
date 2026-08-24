@@ -81,6 +81,13 @@ export interface CreateReportTrustedContext {
   longitude: number | null
 }
 
+export interface UpdateReportTrustedContext {
+  authorId: User["id"]
+  confirmedAt: Date
+  latitude: number | null
+  longitude: number | null
+}
+
 export async function createReport(
   values: CreateReportValues,
   trusted: CreateReportTrustedContext,
@@ -106,6 +113,46 @@ export async function createReport(
     },
     { returnRow: true },
   )
+}
+
+export function findEditableReport(id: Post["id"], authorId: User["id"]): Promise<Post | null> {
+  let context = getContext()
+
+  return context.db.findOne(posts, {
+    where: { id, authorId, status: "PUBLISHED" },
+  })
+}
+
+export async function updateReport(
+  id: Post["id"],
+  values: CreateReportValues,
+  trusted: UpdateReportTrustedContext,
+): Promise<Post | null> {
+  let context = getContext()
+  let existing = await findEditableReport(id, trusted.authorId)
+  if (existing == null) return null
+
+  let result = await context.db.updateMany(
+    posts,
+    {
+      address: values.address,
+      city: values.city,
+      region: values.region,
+      latitude: trusted.latitude,
+      longitude: trusted.longitude,
+      landlordName: values.landlordName,
+      category: values.category,
+      rating: values.rating,
+      title: values.title,
+      content: values.content,
+      experienceConfirmedAt: existing.experienceConfirmedAt ?? trusted.confirmedAt,
+    },
+    {
+      where: { id, authorId: trusted.authorId, status: "PUBLISHED" },
+    },
+  )
+
+  return result.affectedRows === 1 ? context.db.find(posts, id) : null
 }
 
 export async function listPublicReports(input: ReportFeedInput): Promise<PublicReportPage> {

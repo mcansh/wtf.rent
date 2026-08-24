@@ -226,7 +226,7 @@ function EmptyFeed(
           {isOutOfRange
             ? `Page ${reportPage.page} is beyond the available reports.`
             : query
-              ? `No reports match "${query}".`
+              ? `No reports match “${query}”.`
               : "No renter reports have been published yet."}
         </h3>
         <p className="max-w-[54ch] text-base/7 text-pretty sm:text-sm/6">

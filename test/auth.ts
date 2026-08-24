@@ -259,11 +259,13 @@ export async function createCsrfFormRequest(
   for (let [name, value] of Object.entries(values)) formData.set(name, value)
   formData.set("_csrf", form.token)
 
+  let url = new URL(pathname, "http://localhost")
+
   return {
     ...form,
-    request: new Request(new URL(pathname, "http://localhost"), {
+    request: new Request(url, {
       method,
-      headers: { Cookie: form.cookie },
+      headers: { Cookie: form.cookie, Origin: url.origin },
       body: formData,
     }),
   }

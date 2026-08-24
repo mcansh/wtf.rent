@@ -239,3 +239,110 @@ typecheck`, task-scoped Oxlint, task-scoped Oxfmt check, and `git diff --check` 
     `pnpm exec oxfmt --check .`; `pnpm exec remix routes`; `pnpm exec remix doctor`;
     `pnpm audit`; `git diff --check`; inspect `git status --short` and the complete diff.
   - Files: `SPEC-reports.md`, `tasks/todo.md` (status/evidence only).
+
+## Approved Extension: Report Editing and Comments
+
+- [x] Task 15: Record the report-interactions capability map and module specs
+  - Acceptance: Stable `report-editing` and `report-comments` modules have complete, approved,
+    testable contracts; the original report spec no longer lists those exact capabilities as
+    deferred and retains every privacy/moderation boundary.
+  - Verify: Review module ids, dependencies, route/data contracts, six required spec areas,
+    boundaries, success criteria, and open questions; `git diff --check`.
+  - Files: `CAPABILITY-MAP-report-interactions.md`, `SPEC-report-editing.md`,
+    `SPEC-report-comments.md`, `SPEC-reports.md`.
+  - Evidence: User approved the capability split and default product rules on 2026-08-18.
+
+- [x] Task 16: Add the extension implementation plan and task checklist
+  - Acceptance: Work is sliced dependency-first into focused editing and comment increments with
+    explicit checkpoints, risks, verification, and no task larger than five implementation files.
+  - Verify: Review dependency graph, file scopes, acceptance criteria, checkpoints, and boundaries;
+    `git diff --check`.
+  - Files: `tasks/plan.md`, `tasks/todo.md`.
+  - Evidence: The approved modules remain independent and are ordered sequentially only because
+    they share the post controller/detail surface.
+
+- [x] Task 17: Prove report-editing validation and owner-scoped persistence
+  - Acceptance: Edit input uses the complete report contract; an owner can load and update a
+    published or legacy report; protected fields survive; non-owner, hidden, and missing targets
+    cannot be read privately or updated; public projections remain address-free.
+  - Verify: `pnpm test -- app/actions/post/report-input.test.ts app/data/reports.test.ts`;
+    `pnpm typecheck`; `git diff --check`.
+  - Files: `app/actions/post/report-input.ts`, `app/actions/post/report-input.test.ts`,
+    `app/data/reports.ts`, `app/data/reports.test.ts`.
+  - Evidence: The focused RED test failed on the missing update parser and owner-scoped data
+    operations. The GREEN implementation reuses the complete report schema, restricts private
+    reads and atomic updates by id/author/status, allowlists editable fields, preserves protected
+    state and existing confirmation, completes legacy confirmation, and leaves public projections
+    address-free. All 28 focused tests and `pnpm typecheck` passed; `git diff --check` is clean.
+
+- [x] Task 18: Ship the authorized native report edit/update flow
+  - Acceptance: An owner gets a prefilled accessible form and can submit native
+    `POST + _method=PUT`; guests redirect; non-owner/hidden/missing targets return the standard
+    `404`; CSRF and validation failures write nothing; success redirects `303` to public detail.
+  - Verify: `pnpm test -- app/actions/post/controller.test.tsx`; `pnpm typecheck`; `pnpm build`;
+    `git diff --check`.
+  - Files: `app/router.ts`, `app/actions/post/controller.tsx`,
+    `app/actions/post/edit-report.tsx`, `app/actions/post/public/report-form.tsx`,
+    `app/actions/post/controller.test.tsx`.
+  - Evidence: Three RED controller tests first observed the edit placeholder `404` and missing CSRF
+    form. The GREEN flow adds form-data method override before CSRF, an owner-only prefilled edit
+    page, shared create/edit form states, standard `404` responses for non-owner/hidden/missing
+    targets, linked `422` validation, protected-field allowlisting, and a `303` detail redirect.
+    All 13 controller tests, `pnpm typecheck`, `pnpm build`, task-scoped Oxlint/Oxfmt checks, and
+    `git diff --check` passed.
+
+- [x] Task 19: Prove comment validation and public/trusted persistence
+  - Acceptance: Comment content trims to 1–1,000 characters; writes derive protected fields;
+    public reads are stably ordered and report-scoped with only content/date/username; hidden or
+    missing report writes and reads expose nothing.
+  - Verify: `pnpm test -- app/actions/post/comment-input.test.ts app/data/comments.test.ts`;
+    `pnpm typecheck`; `git diff --check`.
+  - Files: `app/actions/post/comment-input.ts`, `app/actions/post/comment-input.test.ts`,
+    `app/data/comments.ts`, `app/data/comments.test.ts`, `test/reports.ts`.
+  - Evidence: RED tests first failed on the absent comment input and data modules. GREEN adds a
+    trimmed 1–1,000 character form schema with bounded safe redisplay, transactional trusted
+    creation after a published-report lookup, and a parameterized public projection ordered by
+    creation time/id. Hidden, missing, hostile-id, other-report, address, user-id, email, and
+    password cases expose nothing. All 8 focused tests, `pnpm typecheck`, task-scoped
+    Oxlint/Oxfmt checks, and `git diff --check` passed.
+
+- [x] Task 20: Ship public report comments and authenticated native creation
+  - Acceptance: Detail renders an escaped ordered list or meaningful empty state; guests receive a
+    safe login prompt; authenticated users receive a CSRF form; invalid input re-renders linked
+    `422` errors; valid input redirects `303`; hidden/missing reports share `404`.
+  - Verify: `pnpm test -- app/actions/post/controller.test.tsx`; `pnpm typecheck`; `pnpm build`;
+    `pnpm exec remix routes`; `git diff --check`.
+  - Files: `app/routes.ts`, `app/actions/post/controller.tsx`,
+    `app/actions/post/report-detail.tsx`, `app/actions/post/report-comments.tsx`,
+    `app/actions/post/controller.test.tsx`.
+  - Evidence: Six RED outcomes first showed the missing nested route and absent detail UI/action.
+    GREEN adds `POST /posts/:id/comments`, public escaped lists and empty state, a safe guest login
+    path, authenticated CSRF form, author-only edit discovery, linked bounded `422` responses,
+    indistinguishable hidden/missing `404`, trusted creation, and `303` redirect. All 18 controller
+    tests, `pnpm typecheck`, `pnpm build`, `pnpm exec remix routes`, task-scoped Oxlint/Oxfmt
+    checks, and `git diff --check` passed.
+
+- [x] Task 21: Run the report-interactions quality and browser gate
+  - Acceptance: Both module success criteria have evidence; editing/comments work without
+    JavaScript and by keyboard at 320/768/1024/1440 px; console/network are clean; the final diff
+    contains no secret, private-field leak, dependency change, unrelated edit, or deferred feature;
+    the only schema artifact is the reviewed additive comment-feed index.
+  - Verify: `pnpm build`; `pnpm test`; `pnpm typecheck`; `pnpm exec oxlint .`;
+    `pnpm exec oxfmt --check .`; `pnpm exec remix routes`; `pnpm exec remix doctor`;
+    `pnpm audit`; `git diff --check`; browser journey and complete diff review.
+  - Files: `tasks/todo.md` (evidence only; split discovered defects before changing product files).
+  - Evidence: The current gate passes `pnpm build`, 74 server tests, three Chromium component
+    tests, two Chromium end-to-end tests, `pnpm typecheck`, repository-wide Oxlint, changed-file
+    Oxfmt, `pnpm exec remix routes`, `pnpm exec remix doctor`, and `git diff --check`. Independent
+    review found and the implementation now covers private
+    `no-store`/`Vary: Cookie` edit responses, 50-row keyset comment pages backed by
+    `Comment(postId, createdAt, id)`, PUT authorization denial, and legacy editing. A real isolated
+    Playwright journey covered registration, authenticated edit, category changes with untouched
+    fields, escaped comment creation, logout/back-cache behavior, guest login return, and native
+    edit plus comment submissions with browser JavaScript disabled. Edit/detail/comment layouts
+    had exact viewport-width documents at 320/768/1024/1440 px; inspected mobile/desktop screenshots
+    were readable; normal-mode console reported 0 errors and 0 warnings; application requests
+    completed successfully. Generated browser artifacts were moved outside the worktree. Dependency
+    audit is the sole external blocker: the configured registry proxy returned HTTP 405 because it
+    is read-only, and npm's official advisory endpoint repeatedly reset the approved network
+    connection. No dependency changed.
