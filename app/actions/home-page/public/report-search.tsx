@@ -236,8 +236,8 @@ export const ReportSearch = clientEntry(
                     return
                   }
                   requestGeolocation((lat, lng) => {
-                    if (latInputElement != null) latInputElement.value = String(lat)
-                    if (lngInputElement != null) lngInputElement.value = String(lng)
+                    if (latInputElement != null) latInputElement.value = lat.toFixed(3)
+                    if (lngInputElement != null) lngInputElement.value = lng.toFixed(3)
                     formElement?.requestSubmit()
                   })
                 }),
