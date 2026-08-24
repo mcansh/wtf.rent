@@ -57,19 +57,24 @@ export const ReportSearch = clientEntry(
       formElement.requestSubmit()
     }
 
+    function clearRadiusAndSubmit() {
+      if (selectElement != null) selectElement.value = ""
+      if (latInputElement != null) latInputElement.value = ""
+      if (lngInputElement != null) lngInputElement.value = ""
+      formElement?.requestSubmit()
+    }
+
     function requestGeolocation(onSuccess: (lat: number, lng: number) => void) {
-      if (!("geolocation" in navigator)) return
+      if (!("geolocation" in navigator)) {
+        clearRadiusAndSubmit()
+        return
+      }
 
       navigator.geolocation.getCurrentPosition(
         (position) => {
           onSuccess(position.coords.latitude, position.coords.longitude)
         },
-        () => {
-          if (selectElement != null) selectElement.value = ""
-          if (latInputElement != null) latInputElement.value = ""
-          if (lngInputElement != null) lngInputElement.value = ""
-          handle.update()
-        },
+        clearRadiusAndSubmit,
         { timeout: 8_000 },
       )
     }
@@ -220,7 +225,6 @@ export const ReportSearch = clientEntry(
               className="border-ink-950 focus-visible:outline-ink-950 h-full shrink-0 border-0 border-l-[1.5px] bg-transparent px-2 text-sm font-medium focus-visible:outline-2 focus-visible:-outline-offset-3"
               name="radius"
               aria-label="Search radius"
-              defaultValue={handle.props.radius}
               mix={[
                 ref((element) => {
                   selectElement = element
@@ -228,23 +232,26 @@ export const ReportSearch = clientEntry(
                 on("change", (event) => {
                   let value = event.currentTarget.value
                   if (value === "") {
-                    if (latInputElement != null) latInputElement.value = ""
-                    if (lngInputElement != null) lngInputElement.value = ""
-                    handle.update()
+                    clearRadiusAndSubmit()
                     return
                   }
                   requestGeolocation((lat, lng) => {
                     if (latInputElement != null) latInputElement.value = String(lat)
                     if (lngInputElement != null) lngInputElement.value = String(lng)
-                    handle.update()
                     formElement?.requestSubmit()
                   })
                 }),
               ]}
             >
-              <option value="">Any distance</option>
+              <option value="" selected={handle.props.radius === ""}>
+                Any distance
+              </option>
               {RADIUS_OPTIONS.map((miles) => (
-                <option key={String(miles)} value={String(miles)}>
+                <option
+                  key={String(miles)}
+                  value={String(miles)}
+                  selected={handle.props.radius === String(miles)}
+                >
                   {miles} mi
                 </option>
               ))}

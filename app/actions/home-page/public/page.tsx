@@ -168,7 +168,13 @@ export function HomePage(handle: Handle<HomePageProps>) {
                 </div>
               </>
             ) : (
-              <EmptyFeed query={query} reportPage={reportPage} radius={radius} lat={lat} lng={lng} />
+              <EmptyFeed
+                query={query}
+                reportPage={reportPage}
+                radius={radius}
+                lat={lat}
+                lng={lng}
+              />
             )}
 
             {reportPage.reports.length > 0 && reportPage.totalPages > 0 ? (
@@ -211,11 +217,18 @@ export function HomePage(handle: Handle<HomePageProps>) {
 }
 
 function EmptyFeed(
-  handle: Handle<{ query: string; reportPage: ClientReportPage; radius: string; lat: string; lng: string }>,
+  handle: Handle<{
+    query: string
+    reportPage: ClientReportPage
+    radius: string
+    lat: string
+    lng: string
+  }>,
 ) {
   return () => {
     let { query, reportPage, radius, lat, lng } = handle.props
     let isOutOfRange = reportPage.total > 0
+    let hasRadius = radius.length > 0
 
     return (
       <div className="border-ink-950 mt-7 grid justify-items-start gap-4 border-[1.5px] bg-blue-100 p-6 sm:p-8">
@@ -225,14 +238,20 @@ function EmptyFeed(
         <h3 className="font-serif text-3xl leading-none font-bold tracking-tight text-balance">
           {isOutOfRange
             ? `Page ${reportPage.page} is beyond the available reports.`
-            : query
-              ? `No reports match “${query}”.`
-              : "No renter reports have been published yet."}
+            : query && hasRadius
+              ? `No reports match “${query}” within ${radius} miles.`
+              : query
+                ? `No reports match “${query}”.`
+                : hasRadius
+                  ? `No renter reports were found within ${radius} miles.`
+                  : "No renter reports have been published yet."}
         </h3>
         <p className="max-w-[54ch] text-base/7 text-pretty sm:text-sm/6">
           {isOutOfRange
             ? `There ${reportPage.total === 1 ? "is" : "are"} ${reportPage.total} ${pluralize(reportPage.total, "report")} on the record.`
-            : "Try another landlord, city, region, category, or experience—or add the first useful record."}
+            : hasRadius
+              ? "Try a wider distance or another landlord, city, region, category, or experience."
+              : "Try another landlord, city, region, category, or experience—or add the first useful record."}
         </p>
         <div className="flex flex-wrap gap-4 text-sm font-semibold">
           {isOutOfRange ? (
@@ -248,6 +267,14 @@ function EmptyFeed(
               href={feedHref("", 1, radius, lat, lng)}
             >
               Clear search
+            </a>
+          ) : null}
+          {hasRadius ? (
+            <a
+              className="underline decoration-2 underline-offset-4"
+              href={feedHref(query, 1, "", "", "")}
+            >
+              Clear distance
             </a>
           ) : null}
           <a className="underline decoration-2 underline-offset-4" href={routes.post.new.href()}>
