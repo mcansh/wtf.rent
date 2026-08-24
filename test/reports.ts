@@ -320,6 +320,8 @@ const reportTestSchema = `
     "landlordName" text,
     "category" text,
     "rating" integer,
+    "latitude" real,
+    "longitude" real,
     "experienceConfirmedAt" text,
     "status" text not null default 'PUBLISHED',
     "createdAt" text not null,

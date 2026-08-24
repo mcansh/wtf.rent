@@ -2,8 +2,8 @@ import * as s from "remix/data-schema"
 import type { Handle, RemixNode, SerializableObject } from "remix/ui"
 import { clientEntry, on, ref } from "remix/ui"
 
-import { RADIUS_OPTIONS } from "../../post/report-input.ts"
 import { routes } from "../../../routes.ts"
+import { RADIUS_OPTIONS } from "./report-search-contract.ts"
 import type { ReportSuggestion } from "./suggestion-contract.ts"
 import {
   reportSuggestionResponseSchema,

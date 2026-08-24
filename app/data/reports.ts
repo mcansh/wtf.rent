@@ -84,6 +84,8 @@ export interface CreateReportTrustedContext {
 export interface UpdateReportTrustedContext {
   authorId: User["id"]
   confirmedAt: Date
+  latitude: number | null
+  longitude: number | null
 }
 
 export async function createReport(
@@ -136,6 +138,8 @@ export async function updateReport(
       address: values.address,
       city: values.city,
       region: values.region,
+      latitude: trusted.latitude,
+      longitude: trusted.longitude,
       landlordName: values.landlordName,
       category: values.category,
       rating: values.rating,

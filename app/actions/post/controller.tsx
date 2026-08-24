@@ -148,9 +148,19 @@ export const post = createController(routes.post, {
           )
         }
 
+        let coordinates =
+          parsed.value.city === report.city && parsed.value.region === report.region
+            ? { latitude: report.latitude, longitude: report.longitude }
+            : await geocodeLocation(
+                parsed.value.city,
+                parsed.value.region,
+                context.get(PhotonFetch),
+              )
         let updated = await updateReport(report.id, parsed.value, {
           authorId: currentUser.id,
           confirmedAt: new Date(),
+          latitude: coordinates?.latitude ?? null,
+          longitude: coordinates?.longitude ?? null,
         })
         if (updated == null) return notFound(context.render)
 

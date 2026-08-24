@@ -141,6 +141,8 @@ describe("createReport", () => {
       createReport(input, {
         authorId: author.id,
         confirmedAt,
+        latitude: 42.3314,
+        longitude: -83.0458,
       }),
     )
     let stored = await app.database.find(posts, report.id)
@@ -149,6 +151,8 @@ describe("createReport", () => {
     assert.equal(report.id === "forged-report-id", false)
     assert.equal(report.authorId, author.id)
     assert.equal(report.status, "PUBLISHED")
+    assert.equal(report.latitude, 42.3314)
+    assert.equal(report.longitude, -83.0458)
     assert.equal(report.experienceConfirmedAt?.toISOString(), confirmedAt.toISOString())
     assert.equal(report.createdAt.toISOString(), TEST_REPORT_NOW.toISOString())
     assert.deepEqual(stored, report)
@@ -235,6 +239,8 @@ describe("updateReport", () => {
       updateReport(report.id, values, {
         authorId: author.id,
         confirmedAt: new Date("2026-08-18T12:00:00.000Z"),
+        latitude: 42.3314,
+        longitude: -83.0458,
       }),
     )
 
@@ -242,6 +248,8 @@ describe("updateReport", () => {
     assert.equal(updated.id, report.id)
     assert.equal(updated.authorId, author.id)
     assert.equal(updated.status, "PUBLISHED")
+    assert.equal(updated.latitude, 42.3314)
+    assert.equal(updated.longitude, -83.0458)
     assert.equal(updated.createdAt.toISOString(), originalCreatedAt.toISOString())
     assert.equal(updated.experienceConfirmedAt?.toISOString(), originalConfirmedAt.toISOString())
     assert.equal(updated.address, "456 Woodward Avenue")
@@ -267,6 +275,8 @@ describe("updateReport", () => {
       updateReport(legacy.id, editableReportValues(), {
         authorId: author.id,
         confirmedAt,
+        latitude: 42.3314,
+        longitude: -83.0458,
       }),
     )
 
@@ -302,14 +312,20 @@ describe("updateReport", () => {
         updateReport(published.id, editableReportValues(), {
           authorId: other.id,
           confirmedAt: TEST_REPORT_NOW,
+          latitude: null,
+          longitude: null,
         }),
         updateReport(hidden.id, editableReportValues(), {
           authorId: author.id,
           confirmedAt: TEST_REPORT_NOW,
+          latitude: null,
+          longitude: null,
         }),
         updateReport("missing-update", editableReportValues(), {
           authorId: author.id,
           confirmedAt: TEST_REPORT_NOW,
+          latitude: null,
+          longitude: null,
         }),
       ]),
     )
@@ -573,6 +589,53 @@ describe("listPublicReports", () => {
       first.reports.some((report) => second.reports.some((other) => other.id === report.id)),
       false,
     )
+  })
+
+  it("filters by proximity radius when lat/lng are provided", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let author = await seedReportUser(app)
+
+    await seedStructuredReport(app, {
+      id: "nearby",
+      authorId: author.id,
+      city: "Detroit",
+      region: "MI",
+      latitude: 42.3314,
+      longitude: -83.0458,
+    })
+    await seedStructuredReport(app, {
+      id: "distant",
+      authorId: author.id,
+      city: "New York",
+      region: "NY",
+      latitude: 40.7128,
+      longitude: -74.006,
+    })
+    await seedStructuredReport(app, {
+      id: "no-coords",
+      authorId: author.id,
+      city: "Anywhere",
+      region: "ZZ",
+    })
+
+    let withinFifty = await runWithReportDatabase(app.database, () =>
+      listPublicReports(
+        validReportFeedInput(
+          new URLSearchParams({ radius: "50", lat: "42.3314", lng: "-83.0458" }),
+        ),
+      ),
+    )
+    let anyDistance = await runWithReportDatabase(app.database, () =>
+      listPublicReports(validReportFeedInput(new URLSearchParams())),
+    )
+
+    assert.deepEqual(
+      withinFifty.reports.map((report) => report.id),
+      ["nearby"],
+    )
+    assert.equal(withinFifty.total, 1)
+    assert.equal(anyDistance.total, 3)
   })
 
   it("compiles equivalent parameterized PostgreSQL join, search, count, order, and page intent", async () => {

@@ -4,6 +4,7 @@ import * as coerce from "remix/data-schema/coerce"
 import * as f from "remix/data-schema/form-data"
 
 import { REPORT_CATEGORIES } from "../../data/schema.ts"
+import { RADIUS_OPTIONS } from "../home-page/public/report-search-contract.ts"
 
 const UNIT_DESIGNATOR =
   /\b(?:apartment|apt\.?|unit|suite|ste\.?)(?=\s|#)\s*(?:#\s*)?[A-Za-z0-9-]+\b|#\s*[A-Za-z0-9-]+/i
@@ -105,9 +106,6 @@ export interface ReportFeedInput {
   q: string
   radius: number | null
 }
-
-export const RADIUS_OPTIONS = [5, 10, 25, 50, 100] as const
-export type RadiusOption = (typeof RADIUS_OPTIONS)[number]
 
 export function parseCreateReportInput(formData: FormData) {
   return s.parseSafe(createReportSchema, formData)

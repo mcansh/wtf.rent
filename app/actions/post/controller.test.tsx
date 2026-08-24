@@ -735,6 +735,90 @@ describe("edit report", () => {
     assert.doesNotMatch(publicHtml, /456 Woodward Avenue|forged-author@example\.test/)
   })
 
+  it("moves radius results with location edits and clears coordinates on geocode failure", async (t) => {
+    let requestedLocations: string[] = []
+    let app = createReportTestApp({
+      photonFetch: async (input) => {
+        let url = new URL(input instanceof Request ? input.url : input.toString())
+        let query = url.searchParams.get("q") ?? ""
+        requestedLocations.push(query)
+
+        return Response.json({
+          type: "FeatureCollection",
+          features:
+            query === "New York, NY"
+              ? [
+                  {
+                    type: "Feature",
+                    properties: { name: "New York", type: "city" },
+                    geometry: { type: "Point", coordinates: [-74.006, 40.7128] },
+                  },
+                ]
+              : [],
+        })
+      },
+    })
+    t.after(() => app.close())
+    let author = await seedReportUser(app)
+    let report = await seedStructuredReport(app, {
+      id: "moving-radius-report",
+      authorId: author.id,
+      city: "Detroit",
+      region: "MI",
+      latitude: 42.3314,
+      longitude: -83.0458,
+    })
+    let cookie = await createAuthenticatedReportSession(app, author)
+    let form = await getReportCsrfForm(app, routes.post.edit.href({ id: report.id }), cookie)
+
+    let moved = await app.router.fetch(
+      reportUpdateRequest(
+        report.id,
+        validReportValues({ _csrf: form.token, city: "New York", region: "NY" }),
+        form.cookie,
+      ),
+    )
+    let stored = await app.database.find(posts, report.id)
+    let oldRadius = await app.router.fetch(
+      request(
+        routes.home.href(undefined, {
+          searchParams: { radius: "5", lat: "42.3314", lng: "-83.0458" },
+        }),
+      ),
+    )
+    let newRadius = await app.router.fetch(
+      request(
+        routes.home.href(undefined, {
+          searchParams: { radius: "5", lat: "40.7128", lng: "-74.006" },
+        }),
+      ),
+    )
+
+    assert.equal(moved.status, 303)
+    assert.equal(stored?.city, "New York")
+    assert.equal(stored?.region, "NY")
+    assert.equal(stored?.latitude, 40.7128)
+    assert.equal(stored?.longitude, -74.006)
+    assert.doesNotMatch(await oldRadius.text(), /href="\/posts\/moving-radius-report"/)
+    assert.match(await newRadius.text(), /href="\/posts\/moving-radius-report"/)
+
+    let failedMove = await app.router.fetch(
+      reportUpdateRequest(
+        report.id,
+        validReportValues({ _csrf: form.token, city: "Chicago", region: "IL" }),
+        form.cookie,
+      ),
+    )
+    let cleared = await app.database.find(posts, report.id)
+
+    assert.equal(failedMove.status, 303)
+    assert.equal(cleared?.city, "Chicago")
+    assert.equal(cleared?.region, "IL")
+    assert.equal(cleared?.latitude, null)
+    assert.equal(cleared?.longitude, null)
+    assert.deepEqual(requestedLocations, ["New York, NY", "Chicago, IL"])
+  })
+
   it("returns indistinguishable 404 responses for unauthorized, hidden, and missing updates", async (t) => {
     let app = createReportTestApp()
     t.after(() => app.close())
