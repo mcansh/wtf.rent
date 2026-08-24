@@ -336,7 +336,7 @@ function renderSuggestionPopup({
               <button
                 key={`${suggestion.kind}:${suggestion.value}`}
                 id={`${listboxId}-${index}`}
-                className={`border-ink-950/15 focus-visible:outline-ink-950 flex w-full items-start justify-between gap-4 border-0 border-b py-3 pr-3 pl-4 text-left last:border-b-0 hover:bg-blue-100 focus-visible:outline-2 focus-visible:-outline-offset-2 ${index === activeIndex ? "bg-acid-100" : "bg-paper-50"}`}
+                className="border-ink-950/15 bg-paper-50 focus-visible:outline-ink-950 aria-[selected=true]:bg-acid-100 flex w-full items-start justify-between gap-4 border-0 border-b py-3 pr-3 pl-4 text-left last:border-b-0 hover:bg-blue-100 focus-visible:outline-2 focus-visible:-outline-offset-2 aria-[selected=true]:hover:bg-blue-100"
                 type="button"
                 role="option"
                 tabIndex={-1}
