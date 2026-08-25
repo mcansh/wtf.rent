@@ -3,6 +3,7 @@ import { getCsrfToken } from "remix/middleware/csrf"
 import type { Handle, RemixNode } from "remix/ui"
 
 import { Brand } from "../public/brand.tsx"
+import { MobileNavigation } from "../public/mobile-navigation.tsx"
 import { routes } from "../routes.ts"
 import { getCurrentUserSafely } from "../utils/context.ts"
 import type { DocumentProps } from "./document.tsx"
@@ -32,7 +33,7 @@ function Shell(handle: Handle<{ children: RemixNode }>) {
           aria-label="Primary"
           className="flex min-w-0 items-center gap-2 text-sm font-bold min-[541px]:gap-4 min-[901px]:gap-7"
         >
-          <details className="group relative shrink-0 min-[901px]:hidden">
+          <MobileNavigation>
             <summary className="border-ink-950 bg-paper-50 flex min-h-12 cursor-pointer list-none items-center border-[1.5px] px-3 hover:bg-blue-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 [&::-webkit-details-marker]:hidden">
               Menu
             </summary>
@@ -51,7 +52,7 @@ function Shell(handle: Handle<{ children: RemixNode }>) {
                 )
               })}
             </div>
-          </details>
+          </MobileNavigation>
 
           <div className="hidden items-center gap-7 min-[901px]:flex">
             {NAV_ITEMS.map(([label, path]) => {
