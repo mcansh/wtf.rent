@@ -8,6 +8,23 @@ import { routes } from "../app/routes.ts"
 import { createReportTestApp, seedReportUser, seedStructuredReport } from "./reports.ts"
 
 describe("browser journeys", () => {
+  it("closes the mobile navigation after navigating", { timeout: 15_000 }, async (t) => {
+    let { page } = await openTestApp(t)
+    await page.setViewportSize({ width: 390, height: 844 })
+
+    await page.goto(routes.home.href())
+    await page.waitForLoadState("networkidle")
+    let menu = page.getByRole("navigation", { name: "Primary" }).locator("details")
+    await menu.locator("summary").click()
+    assert.equal(await menu.getAttribute("open"), "")
+
+    await menu.getByRole("link", { name: "Directory" }).click()
+    await page.getByRole("heading", { name: "Browse the public record" }).waitFor()
+
+    assert.equal(new URL(page.url()).pathname, routes.directory.href())
+    assert.equal(await menu.getAttribute("open"), null)
+  })
+
   it("renders reports from a filtered URL", { timeout: 15_000 }, async (t) => {
     let { app, page } = await openTestApp(t)
     let author = await seedReportUser(app, { username: "jordan-t" })
