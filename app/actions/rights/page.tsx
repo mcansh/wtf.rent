@@ -171,7 +171,8 @@ function RightsStep(handle: Handle<{ isLast: boolean; step: RightsGuideStep }>) 
     return (
       <section
         id={step.id}
-        className={`grid gap-5 py-8 sm:py-10 lg:grid-cols-[7fr_13fr] lg:gap-12 ${isLast ? "" : "border-ink-950/15 border-b"}`}
+        data-last={String(isLast)}
+        className="border-ink-950/15 grid gap-5 border-b py-8 data-[last=true]:border-b-0 sm:py-10 lg:grid-cols-[7fr_13fr] lg:gap-12"
       >
         <h3 className="flex min-w-0 items-start gap-4">
           <span
@@ -218,17 +219,14 @@ function RightsStep(handle: Handle<{ isLast: boolean; step: RightsGuideStep }>) 
 function ResourceCard(handle: Handle<{ index: number; resource: RightsResource }>) {
   return () => {
     let { index, resource } = handle.props
-    let borderClasses = [
-      "border-ink-950/15",
-      index > 0 ? "border-t" : "",
-      index === 1 ? "sm:border-t-0" : "",
-      index % 2 === 1 ? "sm:border-l" : "",
-    ]
-      .filter(Boolean)
-      .join(" ")
 
     return (
-      <li className={`${borderClasses} grid content-between gap-6 p-5 sm:p-6`}>
+      <li
+        data-first={String(index === 0)}
+        data-first-row={String(index < 2)}
+        data-divided={String(index % 2 === 1)}
+        className="border-ink-950/15 grid content-between gap-6 border-t p-5 data-[first=true]:border-t-0 sm:p-6 sm:data-[divided=true]:border-l sm:data-[first-row=true]:border-t-0"
+      >
         <div className="grid gap-3">
           <p className="font-mono text-base font-medium tracking-wide uppercase sm:text-sm">
             {resource.organization}

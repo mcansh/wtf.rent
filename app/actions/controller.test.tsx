@@ -392,6 +392,28 @@ describe("home report discovery", () => {
     assert.doesNotMatch(html, /Page 1 of/)
   })
 
+  it("persists radius state and identifies an empty nearby-report filter", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let author = await seedReportUser(app)
+    await seedStructuredReport(app, { authorId: author.id })
+
+    let response = await app.router.fetch(
+      request(
+        routes.home.href(undefined, {
+          searchParams: { radius: "5", lat: "42.3314", lng: "-83.0458" },
+        }),
+      ),
+    )
+    let html = await response.text()
+
+    assert.equal(response.status, 200)
+    assert.match(html, /<option value="5" selected(?:="")?>5 mi<\/option>/)
+    assert.match(html, /No renter reports were found within 5 miles\./)
+    assert.match(html, /href="\/#feed"[^>]*>\s*Clear distance\s*<\/a>/)
+    assert.doesNotMatch(html, /No renter reports have been published yet\./)
+  })
+
   it("preserves an active search on an out-of-range page", async (t) => {
     let app = createReportTestApp()
     t.after(() => app.close())

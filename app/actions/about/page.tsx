@@ -125,7 +125,9 @@ function RecordProcess() {
           {RECORD_STEPS.map((step, index) => (
             <div
               key={step.number}
-              className={`grid content-start gap-4 py-7 lg:px-6 lg:py-8 ${index > 0 ? "border-ink-950/15 border-t lg:border-t-0 lg:border-l" : "lg:pl-0"} ${index === RECORD_STEPS.length - 1 ? "lg:pr-0" : ""}`}
+              data-first={String(index === 0)}
+              data-last={String(index === RECORD_STEPS.length - 1)}
+              className="border-ink-950/15 grid content-start gap-4 border-t py-7 data-[first=true]:border-t-0 lg:border-t-0 lg:border-l lg:px-6 lg:py-8 lg:data-[first=true]:border-l-0 lg:data-[first=true]:pl-0 lg:data-[last=true]:pr-0"
             >
               <dt className="grid max-w-[40ch] gap-4">
                 <span
@@ -214,7 +216,8 @@ function DisclosureList(handle: Handle<DisclosureListProps>) {
 
     return (
       <dl
-        className={`grid content-start gap-5 p-5 sm:p-6 ${divided ? "border-ink-950/15 border-t lg:border-t-0 lg:border-l" : ""}`}
+        data-divided={String(divided)}
+        className="data-[divided=true]:border-ink-950/15 grid content-start gap-5 p-5 data-[divided=true]:border-t sm:p-6 lg:data-[divided=true]:border-t-0 lg:data-[divided=true]:border-l"
       >
         <dt className="font-serif text-2xl font-semibold tracking-tight text-balance">{title}</dt>
         <dd className="text-ink-700">

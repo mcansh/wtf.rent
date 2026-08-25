@@ -4,6 +4,7 @@ import * as coerce from "remix/data-schema/coerce"
 import * as f from "remix/data-schema/form-data"
 
 import { REPORT_CATEGORIES } from "../../data/schema.ts"
+import { RADIUS_OPTIONS } from "../home-page/public/report-search-contract.ts"
 
 const UNIT_DESIGNATOR =
   /\b(?:apartment|apt\.?|unit|suite|ste\.?)(?=\s|#)\s*(?:#\s*)?[A-Za-z0-9-]+\b|#\s*[A-Za-z0-9-]+/i
@@ -77,6 +78,9 @@ const reportFeedSchema = f.object({
       .transform((value) => value.slice(0, 100)),
   ),
   page: f.field(s.defaulted(s.string(), "").transform(normalizePage)),
+  radius: f.field(s.defaulted(s.string(), "").transform(normalizeRadius)),
+  lat: f.field(s.defaulted(s.string(), "").transform(normalizeLatitude)),
+  lng: f.field(s.defaulted(s.string(), "").transform(normalizeLongitude)),
 })
 
 export type CreateReportInput = s.InferOutput<typeof createReportSchema>
@@ -96,8 +100,11 @@ export interface ReportFormValues {
 
 export interface ReportFeedInput {
   likePattern: string | null
+  lat: number | null
+  lng: number | null
   page: number
   q: string
+  radius: number | null
 }
 
 export function parseCreateReportInput(formData: FormData) {
@@ -129,13 +136,16 @@ export function parseReportFeedInput(searchParams: URLSearchParams) {
   let parsed = s.parseSafe(reportFeedSchema, searchParams)
   if (!parsed.success) return parsed
 
-  let { q, page } = parsed.value
+  let { q, page, radius, lat, lng } = parsed.value
 
   return {
     success: true as const,
     value: {
       q,
       page,
+      radius,
+      lat,
+      lng,
       likePattern: q.length === 0 ? null : toLiteralLikePattern(q),
     } satisfies ReportFeedInput,
   }
@@ -147,6 +157,27 @@ function normalizePage(value: string): number {
 
   let page = Number(normalized)
   return Number.isSafeInteger(page) ? page : 1
+}
+
+function normalizeRadius(value: string): number | null {
+  let trimmed = value.trim()
+  if (trimmed === "") return null
+  let n = Number(trimmed)
+  return (RADIUS_OPTIONS as readonly number[]).includes(n) ? n : null
+}
+
+function normalizeLatitude(value: string): number | null {
+  let trimmed = value.trim()
+  if (trimmed === "") return null
+  let n = Number(trimmed)
+  return Number.isFinite(n) && n >= -90 && n <= 90 ? n : null
+}
+
+function normalizeLongitude(value: string): number | null {
+  let trimmed = value.trim()
+  if (trimmed === "") return null
+  let n = Number(trimmed)
+  return Number.isFinite(n) && n >= -180 && n <= 180 ? n : null
 }
 
 function toLiteralLikePattern(value: string): string {

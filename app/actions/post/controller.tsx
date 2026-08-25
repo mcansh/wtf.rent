@@ -10,8 +10,10 @@ import {
   updateReport,
 } from "../../data/reports.ts"
 import { requireAuth } from "../../middleware/auth.ts"
+import { PhotonFetch } from "../../middleware/report-suggestions.ts"
 import { routes } from "../../routes.ts"
 import { getCurrentUser, getCurrentUserSafely } from "../../utils/context.ts"
+import { geocodeLocation } from "../home-page/photon.ts"
 import { notFound } from "../not-found.tsx"
 import { getSafeCommentValue, parseCommentCursor, parseCommentInput } from "./comment-input.ts"
 import { EditReportPage } from "./edit-report.tsx"
@@ -80,9 +82,16 @@ export const post = createController(routes.post, {
           )
         }
 
+        let coords = await geocodeLocation(
+          parsed.value.city,
+          parsed.value.region,
+          context.get(PhotonFetch),
+        )
         let report = await createReport(parsed.value, {
           authorId: getCurrentUser().id,
           confirmedAt: new Date(),
+          latitude: coords?.latitude ?? null,
+          longitude: coords?.longitude ?? null,
         })
 
         return redirect(routes.post.show.href({ id: report.id }), 303)
@@ -139,9 +148,19 @@ export const post = createController(routes.post, {
           )
         }
 
+        let coordinates =
+          parsed.value.city === report.city && parsed.value.region === report.region
+            ? { latitude: report.latitude, longitude: report.longitude }
+            : await geocodeLocation(
+                parsed.value.city,
+                parsed.value.region,
+                context.get(PhotonFetch),
+              )
         let updated = await updateReport(report.id, parsed.value, {
           authorId: currentUser.id,
           confirmedAt: new Date(),
+          latitude: coordinates?.latitude ?? null,
+          longitude: coordinates?.longitude ?? null,
         })
         if (updated == null) return notFound(context.render)
 

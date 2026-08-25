@@ -178,19 +178,14 @@ export const ReportForm = clientEntry(
                   id="category"
                   className={`${FIELD_CLASS} col-span-full row-start-1 appearance-none pr-8`}
                   name="category"
+                  defaultValue={values.category}
                   aria-describedby={getDescribedBy("category-help", errors.category, "category")}
                   aria-invalid={hasFieldErrors(errors.category) ? "true" : undefined}
                   required
                 >
-                  <option value="" selected={values.category === ""}>
-                    Choose a category
-                  </option>
+                  <option value="">Choose a category</option>
                   {categoryOptions.map((option) => (
-                    <option
-                      key={option.value}
-                      value={option.value}
-                      selected={values.category === option.value}
-                    >
+                    <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
                   ))}

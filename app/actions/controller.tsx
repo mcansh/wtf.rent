@@ -42,7 +42,13 @@ export const controller = createController(routes, {
 
         return context.render(
           <DocumentWithShell>
-            <HomePage query={input.q} reportPage={serializeReportPage(reportPage)} />
+            <HomePage
+              query={input.q}
+              reportPage={serializeReportPage(reportPage)}
+              radius={input.radius != null ? String(input.radius) : ""}
+              lat={input.lat != null ? String(input.lat) : ""}
+              lng={input.lng != null ? String(input.lng) : ""}
+            />
           </DocumentWithShell>,
         )
       },
