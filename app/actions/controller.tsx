@@ -2,7 +2,7 @@ import { redirect } from "remix/response/redirect"
 import { createController } from "remix/router"
 
 import { listPublicDirectoryEntries } from "../data/directory.ts"
-import { listPublicReports } from "../data/reports.ts"
+import { listPublicReports, REPORT_PAGE_SIZE } from "../data/reports.ts"
 import { users } from "../data/schema.ts"
 import { db } from "../db.ts"
 import { requireAuth } from "../middleware/auth.ts"
@@ -44,10 +44,10 @@ export const controller = createController(routes, {
                   hasNextPage: false,
                   hasPreviousPage: false,
                   page: 1,
-                  pageSize: 10,
+                  pageSize: REPORT_PAGE_SIZE,
                   reports: [],
                   total: 0,
-                  totalPages: 1,
+                  totalPages: 0,
                 }}
                 radius={""}
                 lat={""}
