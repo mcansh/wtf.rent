@@ -108,4 +108,71 @@ describe("ReportSearch", () => {
     assert.equal(scrolledIds.at(-1), activeId)
     assert.equal(result.$(`#${activeId}`)?.getAttribute("aria-selected"), "true")
   })
+
+  it("renders category links with active and location-aware URL state", (t) => {
+    let result = render(<ReportSearch query="Safety" radius="25" lat="42.331" lng="-83.046" />)
+    t.after(result.cleanup)
+
+    let nav = result.$('nav[aria-label="Browse report categories"]')
+    assert.ok(nav instanceof HTMLElement)
+    let links = [...nav.querySelectorAll("a")]
+    assert.equal(links.length, 7)
+
+    let safetyLink = links.find((link) => link.textContent === "Safety")
+    assert.ok(safetyLink instanceof HTMLAnchorElement)
+    assert.equal(safetyLink.getAttribute("aria-current"), "page")
+    assert.equal(
+      safetyLink.getAttribute("href"),
+      "/?q=Safety&radius=25&lat=42.331&lng=-83.046#feed",
+    )
+    assert.ok(links.filter((link) => link.hasAttribute("aria-current")).length === 1)
+  })
+
+  it("limits city-desk suggestions to cities and regions", async (t) => {
+    let originalFetch = globalThis.fetch
+    globalThis.fetch = () =>
+      Promise.resolve(
+        Response.json({
+          suggestions: [
+            { kind: "city", label: "Detroit", description: "City · MI", value: "Detroit" },
+            { kind: "region", label: "Michigan", description: "Region", value: "Michigan" },
+            {
+              kind: "landlord",
+              label: "Detroit Doorways",
+              description: "Landlord or manager",
+              value: "Detroit Doorways",
+            },
+            {
+              kind: "category",
+              label: "Maintenance",
+              description: "Report category",
+              value: "Maintenance",
+            },
+          ],
+        }),
+      )
+    t.after(() => {
+      globalThis.fetch = originalFetch
+    })
+
+    let result = render(<ReportSearch query="" radius="" lat="" lng="" />)
+    t.after(result.cleanup)
+    let input = result.$('input[name="q"]')
+    assert.ok(input instanceof HTMLInputElement)
+
+    await result.act(async () => {
+      input.value = "det"
+      input.dispatchEvent(new InputEvent("input", { bubbles: true }))
+      await new Promise((resolve) => setTimeout(resolve, 220))
+    })
+
+    let options = [...result.$('[role="listbox"]')!.querySelectorAll('[role="option"]')]
+    assert.equal(options.length, 2)
+    assert.match(options[0]?.textContent ?? "", /Detroit/)
+    assert.match(options[1]?.textContent ?? "", /Michigan/)
+    assert.doesNotMatch(
+      options.map((option) => option.textContent).join(" "),
+      /Doorways|Maintenance/,
+    )
+  })
 })

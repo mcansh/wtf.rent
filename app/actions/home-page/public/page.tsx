@@ -30,7 +30,7 @@ export function HomePage(handle: Handle<HomePageProps>) {
     let resultEnd = resultStart + reportPage.reports.length - 1
 
     return (
-      <main className="bg-paper-50 text-ink-950 min-h-screen overflow-hidden">
+      <main className="bg-paper-50 text-ink-950 isolate min-h-dvh overflow-hidden antialiased">
         <section
           className="border-ink-950 border-b-2 bg-blue-200 px-5 pt-13 pb-12 min-[541px]:px-[8vw] min-[541px]:pt-15 min-[901px]:grid min-[901px]:grid-cols-[minmax(0,1.3fr)_minmax(280px,.7fr)] min-[901px]:gap-[6vw] min-[901px]:px-[12.5vw] min-[901px]:pt-18 min-[901px]:pb-16"
           id="top"

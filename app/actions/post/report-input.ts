@@ -151,6 +151,22 @@ export function parseReportFeedInput(searchParams: URLSearchParams) {
   }
 }
 
+export function getPrunedSearchParams(searchParams: URLSearchParams): URLSearchParams | null {
+  let pruned = new URLSearchParams()
+  let removedEmptyValue = false
+
+  for (let [name, value] of searchParams) {
+    if (value.trim().length === 0) {
+      removedEmptyValue = true
+      continue
+    }
+
+    pruned.append(name, value)
+  }
+
+  return removedEmptyValue ? pruned : null
+}
+
 function normalizePage(value: string): number {
   let normalized = value.trim()
   if (!/^[1-9]\d*$/.test(normalized)) return 1
@@ -163,7 +179,7 @@ function normalizeRadius(value: string): number | null {
   let trimmed = value.trim()
   if (trimmed === "") return null
   let n = Number(trimmed)
-  return (RADIUS_OPTIONS as readonly number[]).includes(n) ? n : null
+  return RADIUS_OPTIONS.some((radius) => radius === n) ? n : null
 }
 
 function normalizeLatitude(value: string): number | null {
