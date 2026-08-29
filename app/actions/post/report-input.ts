@@ -163,7 +163,7 @@ function normalizeRadius(value: string): number | null {
   let trimmed = value.trim()
   if (trimmed === "") return null
   let n = Number(trimmed)
-  return (RADIUS_OPTIONS as readonly number[]).includes(n) ? n : null
+  return RADIUS_OPTIONS.some((radius) => radius === n) ? n : null
 }
 
 function normalizeLatitude(value: string): number | null {
