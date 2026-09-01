@@ -9,18 +9,19 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/18/docker
+      - postgres-data:/var/lib/postgresql/18/docker
   redis:
     image: redis:8
     restart: unless-stopped
-    environment: REDIS_ARGS=--appendonly yes
+    environment:
+      - REDIS_ARGS=--appendonly yes
     ports:
       - "6379:6379"
     volumes:
-      - redis_data:/data
+      - redis-data:/data
 
 volumes:
-  redis_data:
+  redis-data:
     driver: local
-  postgres_data:
+  postgres-data:
     driver: local
