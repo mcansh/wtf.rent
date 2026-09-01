@@ -1,10 +1,12 @@
 # Renter Reports Task Checklist
 
-Approved contract: [`SPEC-reports.md`](../SPEC-reports.md)
+Status: Active — tasks 12–14 remain open; completed tasks are retained below as historical evidence.
+
+Approved contract: [`docs/specs/reports/core.md`](../docs/specs/reports/core.md)
 
 Approved implementation plan: [`tasks/plan.md`](./plan.md)
 
-Historical authentication completion evidence remains in [`tasks/auth-todo.md`](./auth-todo.md).
+Historical authentication completion evidence remains in [`tasks/archive/auth-todo.md`](./archive/auth-todo.md).
 
 - [x] Task 1: Add correlated, privacy-safe request telemetry
   - Acceptance: Every application response carries a valid `X-Request-ID`; safe inbound ids are
@@ -231,14 +233,14 @@ typecheck`, task-scoped Oxlint, task-scoped Oxfmt check, and `git diff --check` 
     changing product files).
 
 - [ ] Task 14: Run the complete quality and scope gate
-  - Acceptance: Every success criterion in `SPEC-reports.md` has evidence or a precise external
+  - Acceptance: Every success criterion in `docs/specs/reports/core.md` has evidence or a precise external
     blocker; the final diff contains no secret, generated dependency cache, unrelated edit, or
     implementation of deferred scope; broad public launch remains explicitly blocked on the
     approved moderation/legal follow-up.
   - Verify: `pnpm build`; `pnpm test`; `pnpm typecheck`; `pnpm exec oxlint .`;
     `pnpm exec oxfmt --check .`; `pnpm exec remix routes`; `pnpm exec remix doctor`;
     `pnpm audit`; `git diff --check`; inspect `git status --short` and the complete diff.
-  - Files: `SPEC-reports.md`, `tasks/todo.md` (status/evidence only).
+  - Files: `docs/specs/reports/core.md`, `tasks/todo.md` (status/evidence only).
 
 ## Approved Extension: Report Editing and Comments
 
@@ -248,8 +250,8 @@ typecheck`, task-scoped Oxlint, task-scoped Oxfmt check, and `git diff --check` 
     deferred and retains every privacy/moderation boundary.
   - Verify: Review module ids, dependencies, route/data contracts, six required spec areas,
     boundaries, success criteria, and open questions; `git diff --check`.
-  - Files: `CAPABILITY-MAP-report-interactions.md`, `SPEC-report-editing.md`,
-    `SPEC-report-comments.md`, `SPEC-reports.md`.
+  - Files: `docs/specs/reports/README.md`, `docs/specs/reports/editing.md`,
+    `docs/specs/reports/comments.md`, `docs/specs/reports/core.md`.
   - Evidence: User approved the capability split and default product rules on 2026-08-18.
 
 - [x] Task 16: Add the extension implementation plan and task checklist

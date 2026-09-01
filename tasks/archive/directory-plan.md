@@ -2,7 +2,7 @@
 
 Status: Approved on 2026-08-18
 
-Approved contract: [`SPEC-directory-page.md`](../SPEC-directory-page.md)
+Approved contract: [`docs/specs/public-pages/directory.md`](../../docs/specs/public-pages/directory.md)
 
 Stack base: `logan/codex-search-autocomplete` / draft PR #24
 
