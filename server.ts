@@ -2,6 +2,7 @@ import * as http from "node:http"
 
 import { createRequestListener } from "remix/node-fetch-server"
 
+import { redis } from "./app/redis.ts"
 import { router } from "./app/router.ts"
 
 const port = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 44100
@@ -22,6 +23,8 @@ const server = http.createServer(
   ),
 )
 
+await redis.connect()
+
 server.listen(port, "0.0.0.0", () => {
   console.log(`Server listening on http://0.0.0.0:${port}`)
 })
@@ -34,7 +37,7 @@ function shutdown() {
   }
 
   shuttingDown = true
-  server.close(() => process.exit(0))
+  server.close(() => redis.close().finally(() => process.exit(0)))
   server.closeAllConnections()
 }
 

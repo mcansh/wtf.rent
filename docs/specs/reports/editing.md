@@ -2,6 +2,10 @@
 
 Module id: `report-editing`
 
+Status: Implemented
+Owner: `app/actions/post/`, `app/data/reports.ts`
+Canonical tests: `app/actions/post/controller.test.tsx`, `app/data/reports.test.ts`
+
 ## Objective
 
 Let an authenticated report author correct their own published renter report through a
@@ -88,7 +92,8 @@ return redirect(routes.post.show.href({ id: report.id }), 303)
   firsthand attestation as report creation.
 - Returns an accessible `422` edit page with bounded safe values when validation fails.
 - Marks every rendered `422` edit response private and non-cacheable.
-- Updates only address, city, region, landlord name, category, rating, title, and content.
+- Updates only address, city, region, landlord name, category, rating, title, and content from user
+  input; the server may refresh derived latitude/longitude coordinates.
 - Preserves id, author id, status, creation time, and an existing firsthand confirmation time.
 - Sets a confirmation time when a legacy report without one is completed through the edit form.
 - Redirects to the public report detail with `303` after a successful update.

@@ -26,6 +26,7 @@ const envSchema = s.object({
   NODE_ENV: s.defaulted(s.enum_(["development", "test", "production"]), "development"),
   PORT: s.defaulted(coerce.number(), 3000),
   DATABASE_URL: s.string().pipe(url()),
+  REDIS_URL: s.string().pipe(url()),
   SESSION_SECRETS: s
     .string()
     .transform((value) =>
@@ -40,6 +41,7 @@ const envSchema = s.object({
 const testDefaults = {
   DATABASE_URL: "postgresql://test:test@localhost:5432/wtf_rent_test",
   SESSION_SECRETS: "test-session-secret-that-is-at-least-32-characters",
+  REDIS_URL: "redis://localhost:6379",
 }
 
 export function readEnv(source: NodeJS.ProcessEnv) {
@@ -49,6 +51,7 @@ export function readEnv(source: NodeJS.ProcessEnv) {
           ...source,
           DATABASE_URL: source.DATABASE_URL ?? testDefaults.DATABASE_URL,
           SESSION_SECRETS: source.SESSION_SECRETS ?? testDefaults.SESSION_SECRETS,
+          REDIS_URL: source.REDIS_URL ?? testDefaults.REDIS_URL,
         }
       : source
 

@@ -65,7 +65,7 @@
     the final diff contains no secret or unrelated edit.
   - Verify: `pnpm build`; `pnpm test`; `pnpm typecheck`; `pnpm exec oxlint .`;
     `pnpm audit`; browser checks at 320/768/1024/1440 px.
-  - Files: `SPEC-auth.md`, `tasks/plan.md`, `tasks/todo.md` (status/evidence only).
+  - Files: `docs/specs/auth.md`, `tasks/plan.md`, `tasks/todo.md` (status/evidence only).
   - Evidence: Build passed; 33/33 tests passed; typecheck, Oxlint, Oxfmt, route validation,
     Remix Doctor, and `git diff --check` passed. Browser checks at 320/768/1024/1440 px found
     no horizontal overflow or console/network errors. A real development-database journey covered

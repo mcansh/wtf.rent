@@ -1,6 +1,8 @@
 # Spec: Public Directory Page
 
-Status: Approved on 2026-08-18
+Status: Implemented
+Owner: `app/actions/directory/`
+Canonical tests: `app/actions/controller.test.tsx`, `app/actions/directory/input.test.ts`
 
 ## Objective
 
