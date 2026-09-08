@@ -7,8 +7,8 @@ Canonical tests: `app/actions/login/controller.test.tsx`, `app/actions/join/cont
 ## Objective
 
 Finish the existing Remix 3 email/password authentication migration so a renter can create an
-account, sign in, stay signed in with a hardened cookie-backed session, access protected routes,
-and sign out.
+account, sign in, stay signed in with a Redis-backed session and hardened cookie, access protected
+routes, and sign out.
 
 The feature serves two user states:
 
@@ -26,6 +26,7 @@ password reset, roles, and account deletion are intentionally out of scope.
 - PostgreSQL through `remix/data-table`
 - `@node-rs/bcrypt` for password hashing and verification
 - `remix/session` and `remix/middleware/auth` for session-backed identity
+- Redis through `remix/session-storage/redis` for shared session data
 - Remix server-rendered components and Tailwind CSS 4 for the forms
 
 This capability uses the repository's existing runtime dependencies and session storage.
@@ -116,9 +117,14 @@ return redirect(getPostAuthRedirect(context.url), 303)
 
 - The session cookie is signed, `HttpOnly`, `SameSite=Lax`, scoped to `/`, and `Secure` in
   production.
+- The cookie carries only the session id; session data is stored in Redis under `session:` keys.
+- Cookie `Max-Age` and Redis TTL share a 30-day duration. Saving changed session data renews
+  both; read-only requests do not extend either lifetime. Expired Redis sessions are treated as
+  guests even if the browser still sends the old cookie.
 - Session secrets continue to be required from the environment and are never given a production
   fallback.
 - Login, registration, and logout regenerate the session id to prevent fixation.
+- Saving a regenerated session deletes the previous Redis key so the old id cannot resume it.
 - `POST /logout` clears auth state, regenerates the session, and redirects home with `303`.
 - Logout is not performed by `GET`.
 
@@ -176,6 +182,8 @@ shared limiter is required before horizontally scaling login protection.
   throttling, guest-only redirects, logout, session rotation, and protected-route redirects.
 - Tests use isolated in-memory session storage and a fake or test database; they do not require a
   developer database or real secrets.
+- Redis storage regression tests use the configured adapter with an in-memory Redis command
+  fixture to verify expiry, renewal, and deletion of rotated sessions without a live Redis server.
 - Response assertions cover status, `Location`, `Set-Cookie`, `Retry-After`, generic error text, and
   absence of submitted passwords.
 - Manual browser verification covers keyboard navigation, error announcement, responsive layouts

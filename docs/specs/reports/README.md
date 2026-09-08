@@ -4,10 +4,10 @@ The renter-report core in [`core.md`](./core.md) provides authenticated
 creation, public discovery, and public detail pages. This extension adds two independently
 testable capabilities without changing the core report storage or privacy contract.
 
-| Module id         | Responsibility                                                                  | Depends on                   |
-| ----------------- | ------------------------------------------------------------------------------- | ---------------------------- |
-| `report-editing`  | Let an authenticated author edit their own published report                     | [editing.md](./editing.md)   |
-| `report-comments` | Show public report comments and let authenticated users add plain-text comments | [comments.md](./comments.md) |
+| Module id         | Responsibility                                                                  | Specification                | Depends on           |
+| ----------------- | ------------------------------------------------------------------------------- | ---------------------------- | -------------------- |
+| `report-editing`  | Let an authenticated author edit their own published report                     | [editing.md](./editing.md)   | [core.md](./core.md) |
+| `report-comments` | Show public report comments and let authenticated users add plain-text comments | [comments.md](./comments.md) | [core.md](./core.md) |
 
 Status: all three report capabilities are implemented.
 

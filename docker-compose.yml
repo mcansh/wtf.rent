@@ -13,8 +13,7 @@ services:
   redis:
     image: redis:8
     restart: unless-stopped
-    environment:
-      - REDIS_ARGS=--appendonly yes
+    command: ["redis-server", "--appendonly", "yes"]
     ports:
       - "6379:6379"
     volumes:
