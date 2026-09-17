@@ -2,10 +2,9 @@ import * as http from "node:http"
 
 import { createRequestListener } from "remix/node-fetch-server"
 
+import { env } from "./app/env.ts"
 import { connectRedis, redis } from "./app/redis.ts"
 import { router } from "./app/router.ts"
-
-const port = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 44100
 
 const server = http.createServer(
   createRequestListener(
@@ -30,14 +29,20 @@ try {
   process.exit(1)
 }
 
-server.listen(port, "0.0.0.0", () => {
-  console.log(`Server listening on http://0.0.0.0:${port}`)
+server.listen(env.PORT, "0.0.0.0", async () => {
+  if (process.env.REMIX_NODE_HMR) {
+    let nodeHmr = await import("remix/node-hmr/runtime")
+    nodeHmr.emitServerReady()
+  }
+
+  await redis.connect()
+  console.log(`Server listening on http://localhost:${env.HMR_PROXY_PORT ?? env.PORT}`)
 })
 
 let shuttingDown = false
 
 /** Drain Redis after closing HTTP, with a deadline for outages or queued commands. */
-function shutdown() {
+async function shutdown() {
   if (shuttingDown) {
     return
   }
@@ -58,6 +63,7 @@ function shutdown() {
       process.exit(1)
     }
   })
+  await redis.close()
   server.closeAllConnections()
 }
 

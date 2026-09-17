@@ -1,6 +1,6 @@
-import * as s from "remix/data-schema"
-import { url } from "remix/data-schema/checks"
-import * as coerce from "remix/data-schema/coerce"
+import * as s from "remix/data-schema";
+import { url } from "remix/data-schema/checks";
+import * as coerce from "remix/data-schema/coerce";
 
 export function arrayMinLength<T>(min: number): s.Check<Array<T>> {
   return {
@@ -22,21 +22,42 @@ export function ensureArrayItemMinLength(min: number): s.Check<string[]> {
   }
 }
 
-const envSchema = s.object({
-  NODE_ENV: s.defaulted(s.enum_(["development", "test", "production"]), "development"),
-  PORT: s.defaulted(coerce.number(), 3000),
-  DATABASE_URL: s.string().pipe(url()),
-  REDIS_URL: s.string().pipe(url()),
-  SESSION_SECRETS: s
-    .string()
-    .transform((value) =>
-      value
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
-    )
-    .pipe(arrayMinLength(1), ensureArrayItemMinLength(32)),
-})
+const envSchema = s
+  .object({
+    NODE_ENV: s.defaulted(s.enum_(["development", "test", "production"]), "development"),
+    PORT: s.defaulted(coerce.number(), 44100),
+    DATABASE_URL: s.string().pipe(url()),
+    REDIS_URL: s.string().pipe(url()),
+    SESSION_SECRETS: s
+      .string()
+      .transform((value) =>
+        value
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+      )
+      .pipe(arrayMinLength(1), ensureArrayItemMinLength(32)),
+
+    REMIX_NODE_HMR: s.optional(
+      s
+        .string()
+        .refine((value) => value === "true" || value === "false" || value === "1" || value === "0"),
+    ),
+    HMR_PORT: s.optional(coerce.number()),
+    APP_PORT: s.optional(coerce.number()),
+  })
+  .transform((env) => {
+    let hmrProxyPort = env.HMR_PORT ?? env.PORT + 1
+    let appPort = env.APP_PORT ?? hmrProxyPort + 1
+
+    return {
+      ...env,
+      HMR_PROXY_PORT: hmrProxyPort,
+      APP_PORT: appPort,
+      PORT: env.PORT,
+      HMR_ORIGIN: `http://127.0.0.1:${hmrProxyPort}`
+    }
+  })
 
 const testDefaults = {
   DATABASE_URL: "postgresql://test:test@localhost:5432/wtf_rent_test",

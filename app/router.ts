@@ -1,32 +1,33 @@
-import type { CreateSecureHeaders } from "@mcansh/http-helmet"
-import { createSecureHeaders, mergeHeaders, NONE, SELF } from "@mcansh/http-helmet"
-import type { Cookie } from "remix/cookie"
-import type { Database } from "remix/data-table"
-import { asyncContext } from "remix/middleware/async-context"
-import { csrf } from "remix/middleware/csrf"
-import { formData } from "remix/middleware/form-data"
-import { methodOverride } from "remix/middleware/method-override"
-import { session } from "remix/middleware/session"
-import { staticFiles } from "remix/middleware/static"
-import type { Middleware, MiddlewareContext, RequestContext } from "remix/router"
-import { createRouter } from "remix/router"
-import type { SessionStorage } from "remix/session"
+import type { CreateSecureHeaders } from "@mcansh/http-helmet";
+import { createSecureHeaders, mergeHeaders, NONE, SELF } from "@mcansh/http-helmet";
+import type { Cookie } from "remix/cookie";
+import type { Database } from "remix/data-table";
+import { asyncContext } from "remix/middleware/async-context";
+import { csrf } from "remix/middleware/csrf";
+import { formData } from "remix/middleware/form-data";
+import { methodOverride } from "remix/middleware/method-override";
+import { session } from "remix/middleware/session";
+import { staticFiles } from "remix/middleware/static";
+import type { Middleware, MiddlewareContext, RequestContext } from "remix/router";
+import { createRouter } from "remix/router";
+import type { SessionStorage } from "remix/session";
 
-import { controller } from "./actions/controller.tsx"
-import { join } from "./actions/join/controller.tsx"
-import { login } from "./actions/login/controller.tsx"
-import { notFoundHandler } from "./actions/not-found.tsx"
-import { post } from "./actions/post/controller.tsx"
-import { loadAssetEntry } from "./middleware/assets.ts"
-import type { LoginThrottle } from "./middleware/auth.ts"
-import { loadAuth, loadLoginThrottle } from "./middleware/auth.ts"
-import { loadDatabase } from "./middleware/database.ts"
-import { render } from "./middleware/render.tsx"
-import { loadReportSuggestions } from "./middleware/report-suggestions.ts"
-import type { RequestTelemetryOptions } from "./middleware/request-telemetry.ts"
-import { requestTelemetry } from "./middleware/request-telemetry.ts"
-import { sessionCookie, sessionStorage } from "./middleware/session.ts"
-import { routes } from "./routes.ts"
+import { controller } from "./actions/controller.tsx";
+import { join } from "./actions/join/controller.tsx";
+import { login } from "./actions/login/controller.tsx";
+import { notFoundHandler } from "./actions/not-found.tsx";
+import { post } from "./actions/post/controller.tsx";
+import { env } from "./env.ts";
+import { loadAssetEntry } from "./middleware/assets.ts";
+import type { LoginThrottle } from "./middleware/auth.ts";
+import { loadAuth, loadLoginThrottle } from "./middleware/auth.ts";
+import { loadDatabase } from "./middleware/database.ts";
+import { render } from "./middleware/render.tsx";
+import { loadReportSuggestions } from "./middleware/report-suggestions.ts";
+import type { RequestTelemetryOptions } from "./middleware/request-telemetry.ts";
+import { requestTelemetry } from "./middleware/request-telemetry.ts";
+import { sessionCookie, sessionStorage } from "./middleware/session.ts";
+import { routes } from "./routes.ts";
 
 export type AppContext = MiddlewareContext<
   [
@@ -35,7 +36,6 @@ export type AppContext = MiddlewareContext<
     ReturnType<typeof methodOverride>,
     ReturnType<typeof session>,
     ReturnType<typeof csrf>,
-    // ReturnType<typeof staticFiles>,
     ReturnType<typeof render>,
     ReturnType<typeof loadDatabase>,
     ReturnType<typeof loadReportSuggestions>,
@@ -71,7 +71,7 @@ export function createAppRouter(options: AppRouterOptions = {}) {
         "default-src": [NONE],
         "script-src": [SELF],
         "style-src": [SELF, "https://fonts.googleapis.com"],
-        "connect-src": [SELF],
+        "connect-src": [SELF, env.HMR_ORIGIN],
         "font-src": [SELF, "https://fonts.gstatic.com"],
         "img-src": [SELF],
         "manifest-src": [SELF],

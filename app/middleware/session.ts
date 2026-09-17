@@ -1,5 +1,4 @@
 import { createCookie } from "remix/cookie"
-import { Session } from "remix/session"
 import { createRedisSessionStorage } from "remix/session-storage/redis"
 import type { RedisSessionStorageClient } from "remix/session-storage/redis"
 
@@ -26,4 +25,4 @@ export function createSessionStorage(client: RedisSessionStorageClient = redis) 
 
 export const sessionStorage = createSessionStorage()
 
-export { Session }
+export { Session } from "remix/session"
