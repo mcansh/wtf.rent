@@ -2,6 +2,10 @@
 
 Module id: `report-comments`
 
+Status: Implemented
+Owner: `app/actions/post/`, `app/data/comments.ts`
+Canonical tests: `app/actions/post/controller.test.tsx`, `app/data/comments.test.ts`
+
 ## Objective
 
 Make report detail pages conversational without adding replies or moderation workflows. Anyone can

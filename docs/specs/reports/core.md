@@ -1,5 +1,9 @@
 # Spec: Renter Reports Vertical Slice
 
+Status: Implemented
+Owner: `app/actions/post/`, `app/data/reports.ts`
+Canonical tests: `app/actions/post/controller.test.tsx`, `app/data/reports.test.ts`
+
 ## Objective
 
 Replace the home page's sample reviews and placeholder post actions with the first complete
@@ -21,13 +25,14 @@ The location privacy boundary is recorded in
 
 - Node.js 24+
 - TypeScript 7
-- Remix 3 (`remix@3.0.0-beta.6`)
+- Remix 3 (version pinned in [`package.json`](../../../package.json))
 - PostgreSQL through `remix/data-table`
 - `remix/data-schema` and `remix/data-schema/form-data` for boundary validation
 - Existing session authentication and synchronizer-token CSRF middleware
 - Server-rendered Remix components and Tailwind CSS 4
 
-No new runtime dependency is expected. One additive SQL migration is required.
+Runtime dependencies are defined in [`package.json`](../../../package.json). Additive migrations and
+derived location coordinates are tracked under [`db/migrations/`](../../../db/migrations/).
 
 ## Commands
 
@@ -333,8 +338,8 @@ without a measured baseline and an actionable runbook.
 
 - Self-service report deletion
 - Comment replies, comment editing, and comment deletion
-- Cheers, saves, following, notifications, and personalized/nearby feeds
-- Images, evidence uploads, address geocoding, and canonical landlord/property entities
+- Cheers, saves, following, notifications, and personalized feeds
+- Images, evidence uploads, and canonical landlord/property entities
 - Category filters beyond free-text search
 - Moderation UI, flags, appeals, rate limiting, and automated abuse detection
 - Self-service data export, account deletion, and automated retention enforcement
@@ -354,9 +359,10 @@ without a measured baseline and an actionable runbook.
 - Approved on 2026-08-17: deliver create, public feed/search/pagination, and public detail before
   editing, social interactions, images, or advanced discovery.
 - Approved on 2026-08-18: add author-only editing and authenticated public comments under the
-  contracts in [`SPEC-report-editing.md`](./SPEC-report-editing.md) and
-  [`SPEC-report-comments.md`](./SPEC-report-comments.md); keep deletion, replies, moderation, and
+  contracts in [`editing.md`](./editing.md) and [`comments.md`](./comments.md); keep deletion, replies, moderation, and
   rate limiting deferred.
+- Implemented: city/region input may be geocoded into private coordinates for an explicitly selected
+  proximity search; coordinates remain excluded from public report output.
 
 ## Open Questions
 
