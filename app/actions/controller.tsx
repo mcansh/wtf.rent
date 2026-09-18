@@ -2,7 +2,7 @@ import { redirect } from "remix/response/redirect"
 import { createController } from "remix/router"
 
 import { listPublicDirectoryEntries } from "../data/directory.ts"
-import { listPublicReports } from "../data/reports.ts"
+import { listPublicReports, REPORT_PAGE_SIZE } from "../data/reports.ts"
 import { users } from "../data/schema.ts"
 import { db } from "../db.ts"
 import { requireAuth } from "../middleware/auth.ts"
@@ -17,7 +17,7 @@ import { DirectoryPage } from "./directory/page.tsx"
 import { HomePage } from "./home-page/public/page.tsx"
 import { serializeReportPage } from "./home-page/report.ts"
 import { parseReportSuggestionInput } from "./home-page/suggestion-input.ts"
-import { parseReportFeedInput } from "./post/report-input.ts"
+import { getPrunedSearchParams, parseReportFeedInput } from "./post/report-input.ts"
 import { ProfilePage } from "./profile/page.tsx"
 import { RightsPage } from "./rights/page.tsx"
 import { RIGHTS_GUIDE } from "./rights/resources.ts"
@@ -35,19 +35,46 @@ export const controller = createController(routes, {
     home: {
       async handler(context) {
         let parsed = parseReportFeedInput(context.url.searchParams)
-        if (!parsed.success) return new Response("Invalid search query", { status: 400 })
+        if (!parsed.success) {
+          return context.render(
+            <DocumentWithShell>
+              <HomePage
+                query=""
+                reportPage={{
+                  hasNextPage: false,
+                  hasPreviousPage: false,
+                  page: 1,
+                  pageSize: REPORT_PAGE_SIZE,
+                  reports: [],
+                  total: 0,
+                  totalPages: 0,
+                }}
+                radius={""}
+                lat={""}
+                lng={""}
+              />
+            </DocumentWithShell>,
+          )
+        }
 
-        let input = parsed.value
-        let reportPage = await listPublicReports(input)
+        let prunedSearchParams = getPrunedSearchParams(context.url.searchParams)
+        if (prunedSearchParams != null) {
+          let href = `${routes.home.href(undefined, {
+            searchParams: prunedSearchParams,
+          })}#feed`
+          return redirect(href, 302)
+        }
+
+        let reportPage = await listPublicReports(parsed.value)
 
         return context.render(
           <DocumentWithShell>
             <HomePage
-              query={input.q}
+              query={parsed.value.q}
               reportPage={serializeReportPage(reportPage)}
-              radius={input.radius != null ? String(input.radius) : ""}
-              lat={input.lat != null ? String(input.lat) : ""}
-              lng={input.lng != null ? String(input.lng) : ""}
+              radius={parsed.value.radius != null ? String(parsed.value.radius) : ""}
+              lat={parsed.value.lat != null ? String(parsed.value.lat) : ""}
+              lng={parsed.value.lng != null ? String(parsed.value.lng) : ""}
             />
           </DocumentWithShell>,
         )

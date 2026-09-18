@@ -130,6 +130,19 @@ describe("home report discovery", () => {
     assert.match(html, /aria-live="polite"/)
   })
 
+  it("redirects empty search values to a canonical feed URL", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+
+    let emptyResponse = await app.router.fetch(request("/?q=&radius=&lat=&lng="))
+    let queryResponse = await app.router.fetch(request("/?q=Detroit&radius=&lat=&lng="))
+
+    assert.equal(emptyResponse.status, 302)
+    assert.equal(emptyResponse.headers.get("Location"), "/#feed")
+    assert.equal(queryResponse.status, 302)
+    assert.equal(queryResponse.headers.get("Location"), "/?q=Detroit#feed")
+  })
+
   it("returns only published, allowlisted autocomplete values", async (t) => {
     let app = createReportTestApp()
     t.after(() => app.close())
@@ -365,14 +378,17 @@ describe("home report discovery", () => {
     assert.match(html, /Page 1 of 1/)
   })
 
-  it("rejects a NUL search query before querying reports", async (t) => {
+  it("renders a safe empty feed for an invalid search query", async (t) => {
     let app = createReportTestApp()
     t.after(() => app.close())
 
     let response = await app.router.fetch(request("/?q=%00"))
+    let html = await response.text()
 
-    assert.equal(response.status, 400)
-    assert.equal(await response.text(), "Invalid search query")
+    assert.equal(response.status, 200)
+    assert.match(html, /0 public reports on the record/i)
+    assert.match(html, /No renter reports have been published yet./)
+    assert.doesNotMatch(html, /\0/)
   })
 
   it("renders a truthful empty page for a capped query with no matches", async (t) => {
