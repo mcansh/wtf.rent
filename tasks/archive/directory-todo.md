@@ -1,6 +1,6 @@
 # Public Directory Page Task Checklist
 
-Approved contract: [`SPEC-directory-page.md`](../SPEC-directory-page.md)
+Approved contract: [`docs/specs/public-pages/directory.md`](../../docs/specs/public-pages/directory.md)
 
 Approved implementation plan: [`directory-plan.md`](./directory-plan.md)
 

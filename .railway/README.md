@@ -36,6 +36,21 @@ railway config apply
 
 ## Notes
 
+- The app requires `REDIS_URL` and waits for Redis before accepting HTTP requests. Initial
+  connection attempts retry for up to 10 seconds, then the process exits with code 1 so an
+  On Failure restart policy can restart it. Normal client reconnection continues after startup.
+  Signal-driven shutdown allows Redis up to 5 seconds to drain before forcing a nonzero exit.
+- Keep Redis data on a persistent volume. Local Compose enables AOF; Railway's Redis service
+  configuration is separate. The current production and PR preview services use a `/data`
+  volume and RDB snapshots (`--save 60 1`). Those snapshots can lose recent writes on a crash;
+  enable AOF in the Railway Redis service as well if that stronger durability is required.
+- Deploying from cookie-backed sessions to Redis requires users to sign in again. Keep
+  `SESSION_SECRETS` stable, and provision Redis plus `REDIS_URL` before deploying the app.
+- The TTL applies when session records are written. If reusing Redis from an earlier PR preview,
+  inspect this app's `session:` keys for missing expiry (`TTL = -1`) and apply a one-time expiry
+  or invalidate those sessions before relying on the 30-day retention guarantee. Do not clear
+  unrelated Redis data.
+
 - `railway config plan` is safe and does not change Railway.
 - `railway config apply` previews changes and asks before applying unless you pass `--yes`.
 - Destructive changes in non-interactive or agent sessions require `railway config apply --confirm-destructive` after reviewing the plan.
