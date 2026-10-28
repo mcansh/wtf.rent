@@ -25,6 +25,7 @@ import { render } from "./middleware/render.tsx"
 import { loadReportSuggestions } from "./middleware/report-suggestions.ts"
 import type { RequestTelemetryOptions } from "./middleware/request-telemetry.ts"
 import { requestTelemetry } from "./middleware/request-telemetry.ts"
+import { robotsTag } from "./middleware/robots-tag.ts"
 import { sessionCookie, sessionStorage } from "./middleware/session.ts"
 import { routes } from "./routes.ts"
 
@@ -64,6 +65,7 @@ export function createAppRouter(options: AppRouterOptions = {}) {
   let middleware: Middleware<any>[] = []
 
   middleware.push(requestTelemetry(options.requestTelemetry))
+  middleware.push(robotsTag())
   middleware.push(asyncContext())
   middleware.push(
     secureHeaderMiddleware({

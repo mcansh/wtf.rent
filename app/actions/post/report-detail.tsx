@@ -26,9 +26,13 @@ export function ReportDetailPage(handle: Handle<ReportDetailPageProps>) {
       categoryLabel != null ||
       report.rating != null ||
       report.experienceConfirmedAt != null
+    let description =
+      place.length > 0
+        ? `Firsthand renter report by @${report.username} in ${place}.`
+        : `Firsthand renter report by @${report.username}.`
 
     return (
-      <ShellPage title={`${report.title} · wtf.rent`}>
+      <ShellPage description={description} title={`${report.title} · wtf.rent`}>
         <main className="bg-paper-50 min-h-dvh">
           <header className="border-ink-950 border-b-2 bg-blue-100">
             <div className="mx-auto grid w-full max-w-6xl gap-7 px-4 py-9 sm:px-8 sm:py-12 lg:gap-9 lg:py-16">

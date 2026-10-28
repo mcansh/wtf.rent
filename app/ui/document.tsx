@@ -1,19 +1,38 @@
+import { getContext } from "remix/middleware/async-context"
 import type { Handle, RemixNode } from "remix/ui"
 
 import { getAssetEntry } from "../middleware/assets.ts"
+import { DEFAULT_META_DESCRIPTION, getPageSeo, getRequestHostname } from "../utils/seo.ts"
 
 export interface DocumentProps {
+  canonicalPath?: string
   children?: RemixNode
+  description?: string
   head?: RemixNode
-  title?: RemixNode
+  title?: string
 }
 
 const DEFAULT_TITLE = readAppDisplayName("wtf.rent")
 
 export function Document(handle: Handle<DocumentProps>) {
+  let context = getContext()
+
   return () => {
-    let { children, head, title = DEFAULT_TITLE } = handle.props
+    let {
+      canonicalPath,
+      children,
+      description = DEFAULT_META_DESCRIPTION,
+      head,
+      title = DEFAULT_TITLE,
+    } = handle.props
     let { scriptSrc, scriptPreloads, stylesheetHref, stylesheetPreloads } = getAssetEntry()
+    let seo = getPageSeo({
+      canonicalPath,
+      description,
+      hostname: getRequestHostname(context.url, context.headers),
+      pathname: context.url.pathname,
+      title,
+    })
 
     return (
       <html lang="en">
@@ -22,6 +41,18 @@ export function Document(handle: Handle<DocumentProps>) {
           <meta name="viewport" content="width=device-width, initial-scale=1" />
           <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
           <title>{title}</title>
+          <link rel="canonical" href={seo.canonicalHref} />
+          <meta name="description" content={seo.description} />
+          {seo.robots ? <meta name="robots" content={seo.robots} /> : null}
+          <meta property="og:site_name" content="wtf.rent" />
+          <meta property="og:title" content={seo.title} />
+          <meta property="og:description" content={seo.description} />
+          <meta property="og:type" content="website" />
+          <meta property="og:url" content={seo.canonicalHref} />
+          <meta property="og:locale" content="en_US" />
+          <meta name="twitter:card" content="summary" />
+          <meta name="twitter:title" content={seo.title} />
+          <meta name="twitter:description" content={seo.description} />
           {head}
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link rel="preconnect" href="https://fonts.gstatic.com" />
