@@ -11,6 +11,13 @@ import { routes } from "../routes.ts"
 import { DocumentWithShell } from "../ui/shell.tsx"
 import { assetServer } from "../utils/assets.ts"
 import { getCurrentUser } from "../utils/context.ts"
+import {
+  ABOUT_META_DESCRIPTION,
+  DIRECTORY_META_DESCRIPTION,
+  RIGHTS_META_DESCRIPTION,
+  robotsTxt,
+  sitemapXml,
+} from "../utils/seo.ts"
 import { AboutPage } from "./about/page.tsx"
 import { parseDirectoryInput } from "./directory/input.ts"
 import { DirectoryPage } from "./directory/page.tsx"
@@ -79,6 +86,14 @@ export const controller = createController(routes, {
       return redirect(routes.home.href(), 303)
     },
 
+    robots() {
+      return searchEngineTextResponse(robotsTxt(), "text/plain; charset=utf-8")
+    },
+
+    sitemap() {
+      return searchEngineTextResponse(sitemapXml(), "application/xml; charset=utf-8")
+    },
+
     health: {
       async handler(context) {
         let host = context.headers.get("X-Forwarded-Host") ?? context.headers.get("Host")
@@ -120,7 +135,7 @@ export const controller = createController(routes, {
     about: {
       async handler(context) {
         return context.render(
-          <DocumentWithShell title="About | wtf.rent">
+          <DocumentWithShell description={ABOUT_META_DESCRIPTION} title="About | wtf.rent">
             <AboutPage />
           </DocumentWithShell>,
         )
@@ -136,7 +151,7 @@ export const controller = createController(routes, {
         let directoryPage = await listPublicDirectoryEntries(input)
 
         return context.render(
-          <DocumentWithShell title="Directory | wtf.rent">
+          <DocumentWithShell description={DIRECTORY_META_DESCRIPTION} title="Directory | wtf.rent">
             <DirectoryPage input={input} directoryPage={directoryPage} />
           </DocumentWithShell>,
         )
@@ -146,7 +161,7 @@ export const controller = createController(routes, {
     rights: {
       async handler(context) {
         return context.render(
-          <DocumentWithShell title="Renter rights | wtf.rent">
+          <DocumentWithShell description={RIGHTS_META_DESCRIPTION} title="Renter rights | wtf.rent">
             <RightsPage guide={RIGHTS_GUIDE} />
           </DocumentWithShell>,
           { headers: { "Cache-Control": "private, no-store", Vary: "Cookie" } },
@@ -155,3 +170,12 @@ export const controller = createController(routes, {
     },
   },
 })
+
+function searchEngineTextResponse(body: string, contentType: string): Response {
+  return new Response(body, {
+    headers: {
+      "Cache-Control": "public, max-age=300",
+      "Content-Type": contentType,
+    },
+  })
+}

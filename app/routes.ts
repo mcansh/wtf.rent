@@ -9,6 +9,8 @@ export const routes = route({
   join: form("/join"),
   logout: post("/logout"),
   health: "/health",
+  robots: get("/robots.txt"),
+  sitemap: get("/sitemap.xml"),
   post: {
     ...resources("/posts", { exclude: ["index"] }),
     comment: post("/posts/:id/comments"),

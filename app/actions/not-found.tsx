@@ -9,7 +9,7 @@ export const notFoundHandler = createAction("*", (context) => notFound(context.r
 
 export function notFound(render: (node: RemixNode, init?: ResponseInit) => Response) {
   return render(
-    <Document title="404 Not Found | wtf.rent">
+    <Document canonicalPath={routes.home.href()} title="404 Not Found | wtf.rent">
       <NotFoundPage />
     </Document>,
     { status: 404 },

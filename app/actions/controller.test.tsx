@@ -17,6 +17,17 @@ import {
   seedStructuredReport,
 } from "../../test/reports.ts"
 import { routes } from "../routes.ts"
+import {
+  ABOUT_META_DESCRIPTION,
+  ALTERNATE_INDEXING_HOST,
+  CANONICAL_ORIGIN,
+  canonicalHref,
+  DEFAULT_META_DESCRIPTION,
+  DIRECTORY_META_DESCRIPTION,
+  RIGHTS_META_DESCRIPTION,
+  robotsTxt,
+  sitemapXml,
+} from "../utils/seo.ts"
 
 const user = {
   id: "user-profile",
@@ -813,6 +824,181 @@ describe("public About page", () => {
     assert.doesNotMatch(main, /navigator\.geolocation|client-entry|data-hydrate/i)
   })
 })
+
+describe("search engine metadata", () => {
+  it("adds canonical, description, Open Graph, and Twitter tags on public pages", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+
+    let pages = [
+      [routes.home.href(), "wtf.rent", DEFAULT_META_DESCRIPTION],
+      [routes.directory.href(), "Directory | wtf.rent", DIRECTORY_META_DESCRIPTION],
+      [routes.rights.href(), "Renter rights | wtf.rent", RIGHTS_META_DESCRIPTION],
+      [routes.about.href(), "About | wtf.rent", ABOUT_META_DESCRIPTION],
+    ] as const
+
+    for (let [pathname, title, description] of pages) {
+      let response = await app.router.fetch(request(pathname))
+      let html = await response.text()
+
+      assert.equal(response.status, 200, pathname)
+      assert.equal(response.headers.get("X-Robots-Tag"), null, pathname)
+      assertPublicPageSeo(html, {
+        canonical: canonicalHref(pathname),
+        description,
+        title,
+      })
+    }
+  })
+
+  it("canonicalizes search and pagination URLs to the public path", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+
+    let response = await app.router.fetch(
+      request(routes.home.href(undefined, { searchParams: { q: "Detroit", page: "2" } })),
+    )
+    let html = await response.text()
+
+    assert.equal(response.status, 200)
+    assert.match(html, /<link rel="canonical" href="https:\/\/wtf\.rent\/"/)
+    assert.doesNotMatch(html, /rel="canonical"[^>]*q=Detroit/)
+    assert.doesNotMatch(html, /name="robots" content="noindex"/)
+  })
+
+  it("noindexes user-specific report pages, account pages, and missing routes", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+    let author = await seedReportUser(app, user)
+    let report = await seedStructuredReport(app, {
+      id: "seo-public-report",
+      authorId: author.id,
+      city: "Detroit",
+      region: "MI",
+    })
+    let authCookie = await createAuthenticatedReportSession(app, author)
+
+    let cases = [
+      routes.login.index.href(),
+      routes.profile.href(),
+      routes.post.new.href(),
+      routes.post.show.href({ id: report.id }),
+      routes.post.edit.href({ id: report.id }),
+      "/missing-seo-page",
+    ] as const
+
+    for (let pathname of cases) {
+      let needsAuth =
+        pathname === routes.profile.href() ||
+        pathname === routes.post.new.href() ||
+        pathname === routes.post.edit.href({ id: report.id })
+      let response = await app.router.fetch(request(pathname, needsAuth ? authCookie : undefined))
+      let html = await response.text()
+
+      assert.ok(response.status === 200 || response.status === 404, pathname)
+      assert.equal(response.headers.get("X-Robots-Tag"), "noindex", pathname)
+      let canonical =
+        pathname === "/missing-seo-page"
+          ? canonicalHref(routes.home.href())
+          : canonicalHref(pathname)
+      assert.match(html, new RegExp(`<link rel="canonical" href="${escapeRegExp(canonical)}"`))
+      assert.match(html, /<meta name="robots" content="noindex"/)
+    }
+  })
+
+  it("marks rent.mcan.sh responses as noindex with a canonical to wtf.rent", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+
+    let byHost = await app.router.fetch(new Request("https://rent.mcan.sh/about"))
+    let byForwarded = await app.router.fetch(
+      new Request("http://localhost/about", {
+        headers: { "X-Forwarded-Host": ALTERNATE_INDEXING_HOST },
+      }),
+    )
+    let hostHtml = await byHost.text()
+    let forwardedHtml = await byForwarded.text()
+
+    assert.equal(byHost.status, 200)
+    assert.equal(byHost.headers.get("X-Robots-Tag"), "noindex")
+    assert.match(hostHtml, /<link rel="canonical" href="https:\/\/wtf\.rent\/about"/)
+    assert.match(hostHtml, /<meta name="robots" content="noindex"/)
+    assert.match(hostHtml, /<meta property="og:url" content="https:\/\/wtf\.rent\/about"/)
+
+    assert.equal(byForwarded.status, 200)
+    assert.equal(byForwarded.headers.get("X-Robots-Tag"), "noindex")
+    assert.match(forwardedHtml, /<meta name="robots" content="noindex"/)
+    assert.match(forwardedHtml, /<link rel="canonical" href="https:\/\/wtf\.rent\/about"/)
+  })
+
+  it("serves robots.txt and a sitemap of public pages only", async (t) => {
+    let app = createReportTestApp()
+    t.after(() => app.close())
+
+    let robotsResponse = await app.router.fetch(request(routes.robots.href()))
+    let sitemapResponse = await app.router.fetch(request(routes.sitemap.href()))
+    let robots = await robotsResponse.text()
+    let sitemap = await sitemapResponse.text()
+
+    assert.equal(robotsResponse.status, 200)
+    assert.match(robotsResponse.headers.get("Content-Type") ?? "", /text\/plain/)
+    assert.equal(robots, robotsTxt())
+    assert.ok(robots.includes(`Sitemap: ${CANONICAL_ORIGIN}/sitemap.xml`))
+
+    assert.equal(sitemapResponse.status, 200)
+    assert.match(sitemapResponse.headers.get("Content-Type") ?? "", /application\/xml/)
+    assert.equal(sitemap, sitemapXml())
+    assert.ok(sitemap.includes(`<loc>${CANONICAL_ORIGIN}/</loc>`))
+    assert.ok(sitemap.includes(`<loc>${CANONICAL_ORIGIN}/directory</loc>`))
+    assert.ok(sitemap.includes(`<loc>${CANONICAL_ORIGIN}/rights</loc>`))
+    assert.ok(sitemap.includes(`<loc>${CANONICAL_ORIGIN}/about</loc>`))
+    assert.doesNotMatch(sitemap, /\/login|\/join|\/profile|\/posts/)
+  })
+})
+
+interface PublicPageSeo {
+  canonical: string
+  description: string
+  title: string
+}
+
+function assertPublicPageSeo(html: string, expected: PublicPageSeo) {
+  assert.match(html, new RegExp(`<title>${escapeRegExp(expected.title)}</title>`))
+  assert.match(html, new RegExp(`<link rel="canonical" href="${escapeRegExp(expected.canonical)}"`))
+  assert.match(
+    html,
+    new RegExp(`<meta name="description" content="${escapeRegExp(expected.description)}"`),
+  )
+  assert.doesNotMatch(html, /name="robots" content="noindex"/)
+  assert.match(html, /<meta property="og:site_name" content="wtf\.rent"/)
+  assert.match(
+    html,
+    new RegExp(`<meta property="og:title" content="${escapeRegExp(expected.title)}"`),
+  )
+  assert.match(
+    html,
+    new RegExp(`<meta property="og:description" content="${escapeRegExp(expected.description)}"`),
+  )
+  assert.match(html, /<meta property="og:type" content="website"/)
+  assert.match(
+    html,
+    new RegExp(`<meta property="og:url" content="${escapeRegExp(expected.canonical)}"`),
+  )
+  assert.match(html, /<meta property="og:locale" content="en_US"/)
+  assert.match(html, /<meta name="twitter:card" content="summary"/)
+  assert.match(
+    html,
+    new RegExp(`<meta name="twitter:title" content="${escapeRegExp(expected.title)}"`),
+  )
+  assert.match(
+    html,
+    new RegExp(`<meta name="twitter:description" content="${escapeRegExp(expected.description)}"`),
+  )
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
 
 function request(pathname: string, cookie?: string, method = "GET"): Request {
   let headers = new Headers()
