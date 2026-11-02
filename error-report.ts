@@ -119,7 +119,7 @@ function readFailureDisposition(source: NodeJS.ProcessEnv): FailureDisposition {
     throw new InvalidSentryDsnError("url")
   }
 
-  return { kind: "errors-only", dsn: brandSentryDsn(dsn) }
+  return { kind: "errors-only", dsn: brandSentryDsn(canonicalSentryDsn(url)) }
 }
 
 function parseDsnUrl(dsn: string): URL {
@@ -128,6 +128,11 @@ function parseDsnUrl(dsn: string): URL {
   } catch {
     throw new InvalidSentryDsnError("url")
   }
+}
+
+function canonicalSentryDsn(url: URL): string {
+  let auth = url.password === "" ? url.username : `${url.username}:${url.password}`
+  return `${url.protocol}//${auth}@${url.host}${url.pathname}`
 }
 
 function dropConsoleBreadcrumb(breadcrumb: ErrorsOnlyBreadcrumb): ErrorsOnlyBreadcrumb | null {
@@ -224,7 +229,17 @@ export function createProcessErrorReport(sdk: ErrorReportSdk): ProcessErrorRepor
 function createSentryErrorReportSdk(): ErrorReportSdk {
   return {
     init(options) {
-      Sentry.init(options)
+      Sentry.init({
+        ...options,
+        integrations(integrations) {
+          return integrations.map((integration) => {
+            if (integration.name === "OnUnhandledRejection") {
+              return Sentry.onUnhandledRejectionIntegration({ mode: "strict" })
+            }
+            return integration
+          })
+        },
+      })
     },
     captureException(error) {
       Sentry.captureException(error)

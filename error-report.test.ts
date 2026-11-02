@@ -104,7 +104,7 @@ describe("process error report", () => {
     assert.equal(recorded.inits.length, 1)
   })
 
-  it("stores a DSN whose host casing differs from URL.href", () => {
+  it("canonicalizes protocol and host for the SDK", () => {
     let dsn = "HTTPS://Public@Host/456"
     let recorded = recordedSdk()
     let reporter = createProcessErrorReport(recorded.sdk)
@@ -112,9 +112,8 @@ describe("process error report", () => {
     if (disposition.kind !== "errors-only") {
       assert.fail("Expected an errors-only disposition")
     }
-    assert.equal(disposition.dsn, dsn)
-    assert.notEqual(disposition.dsn, new URL(dsn).href)
-    assert.equal(recorded.inits[0]?.dsn, dsn)
+    assert.equal(disposition.dsn, "https://Public@host/456")
+    assert.equal(recorded.inits[0]?.dsn, "https://Public@host/456")
   })
 
   it("accepts a legacy secret in the DSN", () => {
@@ -168,6 +167,7 @@ describe("process error report", () => {
       { dsn: "https://public@host/abc", cause: "project id" },
       { dsn: `https://${secret}@host/456/extra`, cause: "project id" },
       { dsn: `https:${secret}@host/456`, cause: "url" },
+      { dsn: `http://public:${secret}@127.0.0.1:9/456`, cause: "url" },
     ]
     for (let invalid of cases) {
       let attempt = recordedSdk()
