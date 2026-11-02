@@ -12,6 +12,15 @@ import {
 } from "./suggestion-contract.ts"
 
 const REPORT_SUGGESTION_DEBOUNCE_MS = 180
+const REPORT_CATEGORY_LINKS = [
+  "Maintenance",
+  "Rent increase",
+  "Fees or deposit",
+  "Safety",
+  "Communication",
+  "Good experience",
+  "Other",
+] as const
 
 interface ReportSearchProps extends SerializableObject {
   query: string
@@ -79,15 +88,279 @@ export const ReportSearch = clientEntry(
       )
     }
 
+    function searchHref(query: string): string {
+      let searchParams = new URLSearchParams({ q: query })
+      if (handle.props.radius) searchParams.set("radius", handle.props.radius)
+      if (handle.props.lat) searchParams.set("lat", handle.props.lat)
+      if (handle.props.lng) searchParams.set("lng", handle.props.lng)
+
+      return `${routes.home.href()}?${searchParams.toString()}#feed`
+    }
+
     return () => {
       let popupVisible = isOpen && status !== "idle"
       let listboxVisible = popupVisible && status === "ready" && suggestions.length > 0
       let activeOptionId =
         listboxVisible && activeIndex >= 0 ? `${listboxId}-${activeIndex}` : undefined
+      let queryInputId = `${handle.id}-city-query`
+      let radiusSelectId = `${handle.id}-radius`
+
+      let queryControl = (
+        <input
+          id={queryInputId}
+          className="border-ink-950 placeholder:text-ink-600 focus-visible:outline-ink-950 min-h-12 w-full min-w-0 border-[1.5px] bg-white px-3 text-base outline-none focus-visible:outline-2 focus-visible:-outline-offset-1 sm:text-sm"
+          name="q"
+          type="search"
+          defaultValue={handle.props.query}
+          maxLength={100}
+          autoComplete="off"
+          enterKeyHint="search"
+          placeholder="City, neighborhood, or region"
+          aria-autocomplete="list"
+          aria-controls={listboxVisible ? listboxId : undefined}
+          aria-describedby={statusId}
+          aria-expanded={popupVisible ? "true" : "false"}
+          aria-activedescendant={activeOptionId}
+          list={undefined}
+          role="combobox"
+          mix={[
+            ref((element) => {
+              inputElement = element
+            }),
+            on("focus", () => {
+              if (status === "idle") return
+              wantsSuggestions = true
+              isOpen = true
+              handle.update()
+            }),
+            on("input", async (event, signal) => {
+              let query = event.currentTarget.value.trim().slice(0, 100)
+              activeIndex = -1
+
+              if (query.length < REPORT_SUGGESTION_QUERY_MIN_LENGTH) {
+                suggestions = []
+                status = "idle"
+                isOpen = false
+                wantsSuggestions = false
+                handle.update()
+                return
+              }
+
+              suggestions = []
+              status = "loading"
+              isOpen = true
+              wantsSuggestions = true
+              handle.update()
+
+              if (!(await waitForDebounce(signal))) return
+
+              try {
+                let href = routes.reportSuggestions.href(undefined, {
+                  searchParams: { q: query },
+                })
+                let response = await fetch(href, {
+                  headers: { Accept: "application/json" },
+                  signal,
+                })
+                if (!response.ok) throw new Error("Suggestion request failed")
+
+                let parsed = s.parseSafe(reportSuggestionResponseSchema, await response.json())
+                if (!parsed.success) throw new Error("Suggestion response was invalid")
+                if (signal.aborted) return
+
+                let nextSuggestions = parsed.value.suggestions.slice(0, REPORT_SUGGESTION_LIMIT)
+                suggestions = nextSuggestions.filter(
+                  (suggestion) => suggestion.kind === "city" || suggestion.kind === "region",
+                )
+                status = "ready"
+                isOpen = wantsSuggestions
+              } catch {
+                if (signal.aborted) return
+                suggestions = []
+                status = "error"
+                isOpen = wantsSuggestions
+              }
+
+              handle.update()
+            }),
+            on("keydown", async (event) => {
+              if (event.key === "Escape" && popupVisible) {
+                event.preventDefault()
+                closeSuggestions()
+                return
+              }
+
+              if (suggestions.length === 0) return
+
+              if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+                event.preventDefault()
+                isOpen = true
+                wantsSuggestions = true
+                activeIndex = getNextSuggestionIndex(
+                  activeIndex,
+                  event.key === "ArrowDown" ? 1 : -1,
+                  suggestions.length,
+                )
+                let nextActiveIndex = activeIndex
+                let signal = await handle.update()
+                if (signal.aborted) return
+
+                inputElement?.ownerDocument
+                  .getElementById(`${listboxId}-${nextActiveIndex}`)
+                  ?.scrollIntoView({ block: "nearest" })
+                return
+              }
+
+              if (event.key === "Enter" && popupVisible && activeIndex >= 0) {
+                event.preventDefault()
+                let suggestion = suggestions[activeIndex]
+                if (suggestion != null) selectSuggestion(suggestion)
+              }
+            }),
+          ]}
+        />
+      )
+
+      let radiusControl = (
+        <select
+          id={radiusSelectId}
+          className="border-ink-950 focus-visible:outline-ink-950 min-h-12 w-full border-[1.5px] bg-white px-3 text-base font-medium focus-visible:outline-2 focus-visible:-outline-offset-1 sm:text-sm"
+          name="radius"
+          mix={[
+            ref((element) => {
+              selectElement = element
+            }),
+            on("change", (event) => {
+              let value = event.currentTarget.value
+              if (value === "") {
+                clearRadiusAndSubmit()
+                return
+              }
+              requestGeolocation((lat, lng) => {
+                if (latInputElement != null) latInputElement.value = lat.toFixed(3)
+                if (lngInputElement != null) lngInputElement.value = lng.toFixed(3)
+                formElement?.requestSubmit()
+              })
+            }),
+          ]}
+        >
+          <option value="" selected={handle.props.radius === ""}>
+            Any distance
+          </option>
+          {RADIUS_OPTIONS.map((miles) => (
+            <option
+              key={String(miles)}
+              value={String(miles)}
+              selected={handle.props.radius === String(miles)}
+            >
+              {miles} mi
+            </option>
+          ))}
+        </select>
+      )
+
+      let locationControls = (
+        <>
+          <input
+            type="hidden"
+            name="lat"
+            defaultValue={handle.props.lat}
+            mix={ref((element) => {
+              latInputElement = element
+            })}
+          />
+          <input
+            type="hidden"
+            name="lng"
+            defaultValue={handle.props.lng}
+            mix={ref((element) => {
+              lngInputElement = element
+            })}
+          />
+        </>
+      )
+
+      let submitButton = (
+        <button
+          className="border-ink-950 bg-acid-100 hover:bg-acid-200 focus-visible:outline-ink-950 min-h-12 shrink-0 border-[1.5px] px-4 text-base font-semibold shadow-[3px_3px_0_var(--color-ink-950)] focus-visible:outline-2 focus-visible:outline-offset-3 sm:text-sm"
+          type="submit"
+        >
+          Find local reports
+        </button>
+      )
+
+      let searchForm = (
+        <div className="border-ink-950 bg-paper-50 shadow-ink-950 border-2 shadow-[5px_5px_0_var(--color-ink-950)]">
+          <form
+            className="grid gap-3 p-3 min-[1201px]:grid-cols-[minmax(0,1fr)_minmax(9rem,.55fr)_auto]"
+            method="get"
+            action={`${routes.home.href()}#feed`}
+            role="search"
+            mix={ref((element) => {
+              formElement = element
+            })}
+          >
+            <div className="relative grid min-w-0 gap-1">
+              <label
+                className="block font-mono text-sm font-medium tracking-wide uppercase min-[541px]:text-[10px]"
+                htmlFor={queryInputId}
+              >
+                City or region
+              </label>
+              {queryControl}
+              {renderSuggestionPopup({
+                activeIndex,
+                listboxId,
+                onSelect: selectSuggestion,
+                status,
+                suggestions,
+                visible: popupVisible,
+              })}
+            </div>
+            <div className="grid gap-1">
+              <label
+                className="block font-mono text-sm font-medium tracking-wide uppercase min-[541px]:text-[10px]"
+                htmlFor={radiusSelectId}
+              >
+                Distance from me
+              </label>
+              {radiusControl}
+            </div>
+            {locationControls}
+            <div className="grid content-end">{submitButton}</div>
+          </form>
+          <nav
+            className="border-ink-950/20 grid gap-3 border-t px-3 py-4"
+            aria-label="Browse report categories"
+          >
+            <p className="font-mono text-sm font-medium tracking-wide uppercase min-[541px]:text-[10px]">
+              Or browse by category
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {REPORT_CATEGORY_LINKS.map((category) => {
+                let isCurrent = handle.props.query.toLowerCase() === category.toLowerCase()
+
+                return (
+                  <a
+                    key={category}
+                    className={`border-ink-950 hover:bg-acid-50 focus-visible:outline-ink-950 border px-3 py-2 text-base font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 sm:text-sm ${
+                      isCurrent ? "bg-acid-100" : "bg-blue-100"
+                    }`}
+                    href={searchHref(category)}
+                    aria-current={isCurrent ? "page" : undefined}
+                  >
+                    {category}
+                  </a>
+                )
+              })}
+            </div>
+          </nav>
+        </div>
+      )
 
       return (
         <div
-          className="relative max-w-140"
+          className="max-w-165"
           mix={on("focusout", (event) => {
             let container = event.currentTarget
             queueMicrotask(() => {
@@ -96,202 +369,11 @@ export const ReportSearch = clientEntry(
             })
           })}
         >
-          <form
-            className="border-ink-950 bg-paper-50 shadow-ink-950 flex h-13 w-full items-center border-[1.5px] shadow-[4px_4px_0_var(--color-ink-950)] min-[901px]:h-13.5 min-[901px]:shadow-[5px_5px_0_var(--color-ink-950)]"
-            method="get"
-            action={`${routes.home.href()}#feed`}
-            role="search"
-            mix={ref((element) => {
-              formElement = element
-            })}
-          >
-            <span
-              className="grid h-full shrink-0 place-items-center px-3 text-2xl"
-              aria-hidden="true"
-            >
-              ⌕
-            </span>
-            <input
-              className="placeholder:text-ink-600 focus-visible:outline-ink-950 min-w-0 flex-1 border-0 bg-transparent text-base outline-none focus-visible:outline-2 focus-visible:-outline-offset-1 sm:text-sm"
-              name="q"
-              type="search"
-              defaultValue={handle.props.query}
-              maxLength={100}
-              autoComplete="off"
-              enterKeyHint="search"
-              placeholder="Search a landlord, city, region, or experience"
-              aria-label="Search renter reports"
-              aria-autocomplete="list"
-              aria-controls={listboxVisible ? listboxId : undefined}
-              aria-describedby={statusId}
-              aria-expanded={popupVisible ? "true" : "false"}
-              aria-activedescendant={activeOptionId}
-              list={undefined}
-              role="combobox"
-              mix={[
-                ref((element) => {
-                  inputElement = element
-                }),
-                on("focus", () => {
-                  if (status === "idle") return
-                  wantsSuggestions = true
-                  isOpen = true
-                  handle.update()
-                }),
-                on("input", async (event, signal) => {
-                  let query = event.currentTarget.value.trim().slice(0, 100)
-                  activeIndex = -1
-
-                  if (query.length < REPORT_SUGGESTION_QUERY_MIN_LENGTH) {
-                    suggestions = []
-                    status = "idle"
-                    isOpen = false
-                    wantsSuggestions = false
-                    handle.update()
-                    return
-                  }
-
-                  suggestions = []
-                  status = "loading"
-                  isOpen = true
-                  wantsSuggestions = true
-                  handle.update()
-
-                  if (!(await waitForDebounce(signal))) return
-
-                  try {
-                    let href = routes.reportSuggestions.href(undefined, {
-                      searchParams: { q: query },
-                    })
-                    let response = await fetch(href, {
-                      headers: { Accept: "application/json" },
-                      signal,
-                    })
-                    if (!response.ok) throw new Error("Suggestion request failed")
-
-                    let parsed = s.parseSafe(reportSuggestionResponseSchema, await response.json())
-                    if (!parsed.success) throw new Error("Suggestion response was invalid")
-                    if (signal.aborted) return
-
-                    suggestions = parsed.value.suggestions.slice(0, REPORT_SUGGESTION_LIMIT)
-                    status = "ready"
-                    isOpen = wantsSuggestions
-                  } catch {
-                    if (signal.aborted) return
-                    suggestions = []
-                    status = "error"
-                    isOpen = wantsSuggestions
-                  }
-
-                  handle.update()
-                }),
-                on("keydown", async (event) => {
-                  if (event.key === "Escape" && popupVisible) {
-                    event.preventDefault()
-                    closeSuggestions()
-                    return
-                  }
-
-                  if (suggestions.length === 0) return
-
-                  if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-                    event.preventDefault()
-                    isOpen = true
-                    wantsSuggestions = true
-                    activeIndex = getNextSuggestionIndex(
-                      activeIndex,
-                      event.key === "ArrowDown" ? 1 : -1,
-                      suggestions.length,
-                    )
-                    let nextActiveIndex = activeIndex
-                    let signal = await handle.update()
-                    if (signal.aborted) return
-
-                    inputElement?.ownerDocument
-                      .getElementById(`${listboxId}-${nextActiveIndex}`)
-                      ?.scrollIntoView({ block: "nearest" })
-                    return
-                  }
-
-                  if (event.key === "Enter" && popupVisible && activeIndex >= 0) {
-                    event.preventDefault()
-                    let suggestion = suggestions[activeIndex]
-                    if (suggestion != null) selectSuggestion(suggestion)
-                  }
-                }),
-              ]}
-            />
-            <select
-              className="border-ink-950 focus-visible:outline-ink-950 h-full shrink-0 border-0 border-l-[1.5px] bg-transparent px-2 text-sm font-medium focus-visible:outline-2 focus-visible:-outline-offset-3"
-              name="radius"
-              aria-label="Search radius"
-              mix={[
-                ref((element) => {
-                  selectElement = element
-                }),
-                on("change", (event) => {
-                  let value = event.currentTarget.value
-                  if (value === "") {
-                    clearRadiusAndSubmit()
-                    return
-                  }
-                  requestGeolocation((lat, lng) => {
-                    if (latInputElement != null) latInputElement.value = lat.toFixed(3)
-                    if (lngInputElement != null) lngInputElement.value = lng.toFixed(3)
-                    formElement?.requestSubmit()
-                  })
-                }),
-              ]}
-            >
-              <option value="" selected={handle.props.radius === ""}>
-                Any distance
-              </option>
-              {RADIUS_OPTIONS.map((miles) => (
-                <option
-                  key={String(miles)}
-                  value={String(miles)}
-                  selected={handle.props.radius === String(miles)}
-                >
-                  {miles} mi
-                </option>
-              ))}
-            </select>
-            <input
-              type="hidden"
-              name="lat"
-              defaultValue={handle.props.lat}
-              mix={ref((element) => {
-                latInputElement = element
-              })}
-            />
-            <input
-              type="hidden"
-              name="lng"
-              defaultValue={handle.props.lng}
-              mix={ref((element) => {
-                lngInputElement = element
-              })}
-            />
-            <button
-              className="border-ink-950 bg-acid-100 hover:bg-acid-200 focus-visible:outline-ink-950 h-full shrink-0 border-0 border-l-[1.5px] px-3 font-semibold focus-visible:outline-2 focus-visible:-outline-offset-3 min-[901px]:px-5"
-              type="submit"
-            >
-              Search
-            </button>
-          </form>
+          {searchForm}
 
           <p id={statusId} className="sr-only" role="status" aria-live="polite">
             {getSuggestionStatusMessage(status, suggestions.length)}
           </p>
-
-          {renderSuggestionPopup({
-            activeIndex,
-            listboxId,
-            onSelect: selectSuggestion,
-            status,
-            suggestions,
-            visible: popupVisible,
-          })}
         </div>
       )
     }
@@ -318,7 +400,7 @@ function renderSuggestionPopup({
   if (!visible) return null
 
   return (
-    <div className="bg-paper-50 ring-ink-950/15 absolute top-full left-0 z-20 mt-3 w-full shadow-[5px_5px_0_var(--color-ink-950)] ring-1">
+    <div className="bg-paper-50 ring-ink-950/15 absolute top-full left-0 z-20 mt-3 w-full shadow-[5px_5px_0_var(--color-ink-950)] ring-1 min-[1201px]:w-120">
       {status === "loading" ? (
         <p className="px-4 py-3 text-base/7 text-pretty sm:text-sm/6">
           Searching the public record…

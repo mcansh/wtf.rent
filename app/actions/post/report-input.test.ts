@@ -4,6 +4,7 @@ import * as assert from "remix/assert"
 
 import { REPORT_CATEGORIES } from "../../data/schema.ts"
 import {
+  getPrunedSearchParams,
   getSafeReportValues,
   parseCreateReportInput,
   parseReportFeedInput,
@@ -217,6 +218,26 @@ describe("report update input", () => {
 })
 
 describe("report feed input", () => {
+  it("prunes empty query values without disturbing non-empty or repeated values", () => {
+    let params = new URLSearchParams([
+      ["q", "Detroit"],
+      ["radius", ""],
+      ["lat", "   "],
+      ["tag", "first"],
+      ["tag", "second"],
+      ["lng", ""],
+    ])
+
+    assert.equal(getPrunedSearchParams(params)?.toString(), "q=Detroit&tag=first&tag=second")
+    assert.equal(getPrunedSearchParams(new URLSearchParams({ q: "Detroit" })), null)
+    assert.equal(
+      getPrunedSearchParams(
+        new URLSearchParams({ q: "", radius: "", lat: "", lng: "" }),
+      )?.toString(),
+      "",
+    )
+  })
+
   it("normalizes the display query and creates a literal LIKE pattern", () => {
     let params = new URLSearchParams({ q: "  50%_off! today  ", page: "3" })
 
