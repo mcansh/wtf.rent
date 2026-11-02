@@ -4,34 +4,30 @@ import { createFetchProxy } from "remix/fetch-proxy"
 import { createRequestListener } from "remix/node-fetch-server"
 import { createHmrReadyFetch, run } from "remix/node-hmr"
 
-const hmrProxyPort = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 44100
-const hmrEventPort = process.env.HMR_PORT
-  ? Number.parseInt(process.env.HMR_PORT, 10)
-  : hmrProxyPort + 1
-const appPort = process.env.APP_PORT ? Number.parseInt(process.env.APP_PORT, 10) : hmrEventPort + 1
+import { env } from "./app/env.ts"
 
 const hmrRunner = run("server.ts", {
   env: {
     ...process.env,
-    PORT: String(appPort),
-    HMR_PROXY_PORT: String(hmrProxyPort),
+    PORT: String(env.APP_PORT),
+    HMR_PROXY_PORT: String(env.HMR_PROXY_PORT),
   },
   nodeArgs: ["--import", "remix/node-tsx", "--import", "remix/ui-hmr/node"],
-  browserHmrChannel: { port: hmrEventPort },
+  browserHmrChannel: { port: env.HMR_PORT },
 })
 
 const server = http.createServer(
   createRequestListener(
     createHmrReadyFetch(
       hmrRunner,
-      createFetchProxy(`http://127.0.0.1:${appPort}`, {
+      createFetchProxy(`http://127.0.0.1:${env.APP_PORT}`, {
         xForwardedHeaders: true,
       }),
     ),
   ),
 )
 
-server.listen(hmrProxyPort, "127.0.0.1")
+server.listen(env.HMR_PROXY_PORT, "127.0.0.1")
 
 let shuttingDown = false
 

@@ -2,7 +2,7 @@
 
 Status: Approved on 2026-08-18
 
-Approved contract: [`SPEC-about-page.md`](../SPEC-about-page.md)
+Approved contract: [`docs/specs/public-pages/about.md`](../../docs/specs/public-pages/about.md)
 
 Approved implementation plan: [`about-plan.md`](./about-plan.md)
 
@@ -87,7 +87,7 @@ Oxfmt, and `git diff --check` passed.
 - [x] Typecheck and build pass.
 - [x] The route is useful without JavaScript and has no database, external-service, or personal-data
       path.
-- [x] Review every visible product claim against `SPEC-reports.md` and the approved About spec.
+- [x] Review every visible product claim against `docs/specs/reports/core.md` and the approved About spec.
 
 **Checkpoint evidence (2026-08-18):** `/about` imports only the Remix UI handle type and typed local
 routes. Its rendered page contains no form control, client entry, external URL, database call, or

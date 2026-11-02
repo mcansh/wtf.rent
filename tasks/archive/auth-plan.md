@@ -1,6 +1,6 @@
 # Implementation Plan: Credentials Authentication
 
-Approved contract: [`SPEC-auth.md`](../SPEC-auth.md)
+Approved contract: [`docs/specs/auth.md`](../../docs/specs/auth.md)
 
 ## Current State
 
@@ -144,7 +144,7 @@ Checkpoint: focused shell/root-controller tests and typecheck pass.
   responsive layouts at 320/768/1024/1440 px.
 - Review the final diff for secrets and unrelated worktree changes.
 
-Checkpoint: every success criterion in `SPEC-auth.md` has evidence or a clearly reported external
+Checkpoint: every success criterion in `docs/specs/auth.md` has evidence or a clearly reported external
 environment blocker.
 
 ## Risks and Mitigations

@@ -2,7 +2,7 @@
 
 Status: Approved on 2026-08-18
 
-Approved contract: [`SPEC-about-page.md`](../SPEC-about-page.md)
+Approved contract: [`docs/specs/public-pages/about.md`](../../docs/specs/public-pages/about.md)
 
 Stack base: `logan/codex-report-editing-comments` / PR #30
 
@@ -96,13 +96,13 @@ browser inspection uses one isolated server and one named browser session.
 
 ## Risks and Mitigations
 
-| Risk                                                      | Mitigation                                                                                  |
-| --------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| Copy promises behavior the product does not implement     | Derive every claim from `SPEC-reports.md` and lock prohibited claims with adversarial tests |
-| Privacy wording implies the whole report body is redacted | Separate the dedicated address field from contributor-authored public text                  |
-| Dense disclosure becomes unreadable on mobile             | Use stacked semantic descriptions, short sections, and browser checks at four widths        |
-| Static copy drifts from report behavior later             | Keep exact lifecycle/privacy assertions in the root controller suite                        |
-| The final stacked PR repeats lower-layer changes          | Publish from PR #30's verified remote head and require an exact merge-base comparison       |
+| Risk                                                      | Mitigation                                                                                             |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Copy promises behavior the product does not implement     | Derive every claim from `docs/specs/reports/core.md` and lock prohibited claims with adversarial tests |
+| Privacy wording implies the whole report body is redacted | Separate the dedicated address field from contributor-authored public text                             |
+| Dense disclosure becomes unreadable on mobile             | Use stacked semantic descriptions, short sections, and browser checks at four widths                   |
+| Static copy drifts from report behavior later             | Keep exact lifecycle/privacy assertions in the root controller suite                                   |
+| The final stacked PR repeats lower-layer changes          | Publish from PR #30's verified remote head and require an exact merge-base comparison                  |
 
 ## Verification Commands
 

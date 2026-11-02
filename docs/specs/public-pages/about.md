@@ -1,6 +1,8 @@
 # Spec: Public About Page
 
-Status: Approved on 2026-08-18
+Status: Implemented
+Owner: `app/actions/about/`
+Canonical tests: `app/actions/controller.test.tsx`
 
 ## Objective
 
@@ -118,7 +120,8 @@ Do not add a generic shared component or data module for one static page.
   the dedicated street address and account email/password data are not public; report text is public;
   and submissions publish immediately.
 - Reject claims of anonymity, independent verification, pre-publication review, legal advice,
-  automatic redaction, or already-available editing, flagging, and self-service deletion.
+  automatic redaction, or capabilities beyond the implemented report-editing contract, flagging,
+  and self-service deletion.
 - Prove the route introduces no form, input, geolocation behavior, database call, external URL, new
   dependency, or client entrypoint.
 - Run the complete test, typecheck, build, lint, format, Remix route, Remix Doctor, and patch checks.
@@ -148,8 +151,6 @@ Do not add a generic shared component or data module for one static page.
 - The route remains static, server-rendered, database-free, form-free, external-link-free, and useful
   without JavaScript.
 - Full automated checks and responsive real-browser verification pass.
-- The branch is published as PR #31 based on `logan/codex-report-editing-comments` (PR #30), above
-  the renter-rights layer in PR #39.
 
 ## Open Questions
 

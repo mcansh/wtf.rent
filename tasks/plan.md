@@ -1,14 +1,14 @@
 # Implementation Plan: Renter Reports Vertical Slice
 
-Approved contract: [`SPEC-reports.md`](../SPEC-reports.md)
+Approved contract: [`docs/specs/reports/core.md`](../docs/specs/reports/core.md)
 
 Architecture decision: [`ADR-001`](../docs/decisions/001-preserve-post-storage-for-renter-reports.md)
 
 Location privacy decision:
 [`ADR-002`](../docs/decisions/002-withhold-street-addresses-from-public-report-output.md)
 
-Historical authentication plan and completion evidence remain in `tasks/auth-plan.md` and
-`tasks/auth-todo.md`.
+Historical authentication plan and completion evidence remain in `tasks/archive/auth-plan.md` and
+`tasks/archive/auth-todo.md`.
 
 ## Current State
 
@@ -194,7 +194,7 @@ real counts, URL preservation, and no sample copy; browser checks cover search a
 - Record evidence or a precise external blocker beside each checklist item; broad public launch
   remains blocked on the moderation/legal follow-up named in the spec.
 
-Checkpoint: every success criterion in `SPEC-reports.md` has evidence or a documented external
+Checkpoint: every success criterion in `docs/specs/reports/core.md` has evidence or a documented external
 blocker, and the final diff contains no unrelated change or generated dependency cache.
 
 ## Verification Cadence
@@ -239,10 +239,10 @@ repository or format unrelated files.
 ## Extension: Report Editing and Comments
 
 Approved capability map:
-[`CAPABILITY-MAP-report-interactions.md`](../CAPABILITY-MAP-report-interactions.md)
+[`docs/specs/reports/README.md`](../docs/specs/reports/README.md)
 
-Approved contracts: [`SPEC-report-editing.md`](../SPEC-report-editing.md) and
-[`SPEC-report-comments.md`](../SPEC-report-comments.md)
+Approved contracts: [`docs/specs/reports/editing.md`](../docs/specs/reports/editing.md) and
+[`docs/specs/reports/comments.md`](../docs/specs/reports/comments.md)
 
 ### Dependency graph
 

@@ -2,7 +2,7 @@
 
 Status: Approved on 2026-08-18
 
-Approved contract: [`SPEC-rights-page.md`](../SPEC-rights-page.md)
+Approved contract: [`docs/specs/public-pages/rights.md`](../../docs/specs/public-pages/rights.md)
 
 Stack base: `logan/codex-directory-page` / PR #25
 

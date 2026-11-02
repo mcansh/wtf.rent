@@ -1,6 +1,8 @@
 # Spec: Public Renter Rights Guide
 
-Status: Approved on 2026-08-18
+Status: Implemented
+Owner: `app/actions/rights/`
+Canonical tests: `app/actions/controller.test.tsx`
 
 ## Objective
 
