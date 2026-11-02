@@ -24,6 +24,7 @@
   "dependencies": {
     "@mcansh/http-helmet": "^0.13.2",
     "@node-rs/bcrypt": "^1.10.8",
+    "@sentry/node": "^11.10.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
     "pg": "^8.23.0",
