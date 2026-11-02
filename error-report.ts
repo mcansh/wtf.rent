@@ -1,5 +1,4 @@
 import * as Sentry from "@sentry/node"
-import type { NodeOptions } from "@sentry/node"
 
 declare const sentryDsnBrand: unique symbol
 
@@ -20,7 +19,7 @@ export interface ErrorsOnlyDataCollection {
   readonly userInfo: false
   readonly cookies: false
   readonly httpHeaders: false
-  readonly httpBodies: readonly []
+  readonly httpBodies: []
   readonly urlQueryParams: false
   readonly stackFrameVariables: false
   readonly databaseQueryData: false
@@ -29,9 +28,7 @@ export interface ErrorsOnlyDataCollection {
 export interface ErrorsOnlySentryOptions {
   readonly dsn: SentryDsn
   readonly tracesSampleRate: 0
-  readonly sendDefaultPii: false
-  readonly enableLogs: false
-  readonly tracePropagationTargets: readonly []
+  readonly tracePropagationTargets: []
   readonly dataCollection: ErrorsOnlyDataCollection
 }
 
@@ -70,6 +67,7 @@ export class DispositionConflictError extends Error {
 const DRAIN_TIMEOUT_MS = 2_000
 
 function brandSentryDsn(value: string): SentryDsn {
+  // SAFETY: readFailureDisposition only calls this after protocol, public key, query, hash, and project id checks.
   return value as SentryDsn
 }
 
@@ -123,8 +121,6 @@ function errorsOnlyInit(dsn: SentryDsn): ErrorsOnlySentryOptions {
   return {
     dsn,
     tracesSampleRate: 0,
-    sendDefaultPii: false,
-    enableLogs: false,
     tracePropagationTargets: [],
     dataCollection: {
       userInfo: false,
@@ -204,8 +200,7 @@ export function createProcessErrorReport(sdk: ErrorReportSdk): ProcessErrorRepor
 function createSentryErrorReportSdk(): ErrorReportSdk {
   return {
     init(options) {
-      let initOptions: unknown = options
-      Sentry.init(initOptions as NodeOptions)
+      Sentry.init(options)
     },
     captureException(error) {
       Sentry.captureException(error)

@@ -67,8 +67,6 @@ describe("process error report", () => {
       {
         dsn: sentryDsn,
         tracesSampleRate: 0,
-        sendDefaultPii: false,
-        enableLogs: false,
         tracePropagationTargets: [],
         dataCollection: {
           userInfo: false,
