@@ -53,6 +53,27 @@ function armedReporter(source: NodeJS.ProcessEnv): ArmedReport {
   return { recorded, reporter }
 }
 
+function assertErrorsOnlyInit(options: ErrorsOnlySentryOptions | undefined, dsn: string) {
+  if (options === undefined) {
+    assert.fail("Expected errors-only init options")
+  }
+  assert.equal(options.dsn, dsn)
+  assert.equal(options.tracesSampleRate, 0)
+  assert.equal(options.tracesSampler(), 0)
+  assert.deepEqual(options.tracePropagationTargets, [])
+  assert.equal(options.beforeBreadcrumb({ category: "console" }), null)
+  assert.deepEqual(options.beforeBreadcrumb({ category: "http" }), { category: "http" })
+  assert.deepEqual(options.dataCollection, {
+    userInfo: false,
+    cookies: false,
+    httpHeaders: false,
+    httpBodies: [],
+    urlQueryParams: false,
+    stackFrameVariables: false,
+    databaseQueryData: false,
+  })
+}
+
 describe("process error report", () => {
   it("initializes errors-only once for a valid DSN", () => {
     let recorded = recordedSdk()
@@ -63,22 +84,8 @@ describe("process error report", () => {
       assert.fail("Expected an errors-only disposition")
     }
     assert.equal(disposition.dsn, sentryDsn)
-    assert.deepEqual(recorded.inits, [
-      {
-        dsn: sentryDsn,
-        tracesSampleRate: 0,
-        tracePropagationTargets: [],
-        dataCollection: {
-          userInfo: false,
-          cookies: false,
-          httpHeaders: false,
-          httpBodies: [],
-          urlQueryParams: false,
-          stackFrameVariables: false,
-          databaseQueryData: false,
-        },
-      },
-    ])
+    assert.equal(recorded.inits.length, 1)
+    assertErrorsOnlyInit(recorded.inits[0], sentryDsn)
 
     let again = reporter.arm({ SENTRY_DSN: sentryDsn })
     assert.equal(again, disposition)
@@ -160,6 +167,7 @@ describe("process error report", () => {
       { dsn: `https://public@host/1#${secret}`, cause: "hash" },
       { dsn: "https://public@host/abc", cause: "project id" },
       { dsn: `https://${secret}@host/456/extra`, cause: "project id" },
+      { dsn: `https:${secret}@host/456`, cause: "url" },
     ]
     for (let invalid of cases) {
       let attempt = recordedSdk()

@@ -25,10 +25,16 @@ export interface ErrorsOnlyDataCollection {
   readonly databaseQueryData: false
 }
 
+export interface ErrorsOnlyBreadcrumb {
+  readonly category?: string
+}
+
 export interface ErrorsOnlySentryOptions {
   readonly dsn: SentryDsn
   readonly tracesSampleRate: 0
+  readonly tracesSampler: () => 0
   readonly tracePropagationTargets: []
+  readonly beforeBreadcrumb: (breadcrumb: ErrorsOnlyBreadcrumb) => ErrorsOnlyBreadcrumb | null
   readonly dataCollection: ErrorsOnlyDataCollection
 }
 
@@ -66,8 +72,12 @@ export class DispositionConflictError extends Error {
 
 const DRAIN_TIMEOUT_MS = 2_000
 
+// Sentry.dsnFromString writes the raw value to stderr when this pattern fails.
+const SENTRY_DSN_PATTERN =
+  /^(?:(\w+):)\/\/(?:(\w+)(?::(\w+)?)?@)((?:\[[:.%\w]+\]|[\w.-]+))(?::(\d+))?\/(.+)/
+
 function brandSentryDsn(value: string): SentryDsn {
-  // SAFETY: readFailureDisposition only calls this after protocol, public key, query, hash, and project id checks.
+  // SAFETY: readFailureDisposition only calls this after protocol, public key, query, hash, project id, and SDK DSN pattern checks.
   return value as SentryDsn
 }
 
@@ -105,6 +115,9 @@ function readFailureDisposition(source: NodeJS.ProcessEnv): FailureDisposition {
   if (!/^\d+$/.test(projectId)) {
     throw new InvalidSentryDsnError("project id")
   }
+  if (!SENTRY_DSN_PATTERN.test(dsn)) {
+    throw new InvalidSentryDsnError("url")
+  }
 
   return { kind: "errors-only", dsn: brandSentryDsn(dsn) }
 }
@@ -117,11 +130,22 @@ function parseDsnUrl(dsn: string): URL {
   }
 }
 
+function dropConsoleBreadcrumb(breadcrumb: ErrorsOnlyBreadcrumb): ErrorsOnlyBreadcrumb | null {
+  if (breadcrumb.category === "console") {
+    return null
+  }
+  return breadcrumb
+}
+
 function errorsOnlyInit(dsn: SentryDsn): ErrorsOnlySentryOptions {
   return {
     dsn,
     tracesSampleRate: 0,
+    tracesSampler() {
+      return 0
+    },
     tracePropagationTargets: [],
+    beforeBreadcrumb: dropConsoleBreadcrumb,
     dataCollection: {
       userInfo: false,
       cookies: false,
