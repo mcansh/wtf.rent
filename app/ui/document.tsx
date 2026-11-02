@@ -1,10 +1,12 @@
 import type { Handle, RemixNode } from "remix/ui"
 
 import { getAssetEntry } from "../middleware/assets.ts"
+import { googleFontStylesheetHrefs } from "./google-fonts.ts"
 
 export interface DocumentProps {
   children?: RemixNode
   head?: RemixNode
+  playfairItalic?: boolean
   title?: RemixNode
 }
 
@@ -12,7 +14,7 @@ const DEFAULT_TITLE = readAppDisplayName("wtf.rent")
 
 export function Document(handle: Handle<DocumentProps>) {
   return () => {
-    let { children, head, title = DEFAULT_TITLE } = handle.props
+    let { children, head, playfairItalic = false, title = DEFAULT_TITLE } = handle.props
     let { scriptSrc, scriptPreloads, stylesheetHref, stylesheetPreloads } = getAssetEntry()
 
     return (
@@ -24,11 +26,10 @@ export function Document(handle: Handle<DocumentProps>) {
           <title>{title}</title>
           {head}
           <link rel="preconnect" href="https://fonts.googleapis.com" />
-          <link rel="preconnect" href="https://fonts.gstatic.com" />
-          <link
-            href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Karla:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,700;0,800;1,700;1,800&display=swap"
-            rel="stylesheet"
-          />
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+          {googleFontStylesheetHrefs(playfairItalic).map((href) => (
+            <link key={href} href={href} rel="stylesheet" />
+          ))}
           {stylesheetPreloads.map((href) => (
             <link key={href} rel="preload" href={href} as="style" />
           ))}

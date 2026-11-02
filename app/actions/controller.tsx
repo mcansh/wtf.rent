@@ -41,7 +41,7 @@ export const controller = createController(routes, {
         let reportPage = await listPublicReports(input)
 
         return context.render(
-          <DocumentWithShell>
+          <DocumentWithShell playfairItalic>
             <HomePage
               query={input.q}
               reportPage={serializeReportPage(reportPage)}
