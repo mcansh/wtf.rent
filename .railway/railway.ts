@@ -38,6 +38,7 @@ export default defineRailway(() => {
       DATABASE_URL: preserve(),
       REDIS_URL: preserve(),
       SESSION_SECRETS: preserve(),
+      SENTRY_DSN: preserve(),
     },
     preDeployCommand: ["nub exec remix db migrate"],
   })

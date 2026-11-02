@@ -4,6 +4,8 @@ import { createFetchProxy } from "remix/fetch-proxy"
 import { createRequestListener } from "remix/node-fetch-server"
 import { createHmrReadyFetch, run } from "remix/node-hmr"
 
+import { serverLoadArgs } from "./server-load-args.ts"
+
 const hmrProxyPort = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 44100
 const hmrEventPort = process.env.HMR_PORT
   ? Number.parseInt(process.env.HMR_PORT, 10)
@@ -16,7 +18,7 @@ const hmrRunner = run("server.ts", {
     PORT: String(appPort),
     HMR_PROXY_PORT: String(hmrProxyPort),
   },
-  nodeArgs: ["--import", "remix/node-tsx", "--import", "remix/ui-hmr/node"],
+  nodeArgs: [...serverLoadArgs, "--import", "remix/ui-hmr/node"],
   browserHmrChannel: { port: hmrEventPort },
 })
 

@@ -3,6 +3,7 @@ import * as http from "node:http"
 import { createRequestListener } from "remix/node-fetch-server"
 
 import { router } from "./app/router.ts"
+import { processErrorReport } from "./error-report.ts"
 
 const port = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 44100
 
@@ -11,9 +12,10 @@ const server = http.createServer(
     async (request) => {
       try {
         return await router.fetch(request)
-      } catch (error) {
-        if (!(request.signal.aborted && error === request.signal.reason)) {
-          console.error(error)
+      } catch (cause: unknown) {
+        if (!(request.signal.aborted && cause === request.signal.reason)) {
+          console.error(cause)
+          processErrorReport.report(cause)
         }
         return new Response("Internal Server Error", { status: 500 })
       }
@@ -34,7 +36,9 @@ function shutdown() {
   }
 
   shuttingDown = true
-  server.close(() => process.exit(0))
+  server.close(() => {
+    void processErrorReport.drain().finally(() => process.exit(0))
+  })
   server.closeAllConnections()
 }
 
