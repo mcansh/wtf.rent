@@ -14,6 +14,16 @@ export function unwrapArrayExpression(node: ESTree.Node): ESTree.Node {
   return node
 }
 
+export function unreassignedLocalInit(definition: Variable["defs"][number]): ESTree.Expression | null {
+  if (definition.type !== "Variable") return null
+  let declarator = definition.node
+  if (declarator.type !== "VariableDeclarator") return null
+  if (declarator.id.type !== "Identifier" || declarator.init === null) return null
+  if (declarator.parent.type !== "VariableDeclaration") return null
+  if (declarator.parent.kind !== "const" && declarator.parent.kind !== "let") return null
+  return declarator.init
+}
+
 export function resolveArrayBinding(sourceCode: SourceCode, node: ESTree.Node): Variable | null {
   node = unwrapArrayExpression(node)
   if (node.type !== "Identifier") return null
@@ -88,16 +98,8 @@ export function isLocalArrayValue(
     if (annotation !== undefined) return isArrayAnnotation(annotation)
   }
   for (const definition of variable.defs) {
-    if (
-      definition.type === "Variable" &&
-      definition.node.type === "VariableDeclarator" &&
-      definition.node.id.type === "Identifier" &&
-      definition.node.init !== null &&
-      definition.node.parent.type === "VariableDeclaration" &&
-      definition.node.parent.kind === "const"
-    ) {
-      return isLocalArrayValue(sourceCode, definition.node.init, visited)
-    }
+    const init = unreassignedLocalInit(definition)
+    if (init !== null) return isLocalArrayValue(sourceCode, init, visited)
   }
   return false
 }

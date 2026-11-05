@@ -5,6 +5,7 @@ import {
   isLocalArrayValue,
   readStaticMember,
   resolveArrayBinding,
+  unreassignedLocalInit,
   unwrapArrayExpression,
 } from "../shared/array-method.ts"
 
@@ -51,16 +52,8 @@ function referencesAccumulator(
   visited.add(variable)
   if (variable.references.some((reference) => reference.isWrite() && !reference.init)) return false
   for (const definition of variable.defs) {
-    if (
-      definition.type === "Variable" &&
-      definition.node.type === "VariableDeclarator" &&
-      definition.node.id.type === "Identifier" &&
-      definition.node.init !== null &&
-      definition.node.parent.type === "VariableDeclaration" &&
-      definition.node.parent.kind === "const"
-    ) {
-      return referencesAccumulator(sourceCode, definition.node.init, accumulator, visited)
-    }
+    const init = unreassignedLocalInit(definition)
+    if (init !== null) return referencesAccumulator(sourceCode, init, accumulator, visited)
   }
   return false
 }
