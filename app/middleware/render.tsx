@@ -53,9 +53,7 @@ async function resolveFrame(router: Router, request: Request, src: string) {
     }),
   )
 
-  if (!response.ok) {
-    return `<pre>Frame error: ${response.status} ${response.statusText}</pre>`
-  }
+  if (!response.ok) return `<pre>Frame error: ${response.status} ${response.statusText}</pre>`
 
   if (response.body) return response.body
   return await response.text()
@@ -67,6 +65,6 @@ function titleCaseFileName(fileUrl: string): string {
   return fileName
     .split(/[^A-Za-z0-9]+/)
     .filter(Boolean)
-    .map((segment) => segment[0]!.toUpperCase() + segment.slice(1))
+    .map((segment) => segment.slice(0, 1).toUpperCase() + segment.slice(1))
     .join("")
 }

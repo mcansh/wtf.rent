@@ -138,12 +138,11 @@ class FakeUserDatabaseDriver implements DatabaseDriver<"test"> {
     this.#assertUsersTable(operation)
     let user = s.parse(fakeUserRowSchema, operation.values)
 
-    if (this.users.some((existingUser) => existingUser.email === user.email)) {
+    if (this.users.some((existingUser) => existingUser.email === user.email))
       throw new FakeUniqueConstraintError("User_email_key")
-    }
-    if (this.users.some((existingUser) => existingUser.username === user.username)) {
+
+    if (this.users.some((existingUser) => existingUser.username === user.username))
       throw new FakeUniqueConstraintError("User_username_key")
-    }
 
     this.users.push(user)
     if (operation.returning == null) return { affectedRows: 1 }
@@ -153,9 +152,8 @@ class FakeUserDatabaseDriver implements DatabaseDriver<"test"> {
 
   #select(operation: FakeSelectOperation): DataManipulationResult {
     this.#assertUsersTable(operation)
-    if (operation.select !== "*") {
+    if (operation.select !== "*")
       throw new Error("Fake user database only supports full-row selections")
-    }
 
     let offset = operation.offset ?? 0
     let end = operation.limit == null ? undefined : offset + operation.limit
@@ -168,9 +166,8 @@ class FakeUserDatabaseDriver implements DatabaseDriver<"test"> {
   }
 
   #assertUsersTable(operation: FakeInsertOperation | FakeSelectOperation): void {
-    if (getTableName(operation.table) !== "User") {
+    if (getTableName(operation.table) !== "User")
       throw new Error(`Fake user database cannot access table ${getTableName(operation.table)}`)
-    }
   }
 }
 
@@ -199,9 +196,8 @@ function matchesUser(user: User, predicate: Predicate): boolean {
     predicate.type !== "comparison" ||
     predicate.operator !== "eq" ||
     predicate.valueType !== "value"
-  ) {
+  )
     throw new Error("Fake user database only supports equality predicates")
-  }
 
   return getUserColumnValue(user, predicate.column) === predicate.value
 }

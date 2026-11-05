@@ -47,9 +47,8 @@ export const join = createController(routes.join, {
         email: normalizeEmail(context.formData.get("email")?.toString() ?? "").slice(0, 254),
       }
 
-      if (!parsed.success) {
+      if (!parsed.success)
         return renderJoin(context, csrfToken, { ...values, issues: parsed.issues }, { status: 422 })
-      }
 
       if (parsed.value.password !== parsed.value.confirm_password) {
         return renderJoin(

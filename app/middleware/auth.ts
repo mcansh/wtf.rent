@@ -57,9 +57,8 @@ export class LoginThrottle {
     this.#now = options.now ?? Date.now
     this.#windowMs = options.windowMs ?? 15 * 60 * 1_000
 
-    if (this.#maxAttempts < 1 || this.#maxEntries < 1 || this.#windowMs < 1) {
+    if (this.#maxAttempts < 1 || this.#maxEntries < 1 || this.#windowMs < 1)
       throw new RangeError("Login throttle limits must be positive")
-    }
   }
 
   get size(): number {
@@ -76,9 +75,7 @@ export class LoginThrottle {
       return { allowed: true, retryAfter: 0 }
     }
 
-    if (entry.attempts < this.#maxAttempts) {
-      return { allowed: true, retryAfter: 0 }
-    }
+    if (entry.attempts < this.#maxAttempts) return { allowed: true, retryAfter: 0 }
 
     return {
       allowed: false,
@@ -110,9 +107,7 @@ export class LoginThrottle {
 
   #deleteExpired(): void {
     let now = this.#now()
-    for (let [key, entry] of this.#entries) {
-      if (now >= entry.resetAt) this.#entries.delete(key)
-    }
+    for (let [key, entry] of this.#entries) if (now >= entry.resetAt) this.#entries.delete(key)
   }
 }
 
@@ -140,9 +135,7 @@ export function loadAuth() {
         },
         async verify(value, context) {
           let db = context.get(Database)
-          if (db == null) {
-            throw new Error("Expected loadDatabase() middleware before loadAuth()")
-          }
+          if (db == null) throw new Error("Expected loadDatabase() middleware before loadAuth()")
 
           let user = await db.find(users, value.userId)
 
@@ -159,9 +152,8 @@ export function loadAuth() {
 export const passwordProvider = createCredentialsAuthProvider({
   parse(context) {
     let formData = context.get(FormData)
-    if (formData == null) {
+    if (formData == null)
       throw new Error("Expected formData() middleware before password auth provider")
-    }
 
     return {
       email: normalizeEmail(formData.get("email")?.toString() ?? ""),
@@ -170,18 +162,15 @@ export const passwordProvider = createCredentialsAuthProvider({
   },
   async verify({ email, password }, context) {
     let db = context.get(Database)
-    if (db == null) {
+    if (db == null)
       throw new Error("Expected loadDatabase() middleware before password auth provider")
-    }
 
     let user = await db.findOne(users, { where: { email } })
     if (user == null) return null
 
     let valid = await verifyPassword(password, user.password)
 
-    if (!valid) {
-      return null
-    }
+    if (!valid) return null
 
     return user
   },
@@ -220,9 +209,7 @@ export function requireGuest(options?: RequireGuestOptions): Middleware {
 
   return (context, next) => {
     let currentAuth = context.get(Auth)
-    if (currentAuth?.ok) {
-      return redirect(redirectTo.href(), 303)
-    }
+    if (currentAuth?.ok) return redirect(redirectTo.href(), 303)
 
     return next()
   }
@@ -258,18 +245,15 @@ export function getLoginThrottleKey(request: Request, email: string): string {
 }
 
 export function getSafeReturnTo(returnTo: string | null): string | undefined {
-  if (returnTo == null || returnTo === "") {
-    return undefined
-  }
+  if (returnTo == null || returnTo === "") return undefined
 
   if (
     !returnTo.startsWith("/") ||
     returnTo.startsWith("//") ||
     returnTo.includes("\\") ||
     /[\u0000-\u001f\u007f]/.test(returnTo)
-  ) {
+  )
     return undefined
-  }
 
   try {
     let base = new URL("http://localhost")

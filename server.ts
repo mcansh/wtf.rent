@@ -12,9 +12,8 @@ const server = http.createServer(
       try {
         return await router.fetch(request)
       } catch (error) {
-        if (!(request.signal.aborted && error === request.signal.reason)) {
-          console.error(error)
-        }
+        if (!(request.signal.aborted && error === request.signal.reason)) console.error(error)
+
         return new Response("Internal Server Error", { status: 500 })
       }
     },
@@ -29,9 +28,7 @@ server.listen(port, "0.0.0.0", () => {
 let shuttingDown = false
 
 function shutdown() {
-  if (shuttingDown) {
-    return
-  }
+  if (shuttingDown) return
 
   shuttingDown = true
   server.close(() => process.exit(0))

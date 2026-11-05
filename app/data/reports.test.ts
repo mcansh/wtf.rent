@@ -905,12 +905,11 @@ class ReportPostgresQueryRecorder {
   async query(text: string, values: Array<number | string> = []) {
     this.queries.push({ text, values: [...values] })
 
-    if (text.includes('as "kind"') || text.includes('as "landlordName"')) {
+    if (text.includes('as "kind"') || text.includes('as "landlordName"'))
       return { rows: [], rowCount: 0 }
-    }
-    if (text.includes('as "category"') && !text.includes('as "id"')) {
+
+    if (text.includes('as "category"') && !text.includes('as "id"'))
       return { rows: [], rowCount: 0 }
-    }
 
     return text.includes("count(*)")
       ? { rows: [{ total: "0" }], rowCount: 1 }

@@ -391,12 +391,12 @@ export function getNextSuggestionIndex(current: number, direction: 1 | -1, lengt
 function getSuggestionStatusMessage(status: SuggestionStatus, count: number): string {
   if (status === "loading") return "Finding search suggestions."
   if (status === "error") return "Suggestions are unavailable. Press Enter to search all reports."
-  if (status === "ready" && count === 0) {
+  if (status === "ready" && count === 0)
     return "No suggestions found. Press Enter to search all reports."
-  }
-  if (status === "ready") {
+
+  if (status === "ready")
     return `${count} ${count === 1 ? "suggestion" : "suggestions"} available. Use the arrow keys to choose one.`
-  }
+
   return ""
 }
 

@@ -151,15 +151,17 @@ describe("join", () => {
     assert.equal(response.status, 303)
     assert.equal(response.headers.get("Location"), routes.directory.href())
     assert.equal(database.users.length, 1)
-    assert.equal(database.users[0]!.username, "new-renter")
-    assert.equal(database.users[0]!.email, "new@example.com")
-    assert.notEqual(database.users[0]!.password, "valid-password")
-    assert.equal(await verifyPassword("valid-password", database.users[0]!.password), true)
+    let created = database.users[0]
+    if (created == null) throw new Error("expected the created user")
+    assert.equal(created.username, "new-renter")
+    assert.equal(created.email, "new@example.com")
+    assert.notEqual(created.password, "valid-password")
+    assert.equal(await verifyPassword("valid-password", created.password), true)
 
     let newCookie = getResponseCookie(response)
     assert.notEqual(newCookie, form.cookie)
     let session = await readSessionCookie(app, newCookie)
-    assert.deepEqual(session.get("auth"), { userId: database.users[0]!.id })
+    assert.deepEqual(session.get("auth"), { userId: created.id })
   })
 
   it("redirects authenticated users away", async () => {

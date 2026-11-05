@@ -26,9 +26,8 @@ export const controller = createController(routes, {
   actions: {
     async assets(context) {
       let response = await assetServer.fetch(context.request)
-      if (response == null) {
-        return new Response("Not Found", { status: 404 })
-      }
+      if (response == null) return new Response("Not Found", { status: 404 })
+
       return response
     },
 

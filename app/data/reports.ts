@@ -455,9 +455,7 @@ function createPublicReportWhere(input: ReportFeedInput): SqlStatement {
   let { likePattern, lat, lng, radius } = input
   let hasLocation = lat != null && lng != null && radius != null
 
-  if (likePattern == null && !hasLocation) {
-    return createPublishedStatusWhere()
-  }
+  if (likePattern == null && !hasLocation) return createPublishedStatusWhere()
 
   let conditions: string[] = ['p."status" = ?']
   let params: (string | number)[] = ["PUBLISHED"]
@@ -487,7 +485,7 @@ function createPublicReportWhere(input: ReportFeedInput): SqlStatement {
     params.push(...Array<string>(6).fill(likePattern))
   }
 
-  if (hasLocation) {
+  if (lat != null && lng != null && radius != null) {
     conditions.push(`p."latitude" is not null`)
     conditions.push(`p."longitude" is not null`)
     conditions.push(`(
@@ -497,7 +495,7 @@ function createPublicReportWhere(input: ReportFeedInput): SqlStatement {
           power(sin((radians(p."longitude") - radians(?)) / 2), 2)
         ))
       ) <= ?`)
-    params.push(lat!, lat!, lng!, radius!)
+    params.push(lat, lat, lng, radius)
   }
 
   return rawSql(conditions.join("\n      and "), params)

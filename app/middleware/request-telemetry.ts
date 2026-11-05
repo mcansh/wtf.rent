@@ -75,11 +75,8 @@ function defaultSink(): (record: RequestTelemetryRecord) => void {
 
   return (record) => {
     let line = `${JSON.stringify(record)}\n`
-    if (record.event === "http_request_failed") {
-      process.stderr.write(line)
-    } else {
-      process.stdout.write(line)
-    }
+    if (record.event === "http_request_failed") process.stderr.write(line)
+    else process.stdout.write(line)
   }
 }
 

@@ -281,12 +281,11 @@ describe("report feed input", () => {
     assert.equal(inRange.lat, 42.3314)
     assert.equal(inRange.lng, -83.0458)
 
-    for (let lat of ["", "91", "-91", "abc"]) {
+    for (let lat of ["", "91", "-91", "abc"])
       assert.equal(validReportFeedInput(new URLSearchParams({ lat })).lat, null, `lat=${lat}`)
-    }
-    for (let lng of ["", "181", "-181", "abc"]) {
+
+    for (let lng of ["", "181", "-181", "abc"])
       assert.equal(validReportFeedInput(new URLSearchParams({ lng })).lng, null, `lng=${lng}`)
-    }
   })
 })
 
@@ -313,9 +312,8 @@ function validReportForm(overrides: Record<string, string | undefined> = {}): Fo
   }
   let formData = new FormData()
 
-  for (let [name, value] of Object.entries(values)) {
+  for (let [name, value] of Object.entries(values))
     if (value !== undefined) formData.set(name, value)
-  }
 
   return formData
 }
