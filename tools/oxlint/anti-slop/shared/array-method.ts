@@ -1,6 +1,5 @@
 import type { ESTree, Scope, SourceCode, Variable } from "@oxlint/plugins"
 
-/** Unwrap syntax-only wrappers when inspecting array methods and accumulator references. */
 export function unwrapArrayExpression(node: ESTree.Node): ESTree.Node {
   while (
     node.type === "ParenthesizedExpression" ||
@@ -15,7 +14,6 @@ export function unwrapArrayExpression(node: ESTree.Node): ESTree.Node {
   return node
 }
 
-/** Resolve a local binding by scope, not by identifier spelling. */
 export function resolveArrayBinding(sourceCode: SourceCode, node: ESTree.Node): Variable | null {
   node = unwrapArrayExpression(node)
   if (node.type !== "Identifier") return null
@@ -28,8 +26,7 @@ export function resolveArrayBinding(sourceCode: SourceCode, node: ESTree.Node): 
   return null
 }
 
-/** Read static method names, including computed string literals, without evaluating expressions. */
-export function arrayMethodTarget(
+export function readStaticMember(
   node: ESTree.Node,
 ): { readonly name: string; readonly object: ESTree.Node } | null {
   node = unwrapArrayExpression(node)
@@ -57,8 +54,7 @@ function isArrayAnnotation(type: ESTree.TSType): boolean {
   )
 }
 
-/** Recognize local array evidence; unknown receivers and iterator pipelines are deliberately excluded. */
-export function isKnownArrayExpression(
+export function isLocalArrayValue(
   sourceCode: SourceCode,
   node: ESTree.Node,
   visited = new Set<Variable>(),
@@ -66,7 +62,7 @@ export function isKnownArrayExpression(
   node = unwrapArrayExpression(node)
   if (node.type === "ArrayExpression") return true
   if (node.type === "CallExpression") {
-    const method = arrayMethodTarget(node.callee)
+    const method = readStaticMember(node.callee)
     return (
       method !== null &&
       [
@@ -79,7 +75,7 @@ export function isKnownArrayExpression(
         "toReversed",
         "toSpliced",
       ].includes(method.name) &&
-      isKnownArrayExpression(sourceCode, method.object, visited)
+      isLocalArrayValue(sourceCode, method.object, visited)
     )
   }
   if (node.type !== "Identifier") return false
@@ -100,7 +96,7 @@ export function isKnownArrayExpression(
       definition.node.parent.type === "VariableDeclaration" &&
       definition.node.parent.kind === "const"
     ) {
-      return isKnownArrayExpression(sourceCode, definition.node.init, visited)
+      return isLocalArrayValue(sourceCode, definition.node.init, visited)
     }
   }
   return false

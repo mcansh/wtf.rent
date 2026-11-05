@@ -2,8 +2,8 @@ import { defineRule } from "@oxlint/plugins"
 import type { ESTree, SourceCode, Variable } from "@oxlint/plugins"
 
 import {
-  arrayMethodTarget,
-  isKnownArrayExpression,
+  isLocalArrayValue,
+  readStaticMember,
   resolveArrayBinding,
   unwrapArrayExpression,
 } from "../shared/array-method.ts"
@@ -17,7 +17,7 @@ function enclosingReducer(node: ESTree.Node) {
       let owner: ESTree.Node | null = callback.parent
       while (owner !== null && unwrapArrayExpression(owner) === callback) owner = owner.parent
       if (owner?.type !== "CallExpression") return null
-      const method = arrayMethodTarget(owner.callee)
+      const method = readStaticMember(owner.callee)
       const firstArgument = owner.arguments[0]
       if (
         method === null ||
@@ -72,7 +72,6 @@ function isGlobalCopyOwner(sourceCode: SourceCode, node: ESTree.Node, name: stri
   return variable === null || variable.defs.length === 0
 }
 
-/** Reject non-spread copies of reducer accumulators; pair with oxc/no-accumulating-spread. */
 export const noReduceAccumulatorCopyRule = defineRule({
   meta: {
     type: "problem",
@@ -88,7 +87,7 @@ export const noReduceAccumulatorCopyRule = defineRule({
   createOnce(context) {
     return {
       CallExpression(node) {
-        const method = arrayMethodTarget(node.callee)
+        const method = readStaticMember(node.callee)
         if (method === null) return
         const reducer = enclosingReducer(node)
         if (reducer === null) return
@@ -120,7 +119,7 @@ export const noReduceAccumulatorCopyRule = defineRule({
         ) {
           const initialValue = reducer.initialValue
           const arrayAccumulator =
-            initialValue !== undefined && isKnownArrayExpression(context.sourceCode, initialValue)
+            initialValue !== undefined && isLocalArrayValue(context.sourceCode, initialValue)
           copiesAccumulator = arrayAccumulator && isAccumulator(method.object)
         }
         if (copiesAccumulator) context.report({ node, messageId: "accumulatorCopy" })

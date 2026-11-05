@@ -16,7 +16,6 @@ export function render() {
           frameSrc: request.url,
           signal: request.signal,
           resolveFrame: (src) => resolveFrame(router, request, src),
-          // Server rendering turns client entries into browser module URLs.
           async resolveClientEntry(entryId, component) {
             if (!entryId.startsWith("file://")) {
               throw new Error(

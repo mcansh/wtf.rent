@@ -85,8 +85,6 @@ export const controller = createController(routes, {
 
         try {
           let url = new URL("/", `http://${host}`)
-          // if we can connect to the database and make a simple query
-          // and make a HEAD request to ourselves, then we're good.
           await Promise.all([
             db.findMany(users),
             fetch(url.toString(), { method: "HEAD" }).then((r) => {
