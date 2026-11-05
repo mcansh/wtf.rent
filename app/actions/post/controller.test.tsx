@@ -55,7 +55,10 @@ describe("post authorization", () => {
 
     for (let [pathname, method, returnTo] of protectedRequests) {
       let response = await app.router.fetch(request(pathname, method, cookie, csrfToken))
-      let location = new URL(response.headers.get("Location")!, "http://localhost")
+      let locationHeader = response.headers.get("Location")
+      if (locationHeader == null)
+        throw new Error(`expected a Location header for ${method} ${pathname}`)
+      let location = new URL(locationHeader, "http://localhost")
 
       assert.equal(response.status, 302, `${method} ${pathname}`)
       assert.equal(location.pathname, routes.login.index.href(), `${method} ${pathname}`)
@@ -76,7 +79,8 @@ describe("post authorization", () => {
     let protectedResponse = await app.router.fetch(
       request(routes.post.comment.href({ id: report.id }), "POST", guestCookie, csrfToken),
     )
-    let loginHref = protectedResponse.headers.get("Location")!
+    let loginHref = protectedResponse.headers.get("Location")
+    if (loginHref == null) throw new Error("expected a login Location header")
     let loginURL = new URL(loginHref, "http://localhost")
 
     assert.equal(protectedResponse.status, 302)
@@ -99,8 +103,10 @@ describe("post authorization", () => {
     assert.equal(loginResponse.status, 303)
     assert.equal(loginResponse.headers.get("Location"), routes.post.show.href({ id: report.id }))
 
+    let afterLoginHref = loginResponse.headers.get("Location")
+    if (afterLoginHref == null) throw new Error("expected a post-login Location header")
     let finalResponse = await app.router.fetch(
-      request(loginResponse.headers.get("Location")!, "GET", getResponseCookie(loginResponse)),
+      request(afterLoginHref, "GET", getResponseCookie(loginResponse)),
     )
     let html = await finalResponse.text()
 
@@ -543,15 +549,15 @@ describe("new report form", () => {
       "title",
       "content",
       "isFirsthand",
-    ]) {
+    ])
       assert.match(html, new RegExp(`(?:for|name)="${name}(?:-[1-5])?"`), name)
-    }
-    for (let [value, label] of Object.entries(REPORT_CATEGORY_LABELS)) {
+
+    for (let [value, label] of Object.entries(REPORT_CATEGORY_LABELS))
       assert.match(html, new RegExp(`<option value="${value}">${label}</option>`), value)
-    }
-    for (let rating = 1; rating <= 5; rating++) {
+
+    for (let rating = 1; rating <= 5; rating++)
       assert.match(html, new RegExp(`name="rating"[^>]*value="${rating}"`), String(rating))
-    }
+
     assert.match(html, /street address is stored[^.]*not shown publicly/i)
     assert.match(html, /city and state, province, or region/i)
     assert.match(html, /your public username/i)
@@ -1025,7 +1031,8 @@ describe("create report", () => {
     let reports = await app.database.findMany(posts)
 
     assert.equal(reports.length, 1)
-    let report = reports[0]!
+    let report = reports[0]
+    if (report == null) throw new Error("expected the created report")
     assert.equal(response.status, 303)
     assert.equal(response.headers.get("Location"), routes.post.show.href({ id: report.id }))
     assert.notEqual(report.id, "forged-report")
@@ -1061,9 +1068,8 @@ function validReportValues(overrides: Record<string, string | undefined> = {}) {
 
 function reportCreateRequest(values: Record<string, string | undefined>, cookie: string): Request {
   let formData = new FormData()
-  for (let [name, value] of Object.entries(values)) {
+  for (let [name, value] of Object.entries(values))
     if (value !== undefined) formData.set(name, value)
-  }
 
   return new Request(new URL(routes.post.create.href(), "http://localhost"), {
     method: "POST",
@@ -1079,9 +1085,8 @@ function reportUpdateRequest(
 ): Request {
   let formData = new FormData()
   formData.set("_method", "PUT")
-  for (let [name, value] of Object.entries(values)) {
+  for (let [name, value] of Object.entries(values))
     if (value !== undefined) formData.set(name, value)
-  }
 
   return new Request(new URL(routes.post.update.href({ id }), "http://localhost"), {
     method: "POST",
@@ -1097,9 +1102,8 @@ function commentCreateRequest(
   searchParams?: Record<string, string>,
 ): Request {
   let formData = new FormData()
-  for (let [name, value] of Object.entries(values)) {
+  for (let [name, value] of Object.entries(values))
     if (value !== undefined) formData.set(name, value)
-  }
 
   return new Request(
     new URL(routes.post.comment.href({ id }, { searchParams }), "http://localhost"),

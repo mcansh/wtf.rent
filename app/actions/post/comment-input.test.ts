@@ -74,9 +74,8 @@ describe("comment input", () => {
       { commentsBeforeAt: "2026-08-18T12:34:56.000Z", commentsBeforeId: "x".repeat(101) },
     ]
 
-    for (let values of invalidValues) {
+    for (let values of invalidValues)
       assert.equal(parseCommentCursor(new URLSearchParams(values)), null)
-    }
   })
 })
 

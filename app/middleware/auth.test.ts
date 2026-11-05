@@ -26,9 +26,8 @@ describe("auth helpers", () => {
       "profile",
       "/profile\nSet-Cookie: stolen=true",
       "",
-    ]) {
+    ])
       assert.equal(getSafeReturnTo(unsafe), undefined, unsafe)
-    }
   })
 
   it("parses only the expected auth-session shape", () => {

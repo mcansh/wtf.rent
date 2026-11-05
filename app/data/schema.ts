@@ -30,9 +30,8 @@ export const users = table({
   },
   timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" },
   beforeWrite({ operation, value }) {
-    if (operation === "create" && value.id === undefined) {
+    if (operation === "create" && value.id === undefined)
       return { value: { ...value, id: crypto.randomUUID() } }
-    }
 
     return { value }
   },
@@ -65,9 +64,8 @@ export const posts = table({
   },
   timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" },
   beforeWrite({ operation, value }) {
-    if (operation === "create" && value.id === undefined) {
+    if (operation === "create" && value.id === undefined)
       return { value: { ...value, id: crypto.randomUUID() } }
-    }
 
     return { value }
   },
@@ -95,9 +93,8 @@ export const comments = table({
   },
   timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" },
   beforeWrite({ operation, value }) {
-    if (operation === "create" && value.id === undefined) {
+    if (operation === "create" && value.id === undefined)
       return { value: { ...value, id: crypto.randomUUID() } }
-    }
 
     return { value }
   },

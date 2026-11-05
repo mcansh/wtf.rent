@@ -34,7 +34,7 @@ export function requestTelemetry(options: RequestTelemetryOptions = {}): Middlew
       let headers = new Headers(response.headers)
       headers.set("X-Request-Id", requestId)
 
-      emit(sink, {
+      emitIgnoringSinkErrors(sink, {
         event: "http_request_completed",
         ...baseRecord,
         statusClass: getStatusClass(response.status),
@@ -47,7 +47,7 @@ export function requestTelemetry(options: RequestTelemetryOptions = {}): Middlew
         headers,
       })
     } catch (error: unknown) {
-      emit(sink, {
+      emitIgnoringSinkErrors(sink, {
         event: "http_request_failed",
         ...baseRecord,
         statusClass: "5xx",
@@ -75,21 +75,16 @@ function defaultSink(): (record: RequestTelemetryRecord) => void {
 
   return (record) => {
     let line = `${JSON.stringify(record)}\n`
-    if (record.event === "http_request_failed") {
-      process.stderr.write(line)
-    } else {
-      process.stdout.write(line)
-    }
+    if (record.event === "http_request_failed") process.stderr.write(line)
+    else process.stdout.write(line)
   }
 }
 
-function emit(
+function emitIgnoringSinkErrors(
   sink: (record: RequestTelemetryRecord) => void,
   record: RequestTelemetryRecord,
 ): void {
   try {
     sink(record)
-  } catch {
-    // Telemetry failure must never change the application response.
-  }
+  } catch {}
 }

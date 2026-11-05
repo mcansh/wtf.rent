@@ -99,7 +99,9 @@ describe("listPublicDirectoryEntries", () => {
       hasPreviousPage: false,
       hasNextPage: false,
     })
-    assert.deepEqual(Object.keys(page.entries[0]!).sort(), [
+    let firstEntry = page.entries[0]
+    if (firstEntry == null) throw new Error("expected a directory entry")
+    assert.deepEqual(Object.keys(firstEntry).sort(), [
       "city",
       "landlordName",
       "region",

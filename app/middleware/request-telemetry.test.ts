@@ -14,7 +14,7 @@ describe("request telemetry", () => {
       middleware: [
         requestTelemetry({
           createRequestId: () => "generated-completion-id",
-          now: () => ticks.shift()!,
+          now: () => takeNext(ticks, "tick"),
           sink: (record) => records.push(record),
         }),
       ],
@@ -63,7 +63,7 @@ describe("request telemetry", () => {
     let router = createRouter({
       middleware: [
         requestTelemetry({
-          createRequestId: () => generatedIds.shift()!,
+          createRequestId: () => takeNext(generatedIds, "request id"),
           now: () => 10,
           sink: (record) => records.push(record),
         }),
@@ -96,7 +96,7 @@ describe("request telemetry", () => {
       middleware: [
         requestTelemetry({
           createRequestId: () => "generated-error-id",
-          now: () => ticks.shift()!,
+          now: () => takeNext(ticks, "tick"),
           sink: (record) => records.push(record),
         }),
       ],
@@ -145,3 +145,9 @@ describe("request telemetry", () => {
     assert.equal(await response.text(), "still available")
   })
 })
+
+function takeNext<T>(values: T[], label: string): T {
+  let value = values.shift()
+  if (value === undefined) throw new Error(`expected another ${label}`)
+  return value
+}

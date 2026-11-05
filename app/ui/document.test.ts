@@ -121,7 +121,11 @@ function request(pathname: string, cookie?: string): Request {
 }
 
 function htmlHrefs(html: string): string[] {
-  return [...html.matchAll(/href="([^"]+)"/g)].map((match) => match[1]!.replaceAll("&amp;", "&"))
+  return [...html.matchAll(/href="([^"]+)"/g)].map((match) => {
+    let href = match[1]
+    if (href == null) throw new Error("expected an href capture")
+    return href.replaceAll("&amp;", "&")
+  })
 }
 
 function escapeRegExp(value: string): string {

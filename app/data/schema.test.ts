@@ -23,9 +23,7 @@ function readTableMetadata<table extends AnyTable>(table: table): table[typeof t
   let metadataKey = Object.getOwnPropertySymbols(table).find(
     (key) => key.description === tableMetadataKey.description,
   )
-  if (metadataKey === undefined) {
-    assert.fail("Expected table metadata symbol on schema table")
-  }
+  if (metadataKey === undefined) assert.fail("Expected table metadata symbol on schema table")
 
   // SAFETY: The matching own symbol is the table's metadata key from its isolated module instance.
   return table[metadataKey as typeof tableMetadataKey]
@@ -65,9 +63,8 @@ describe("data schema", () => {
     for (let table of [users, posts, comments]) {
       let metadata = readTableMetadata(table)
       let beforeWrite = metadata.beforeWrite
-      if (beforeWrite === undefined) {
+      if (beforeWrite === undefined)
         assert.fail(`Expected ${metadata.name} to generate ids before writes`)
-      }
 
       let result = beforeWrite({
         operation: "create",
@@ -75,9 +72,8 @@ describe("data schema", () => {
         value: {},
       })
 
-      if (!("value" in result)) {
-        assert.fail(`Expected ${metadata.name} id generation to succeed`)
-      }
+      if (!("value" in result)) assert.fail(`Expected ${metadata.name} id generation to succeed`)
+
       assert.match(
         String(result.value.id),
         /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
@@ -106,9 +102,8 @@ describe("data schema", () => {
       "category",
       "rating",
       "experienceConfirmedAt",
-    ] as const) {
+    ] as const)
       assert.equal(postColumns[column].nullable, true, column)
-    }
 
     assert.deepEqual(postColumns.category.enumValues, REPORT_CATEGORIES)
     assert.deepEqual(postColumns.status.enumValues, REPORT_STATUSES)

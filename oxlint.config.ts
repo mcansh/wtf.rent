@@ -23,7 +23,6 @@ export const IGNORE_PATTERNS = [
 ] as const satisfies OxlintConfig["ignorePatterns"]
 
 export default defineConfig({
-  // Ensure only explicitly enabled rules are used.
   categories: {
     correctness: "off",
     nursery: "off",
@@ -51,11 +50,15 @@ export default defineConfig({
     },
   },
   rules: {
+    curly: ["error", "multi-or-nest"],
+    "oxc/no-accumulating-spread": "error",
+    "anti-slop/no-array-filter-map": "error",
     "anti-slop/no-chained-type-assertions": "error",
     "anti-slop/no-conditional-empty-object-spread": "error",
     "anti-slop/no-known-value-widening": "error",
     "anti-slop/no-module-mocking": "error",
     "anti-slop/no-object-parameters": "error",
+    "anti-slop/no-reduce-accumulator-copy": "error",
     "anti-slop/no-reflect-apply": "error",
     "anti-slop/no-reflect-get": "error",
     "anti-slop/no-runtime-typeof": "error",
@@ -74,6 +77,12 @@ export default defineConfig({
     "no-useless-catch": "off",
   },
   overrides: [
+    {
+      files: ["tools/oxlint/**"],
+      rules: {
+        curly: "off",
+      },
+    },
     {
       files: ["**/*.{ts,tsx}"],
       plugins: ["typescript", "import"],
@@ -95,6 +104,7 @@ export default defineConfig({
         "import/newline-after-import": "error",
         "remix-interface/interface-pascal-case": "error",
         "remix-typescript/no-typescript-accessibility": "error",
+        "typescript/no-non-null-assertion": "error",
       },
     },
     {
@@ -102,8 +112,10 @@ export default defineConfig({
       jsPlugins: [
         "./tools/oxlint/prefer-let-locals-plugin.ts",
         "./tools/oxlint/canonical-header-names-plugin.ts",
+        "./tools/oxlint/jsx-no-leaked-render-plugin.ts",
       ],
       rules: {
+        "remix-jsx/jsx-no-leaked-render": "error",
         "remix-headers/canonical-header-name": "error",
         "remix-style/prefer-const-module-scope": "error",
         "remix-style/prefer-let-locals": "error",

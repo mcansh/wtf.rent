@@ -67,7 +67,9 @@ describe("profile and logout", () => {
     let response = await app.router.fetch(request(routes.profile.href()))
 
     assert.equal(response.status, 302)
-    let location = new URL(response.headers.get("Location")!, "http://localhost")
+    let locationHeader = response.headers.get("Location")
+    if (locationHeader == null) throw new Error("expected a Location header")
+    let location = new URL(locationHeader, "http://localhost")
     assert.equal(location.pathname, routes.login.index.href())
     assert.equal(location.searchParams.get("returnTo"), routes.profile.href())
   })

@@ -11,7 +11,9 @@ describe("app router", () => {
 
     assert.equal(testEnv.NODE_ENV, "test")
     assert.match(testEnv.DATABASE_URL, /^postgresql:\/\//)
-    assert.ok(testEnv.SESSION_SECRETS[0]!.length >= 32)
+    let sessionSecret = testEnv.SESSION_SECRETS[0]
+    if (sessionSecret == null) throw new Error("expected a session secret")
+    assert.ok(sessionSecret.length >= 32)
 
     assert.throws(() => readEnv({ NODE_ENV: "production" }))
   })
